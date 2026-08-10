@@ -1,4 +1,6 @@
 <script setup>
+import CountUp from '../CountUp.vue'
+
 defineProps({
   repRevenueF: String,
   repCostF: String,
@@ -14,22 +16,22 @@ defineProps({
     <div class="stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px;">
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
         <div style="width:42px;height:42px;border-radius:11px;background:#eef3fb;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><i class="ph-fill ph-wallet" style="font-size:21px;color:#15294f;"></i></div>
-        <div style="font-size:22px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1.1;">{{ repRevenueF }}</div>
+        <div style="font-size:22px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1.1;"><CountUp :value="repRevenueF" /></div>
         <div style="font-size:13px;color:#7a8499;font-weight:500;margin-top:7px;">Total pendapatan</div>
       </div>
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
         <div style="width:42px;height:42px;border-radius:11px;background:#eef0f3;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><i class="ph-fill ph-bag" style="font-size:21px;color:#5d6a82;"></i></div>
-        <div style="font-size:22px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1.1;">{{ repCostF }}</div>
+        <div style="font-size:22px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1.1;"><CountUp :value="repCostF" /></div>
         <div style="font-size:13px;color:#7a8499;font-weight:500;margin-top:7px;">Total modal (HPP)</div>
       </div>
       <div style="background:linear-gradient(135deg,#15294f,#0d1b30);border-radius:16px;padding:22px;">
         <div style="width:42px;height:42px;border-radius:11px;background:rgba(195,154,77,.2);display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><i class="ph-fill ph-trend-up" style="font-size:21px;color:#c39a4d;"></i></div>
-        <div style="font-size:22px;font-weight:800;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;line-height:1.1;">{{ repProfitF }}</div>
+        <div style="font-size:22px;font-weight:800;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;line-height:1.1;"><CountUp :value="repProfitF" /></div>
         <div style="font-size:13px;color:#aeb8cc;font-weight:500;margin-top:7px;">Estimasi profit</div>
       </div>
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
         <div style="width:42px;height:42px;border-radius:11px;background:#e8f4ed;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><i class="ph-fill ph-percent" style="font-size:21px;color:#1f7a5c;"></i></div>
-        <div style="font-size:22px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1.1;">{{ repMarginF }}</div>
+        <div style="font-size:22px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1.1;"><CountUp :value="repMarginF" /></div>
         <div style="font-size:13px;color:#7a8499;font-weight:500;margin-top:7px;">Margin rata-rata</div>
       </div>
     </div>
