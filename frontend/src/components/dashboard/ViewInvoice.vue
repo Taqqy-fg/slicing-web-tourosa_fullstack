@@ -90,18 +90,18 @@ const doPrint = () => window.print()
           <div style="display:flex;justify-content:flex-start;gap:30px;margin-bottom:10px;"><span
               style="font-size:12.5px;color:#8a93a5;">Tanggal Invoice</span><span
               style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;min-width:120px;">{{
-              inv.dateF }}</span></div>
+                inv.dateF }}</span></div>
           <div style="display:flex;justify-content:flex-start;gap:30px;margin-bottom:10px;"><span
               style="font-size:12.5px;color:#8a93a5;">Destinasi</span><span
               style="font-size:12.5px;font-weight:700;color:#13233f;min-width:120px;">{{ inv.dest }}</span></div>
           <div style="display:flex;justify-content:flex-start;gap:30px;margin-bottom:10px;"><span
               style="font-size:12.5px;color:#8a93a5;">Tanggal Perjalanan</span><span
               style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;min-width:120px;">{{
-              inv.tripF }}</span></div>
+                inv.tripF }}</span></div>
           <div style="display:flex;justify-content:flex-start;gap:30px;"><span
               style="font-size:12.5px;color:#8a93a5;">Jumlah Peserta</span><span
               style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;min-width:120px;">{{
-              inv.paxF }}</span></div>
+                inv.paxF }}</span></div>
         </div>
       </div>
       <!-- items table -->
@@ -126,7 +126,7 @@ const doPrint = () => window.print()
                 }}x</span>
               <span class="col-third-mobile text-right-mobile"
                 style="font-size:13px;color:#5d6a82;text-align:right;font-family:'IBM Plex Mono',monospace;">@ {{
-                it.priceF }}</span>
+                  it.priceF }}</span>
               <span class="col-third-mobile text-right-mobile"
                 style="font-size:13px;font-weight:700;color:#13233f;text-align:right;font-family:'IBM Plex Mono',monospace;">=
                 {{ it.lineF }}</span>
@@ -172,7 +172,7 @@ const doPrint = () => window.print()
             <div style="display:flex;justify-content:space-between;margin-bottom:9px;"><span
                 style="font-size:12px;color:#9fabc4;">Per pax</span><span
                 style="font-size:12.5px;font-weight:700;color:#fff;font-family:'IBM Plex Mono',monospace;">{{
-                inv.perPaxF }}</span></div>
+                  inv.perPaxF }}</span></div>
             <div style="display:flex;justify-content:space-between;margin-bottom:9px;"><span
                 style="font-size:12px;color:#9fabc4;">DP ({{ inv.dpPercentF }}%)</span><span
                 style="font-size:12.5px;font-weight:700;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;">{{ inv.dpF
@@ -180,7 +180,7 @@ const doPrint = () => window.print()
             <div style="display:flex;justify-content:space-between;padding-top:9px;border-top:1px solid #24365a;"><span
                 style="font-size:12px;color:#9fabc4;">Sisa pelunasan</span><span
                 style="font-size:12.5px;font-weight:700;color:#f0c98a;font-family:'IBM Plex Mono',monospace;">{{
-                inv.sisaF }}</span></div>
+                  inv.sisaF }}</span></div>
           </div>
         </div>
       </div>
@@ -202,13 +202,16 @@ const doPrint = () => window.print()
                 tm.no }}</span>
               <span class="col-full-mobile" style="font-size:13px;font-weight:600;color:#13233f;">{{ tm.label }}</span>
               <span class="col-half-mobile"
-                style="font-size:12.5px;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">📅 {{ tm.dueF }}</span>
+                style="font-size:12.5px;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">
+                <i class="ph ph-calendar"
+                  style="font-size:12.5px;color:#5d6a82;vertical-align:middle;vertical-align:middle;padding-right:4px;"></i>{{
+                tm.dueF }}</span>
               <span class="col-half-mobile"
                 style="font-size:12.5px;color:#5d6a82;text-align:center;font-family:'IBM Plex Mono',monospace;">{{
                   tm.percentF }}</span>
               <span class="col-full-mobile text-right-mobile"
                 style="font-size:13px;font-weight:700;color:#13233f;text-align:right;font-family:'IBM Plex Mono',monospace;">{{
-                tm.amountF }}</span>
+                  tm.amountF }}</span>
             </div>
           </div>
         </div>

@@ -84,8 +84,8 @@ const goNew = () => router.push('/dashboard/new-order')
             </div>
             <div v-for="(o, idx) in recentOrders" :key="idx" @click="o.onDetail" class="tr-nav table-row-mobile" style="display:grid;grid-template-columns:1.6fr 1fr .7fr 1fr .8fr;gap:12px;padding:14px 22px;border-top:1px solid #f1f2f5;cursor:pointer;align-items:center;">
               <div class="col-full-mobile" style="min-width:0;"><div style="font-size:14px;font-weight:700;color:#13233f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ o.group }}</div><div style="font-size:11px;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;">{{ o.no }}</div></div>
-              <span class="col-half-mobile" style="font-size:13.5px;color:#5d6a82;">📍 {{ o.dest }}</span>
-              <span class="col-half-mobile" style="font-size:13.5px;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">👥 {{ o.pax }}</span>
+              <span class="col-half-mobile" style="font-size:13.5px;color:#5d6a82;"><i class="ph ph-map-pin" style="font-size:13.5px;color:#5d6a82;vertical-align:middle;padding-right:4px;"></i>{{ o.dest }}</span>
+              <span class="col-half-mobile" style="font-size:13.5px;color:#5d6a82;"><i class="ph ph-users" style="font-size:13.5px;color:#5d6a82;vertical-align:middle;padding-right:4px;"></i>{{ o.pax }}</span>
               <span class="col-half-mobile" style="font-size:13.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ o.total }}</span>
               <span class="col-half-mobile"><span :style="{ color: o.statusColor, background: o.statusBg }" style="font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:7px;">{{ o.status }}</span></span>
             </div>
