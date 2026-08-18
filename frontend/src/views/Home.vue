@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { dashboardService } from '../services/dashboardService'
+import { siteService } from '../services/siteService'
 
 import SiteHeader from '../components/site/SiteHeader.vue'
 import HeroSection from '../components/site/HeroSection.vue'
@@ -15,8 +15,8 @@ import SiteFooter from '../components/site/SiteFooter.vue'
 import ScrollToTop from '../components/site/ScrollToTop.vue'
 
 const { data, isPending } = useQuery({
-  queryKey: ['dashboard'],
-  queryFn: dashboardService.getDashboardData
+  queryKey: ['site'],
+  queryFn: siteService.getSiteSettings
 })
 
 const site = computed(() => {

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { useDashboardStore } from '../stores/dashboardStore'
+import { useAuthStore } from '../stores/authStore'
 import { dashboardService } from '../services/dashboardService'
 import { useDashboardData } from '../composables/useDashboardData'
 
@@ -10,6 +11,7 @@ import DashSidebar from '../components/dashboard/DashSidebar.vue'
 import DashTopbar from '../components/dashboard/DashTopbar.vue'
 
 const store = useDashboardStore()
+const auth = useAuthStore()
 const { fmtDate } = useDashboardData()
 const route = useRoute()
 const router = useRouter()
@@ -35,6 +37,11 @@ const site = computed(() => {
 
 // Share fetched data to child views via store
 store.setQueryData({ orders, catalog, site })
+
+// Load user profile if not already loaded
+if (!auth.user) {
+  auth.fetchUser()
+}
 
 const isSidebarOpen = ref(false)
 const mainScroll = ref(null)

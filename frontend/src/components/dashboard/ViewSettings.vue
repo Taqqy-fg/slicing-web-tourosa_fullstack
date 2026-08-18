@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useDashboardStore } from '../../stores/dashboardStore'
+import { useAuthStore } from '../../stores/authStore'
 
 const props = defineProps({
   site: Object,
@@ -8,15 +9,55 @@ const props = defineProps({
 })
 
 const store = useDashboardStore()
+const auth = useAuthStore()
 
 const tabWebsite = () => store.setSettingsTab('website')
 const tabCatalog = () => store.setSettingsTab('catalog')
+const tabProfile = () => store.setSettingsTab('profile')
 const tabWebBg = computed(() => store.settingsTab === 'website' ? '#15294f' : 'transparent')
 const tabWebColor = computed(() => store.settingsTab === 'website' ? '#fff' : '#5d6a82')
 const tabCatBg = computed(() => store.settingsTab === 'catalog' ? '#15294f' : 'transparent')
 const tabCatColor = computed(() => store.settingsTab === 'catalog' ? '#fff' : '#5d6a82')
+const tabProfBg = computed(() => store.settingsTab === 'profile' ? '#15294f' : 'transparent')
+const tabProfColor = computed(() => store.settingsTab === 'profile' ? '#fff' : '#5d6a82')
 const isTabWebsite = computed(() => store.settingsTab === 'website')
 const isTabCatalog = computed(() => store.settingsTab === 'catalog')
+const isTabProfile = computed(() => store.settingsTab === 'profile')
+
+// Profile form
+const profileName = ref(auth.user?.name || '')
+const profileEmail = ref(auth.user?.email || '')
+const profilePassword = ref('')
+const profilePasswordConfirm = ref('')
+const showPassword = ref(false)
+const showPasswordConfirm = ref(false)
+const profileLoading = ref(false)
+const profileSuccess = ref('')
+const profileError = ref('')
+
+async function saveProfile() {
+  profileLoading.value = true
+  profileSuccess.value = ''
+  profileError.value = ''
+  try {
+    const payload = {
+      name: profileName.value,
+      email: profileEmail.value,
+    }
+    if (profilePassword.value) {
+      payload.password = profilePassword.value
+      payload.password_confirmation = profilePasswordConfirm.value
+    }
+    await auth.updateProfile(payload)
+    profilePassword.value = ''
+    profilePasswordConfirm.value = ''
+    profileSuccess.value = 'Profil berhasil diperbarui.'
+  } catch (e) {
+    profileError.value = e.response?.data?.message || e.response?.data?.errors?.email?.[0] || e.response?.data?.errors?.password?.[0] || 'Gagal memperbarui profil.'
+  } finally {
+    profileLoading.value = false
+  }
+}
 
 const statEdit = computed(() => props.site.stats.map((st, i) => ({ idx: i, n: st.n, l: st.l, onN: () => {}, onL: () => {} })))
 const clientsEdit = computed(() => props.site.clients.map((c, i) => ({ idx: i, name: c.name, img: c.img, hasImg: !!c.img, notImg: !c.img, onName: () => {}, onLogo: () => {}, onRemove: () => {} })))
@@ -34,6 +75,7 @@ const addCat = () => {}
     <div style="display:inline-flex;flex-wrap:wrap;background:#fff;border:1px solid #e8e9ee;border-radius:12px;padding:5px;margin-bottom:22px;gap:4px;">
       <button @click="tabWebsite" class="tr-btn" :style="{ background: tabWebBg, color: tabWebColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-globe-hemisphere-west" style="font-size:16px;"></i>Konten Website</button>
       <button @click="tabCatalog" class="tr-btn" :style="{ background: tabCatBg, color: tabCatColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-tag" style="font-size:16px;"></i>Kategori &amp; Vendor</button>
+      <button @click="tabProfile" class="tr-btn" :style="{ background: tabProfBg, color: tabProfColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-user-circle" style="font-size:16px;"></i>Profil Admin</button>
     </div>
 
     <div v-if="isTabWebsite" style="display:flex;flex-direction:column;gap:18px;">
@@ -95,6 +137,46 @@ const addCat = () => {}
         </div>
       </div>
       <button @click="addCat" class="tr-btn" style="align-self:flex-start;background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 18px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px;"><i class="ph ph-plus" style="font-size:16px;color:#c39a4d;"></i>Tambah Kategori</button>
+    </div>
+
+    <div v-if="isTabProfile" style="display:flex;flex-direction:column;gap:18px;">
+      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
+        <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 4px;display:flex;align-items:center;gap:9px;"><i class="ph ph-user-circle" style="color:#c39a4d;font-size:20px;"></i>Profil Admin</h3>
+        <p style="font-size:13px;color:#8a93a5;margin:0 0 18px;">Perbarui nama, email, dan password akun Anda.</p>
+
+        <div v-if="profileSuccess" style="display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;font-size:13px;font-weight:600;padding:12px 14px;border-radius:10px;margin-bottom:16px;">
+          <i class="ph ph-check-circle" style="font-size:16px;flex-shrink:0;"></i>{{ profileSuccess }}
+        </div>
+        <div v-if="profileError" style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:13px;font-weight:600;padding:12px 14px;border-radius:10px;margin-bottom:16px;">
+          <i class="ph ph-warning-circle" style="font-size:16px;flex-shrink:0;"></i>{{ profileError }}
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div style="grid-column:span 2;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nama Lengkap</label>
+            <input v-model="profileName" placeholder="Nama admin" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;">
+          </div>
+          <div style="grid-column:span 2;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Email</label>
+            <input v-model="profileEmail" type="email" placeholder="admin@tourosa.id" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;">
+          </div>
+          <div style="position:relative;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Password Baru <span style="color:#b0b8c8;font-weight:400;">(opsional)</span></label>
+            <input v-model="profilePassword" :type="showPassword ? 'text' : 'password'" placeholder="Kosongkan jika tidak diubah" style="width:100%;padding:11px 38px 11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;">
+            <button type="button" @click="showPassword = !showPassword" tabindex="-1" style="position:absolute;right:8px;bottom:8px;background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;color:#9aa3b2;font-size:16px;transition:color .2s;"><i :class="showPassword ? 'ph ph-eye-slash' : 'ph ph-eye'"></i></button>
+          </div>
+          <div style="position:relative;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Konfirmasi Password</label>
+            <input v-model="profilePasswordConfirm" :type="showPasswordConfirm ? 'text' : 'password'" placeholder="Ulangi password baru" style="width:100%;padding:11px 38px 11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;">
+            <button type="button" @click="showPasswordConfirm = !showPasswordConfirm" tabindex="-1" style="position:absolute;right:8px;bottom:8px;background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;color:#9aa3b2;font-size:16px;transition:color .2s;"><i :class="showPasswordConfirm ? 'ph ph-eye-slash' : 'ph ph-eye'"></i></button>
+          </div>
+        </div>
+        <button @click="saveProfile" :disabled="profileLoading" class="tr-btn" style="margin-top:18px;background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 22px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px;">
+          <span v-if="profileLoading" style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span>
+          <i v-else class="ph ph-floppy-disk" style="font-size:16px;"></i>
+          {{ profileLoading ? 'Menyimpan...' : 'Simpan Profil' }}
+        </button>
+      </div>
     </div>
   </div>
 </template>

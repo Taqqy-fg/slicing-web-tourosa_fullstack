@@ -10,6 +10,18 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
+    public function site()
+    {
+        $settings = Setting::all();
+
+        $formattedSettings = [];
+        foreach ($settings as $setting) {
+            $formattedSettings[$setting->key] = json_decode($setting->value, true);
+        }
+
+        return response()->json(['site' => $formattedSettings]);
+    }
+
     public function index()
     {
         $orders = Order::with(['items', 'expenses', 'terms'])->orderBy('id', 'desc')->get();

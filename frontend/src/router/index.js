@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
+import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 import ViewOverview from '../components/dashboard/ViewOverview.vue'
 import ViewNewOrder from '../components/dashboard/ViewNewOrder.vue'
@@ -16,10 +17,17 @@ const routes = [
     component: Home
   },
   {
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { guest: true }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
     redirect: '/dashboard/overview',
+    meta: { requiresAuth: true },
     children: [
       {
         path: 'overview',
@@ -68,6 +76,18 @@ const router = createRouter({
       return { el: to.hash, behavior: 'smooth' }
     }
     return { top: 0 }
+  }
+})
+
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+
+  if (to.meta.requiresAuth && !token) {
+    next({ name: 'Login' })
+  } else if (to.meta.guest && token) {
+    next({ name: 'Dashboard' })
+  } else {
+    next()
   }
 })
 

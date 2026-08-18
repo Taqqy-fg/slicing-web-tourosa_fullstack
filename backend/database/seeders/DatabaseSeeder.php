@@ -11,11 +11,22 @@ use App\Models\OrderTerm;
 use App\Models\Catalog;
 use App\Models\CatalogItem;
 use App\Models\Setting;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // SEED USER
+        User::firstOrCreate(
+            ['email' => 'admin@tourosa.id'],
+            [
+                'name' => 'Admin Tourosa',
+                'password' => Hash::make('password'),
+            ]
+        );
+
         // SEED SETTINGS
         Setting::insert([
             ['key' => 'waNumber', 'value' => json_encode('6281200000000')],

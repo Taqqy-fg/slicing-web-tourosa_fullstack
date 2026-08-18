@@ -1,5 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../stores/authStore'
 
 defineProps({
   navItems: Array,
@@ -9,8 +10,15 @@ defineProps({
 const emit = defineEmits(['close'])
 
 const router = useRouter()
+const auth = useAuthStore()
+
 const goSite = () => {
   router.push('/')
+}
+
+const userInitial = (name) => {
+  if (!name) return 'A'
+  return name.charAt(0).toUpperCase()
 }
 </script>
 
@@ -32,9 +40,12 @@ const goSite = () => {
     </nav>
     <div style="padding:14px;border-top:1px solid #1b2942;">
       <button @click="goSite" class="tr-nav" style="display:flex;align-items:center;gap:11px;padding:11px 14px;border:none;border-radius:10px;cursor:pointer;text-align:left;width:100%;background:transparent;color:#9aa6bd;font-size:13.5px;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;"><i class="ph ph-globe-hemisphere-west" style="font-size:18px;flex-shrink:0;"></i>Lihat Website</button>
-      <div style="display:flex;align-items:center;gap:11px;padding:10px 12px;background:#142340;border-radius:11px;">
-        <div style="width:34px;height:34px;border-radius:9px;background:#c39a4d;display:flex;align-items:center;justify-content:center;font-weight:800;color:#13233f;font-size:14px;">A</div>
-        <div style="line-height:1.3;"><div style="font-size:13px;font-weight:700;color:#fff;">Admin Tourosa</div><div style="font-size:11px;color:#7c89a3;">Operasional</div></div>
+      <div v-if="auth.user" style="display:flex;align-items:center;gap:11px;padding:10px 12px;background:#142340;border-radius:11px;">
+        <div style="width:34px;height:34px;border-radius:9px;background:#c39a4d;display:flex;align-items:center;justify-content:center;font-weight:800;color:#13233f;font-size:14px;flex-shrink:0;">{{ userInitial(auth.user.name) }}</div>
+        <div style="line-height:1.3;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ auth.user.name }}</div>
+          <div style="font-size:11px;color:#7c89a3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ auth.user.email }}</div>
+        </div>
       </div>
     </div>
   </aside>
