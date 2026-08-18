@@ -2,6 +2,9 @@
 import { computed, ref } from 'vue'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import { useAuthStore } from '../../stores/authStore'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { dashboardService } from '../../services/dashboardService'
+
 
 const props = defineProps({
   site: Object,
@@ -10,6 +13,7 @@ const props = defineProps({
 
 const store = useDashboardStore()
 const auth = useAuthStore()
+const queryClient = useQueryClient()
 
 const tabWebsite = () => store.setSettingsTab('website')
 const tabCatalog = () => store.setSettingsTab('catalog')
@@ -59,15 +63,105 @@ async function saveProfile() {
   }
 }
 
-const statEdit = computed(() => props.site.stats.map((st, i) => ({ idx: i, n: st.n, l: st.l, onN: () => {}, onL: () => {} })))
-const clientsEdit = computed(() => props.site.clients.map((c, i) => ({ idx: i, name: c.name, img: c.img, hasImg: !!c.img, notImg: !c.img, onName: () => {}, onLogo: () => {}, onRemove: () => {} })))
-const addClient = () => {}
+const statEdit = computed(() => (props.site.stats || []).map((st, i) => ({ 
+  idx: i, n: st.n, l: st.l, 
+  onN: ev => { props.site.stats[i].n = ev.target.value }, 
+  onL: ev => { props.site.stats[i].l = ev.target.value } 
+})))
+
+const clientsEdit = computed(() => (props.site.clients || []).map((c, i) => ({ 
+  idx: i, name: c.name, img: c.img, hasImg: !!c.img, notImg: !c.img, 
+  onName: ev => { store.site.clients[i].name = ev.target.value }, 
+  onLogo: ev => {
+    const file = ev.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => { store.site.clients[i].img = e.target.result; };
+      reader.readAsDataURL(file);
+    }
+  }, 
+  onRemove: () => { 
+    const updated = [...props.site.clients];
+    updated.splice(i, 1);
+    store.site.clients = updated;
+  } 
+})))
+const addClient = () => {
+  const clients = props.site.clients || [];
+  store.site.clients = [...clients, { name: '', img: '' }];
+}
 
 const catalogEdit = computed(() => props.catalog.map((c, ci) => ({
-  idx: ci, cat: c.cat, onName: () => {}, onRemove: () => {}, onAddVendor: () => {},
-  vendors: c.items.map((v, vi) => ({ vidx: vi, val: v, onVal: () => {}, onRemove: () => {} }))
+  idx: ci, cat: c.cat, 
+  onName: ev => { store.catalog[ci].cat = ev.target.value }, 
+  onRemove: () => { 
+    const updated = [...props.catalog];
+    updated.splice(ci, 1);
+    store.catalog = updated;
+  }, 
+  onAddVendor: () => { 
+    const items = [...props.catalog[ci].items];
+    items.push('');
+    store.catalog[ci].items = items;
+  },
+  vendors: c.items.map((v, vi) => ({ 
+    vidx: vi, val: v, 
+    onVal: ev => { store.catalog[ci].items[vi] = ev.target.value }, 
+    onRemove: () => { 
+      const items = [...props.catalog[ci].items];
+      items.splice(vi, 1);
+      store.catalog[ci].items = items;
+    } 
+  }))
 })))
-const addCat = () => {}
+const addCat = () => {
+  store.catalog = [...props.catalog, { cat: 'Kategori Baru', items: [] }];
+}
+
+// --- Save Settings ---
+const saveSettingsStatus = ref('')
+const saveSettingsMut = useMutation({
+  mutationFn: dashboardService.updateSettings,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    saveSettingsStatus.value = 'saved'
+    setTimeout(() => { saveSettingsStatus.value = '' }, 2500)
+  },
+  onError: () => {
+    saveSettingsStatus.value = 'error'
+    setTimeout(() => { saveSettingsStatus.value = '' }, 3000)
+  }
+})
+const saveSettings = () => {
+  saveSettingsStatus.value = 'saving'
+  saveSettingsMut.mutate({
+    waNumber: props.site.waNumber,
+    email: props.site.email,
+    address: props.site.address,
+    tagline: props.site.tagline,
+    stats: props.site.stats,
+    clients: props.site.clients,
+  })
+}
+
+// --- Save Catalog ---
+const saveCatalogStatus = ref('')
+const saveCatalogMut = useMutation({
+  mutationFn: dashboardService.updateCatalog,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    saveCatalogStatus.value = 'saved'
+    setTimeout(() => { saveCatalogStatus.value = '' }, 2500)
+  },
+  onError: () => {
+    saveCatalogStatus.value = 'error'
+    setTimeout(() => { saveCatalogStatus.value = '' }, 3000)
+  }
+})
+const saveCatalog = () => {
+  saveCatalogStatus.value = 'saving'
+  saveCatalogMut.mutate(props.catalog)
+}
 </script>
 
 <template>
@@ -118,6 +212,18 @@ const addCat = () => {}
           <button @click="cl.onRemove" class="tr-btn" style="background:none;border:none;cursor:pointer;color:#c2603a;padding:6px;display:flex;align-items:center;justify-content:center;"><i class="ph ph-trash" style="font-size:17px;"></i></button>
         </div>
       </div>
+      <!-- Save website settings button -->
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;padding-top:4px;">
+        <transition name="fade">
+          <span v-if="saveSettingsStatus === 'saved'" style="font-size:13px;color:#1f7a5c;font-weight:600;display:flex;align-items:center;gap:5px;"><i class="ph-fill ph-check-circle" style="font-size:16px;"></i>Pengaturan Tersimpan</span>
+          <span v-else-if="saveSettingsStatus === 'error'" style="font-size:13px;color:#c2603a;font-weight:600;display:flex;align-items:center;gap:5px;"><i class="ph-fill ph-warning-circle" style="font-size:16px;"></i>Gagal menyimpan</span>
+        </transition>
+        <button @click="saveSettings" :disabled="saveSettingsStatus === 'saving'" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: saveSettingsStatus === 'saving' ? 0.7 : 1 }">
+          <i v-if="saveSettingsStatus === 'saving'" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+          <i v-else class="ph ph-floppy-disk" style="font-size:16px;color:#c39a4d;"></i>
+          {{ saveSettingsStatus === 'saving' ? 'Menyimpan...' : 'Simpan Pengaturan' }}
+        </button>
+      </div>
     </div>
 
     <div v-if="isTabCatalog" style="display:flex;flex-direction:column;gap:16px;">
@@ -136,7 +242,21 @@ const addCat = () => {}
           </div>
         </div>
       </div>
-      <button @click="addCat" class="tr-btn" style="align-self:flex-start;background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 18px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px;"><i class="ph ph-plus" style="font-size:16px;color:#c39a4d;"></i>Tambah Kategori</button>
+      <!-- Bottom actions row: tambah kategori + simpan katalog -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <button @click="addCat" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 18px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px;"><i class="ph ph-plus" style="font-size:16px;color:#c39a4d;"></i>Tambah Kategori</button>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <transition name="fade">
+            <span v-if="saveCatalogStatus === 'saved'" style="font-size:13px;color:#1f7a5c;font-weight:600;display:flex;align-items:center;gap:5px;"><i class="ph-fill ph-check-circle" style="font-size:16px;"></i>Katalog Tersimpan</span>
+            <span v-else-if="saveCatalogStatus === 'error'" style="font-size:13px;color:#c2603a;font-weight:600;display:flex;align-items:center;gap:5px;"><i class="ph-fill ph-warning-circle" style="font-size:16px;"></i>Gagal menyimpan</span>
+          </transition>
+          <button @click="saveCatalog" :disabled="saveCatalogStatus === 'saving'" class="tr-btn" style="background:#1f7a5c;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: saveCatalogStatus === 'saving' ? 0.7 : 1 }">
+            <i v-if="saveCatalogStatus === 'saving'" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+            <i v-else class="ph ph-floppy-disk" style="font-size:16px;"></i>
+            {{ saveCatalogStatus === 'saving' ? 'Menyimpan...' : 'Simpan Katalog' }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <div v-if="isTabProfile" style="display:flex;flex-direction:column;gap:18px;">

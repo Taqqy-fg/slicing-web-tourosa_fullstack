@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/site', [DashboardController::class, 'site']);
 
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -18,3 +19,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::post('/orders', [DashboardController::class, 'store']);
 });
+Route::get('/dashboard', [DashboardController::class, 'index']);
+Route::post('/orders', [DashboardController::class, 'store']);
+Route::put('/orders/{invoice_no}', [DashboardController::class, 'update']);
+Route::put('/settings', [DashboardController::class, 'updateSettings']);
+Route::put('/catalog', [DashboardController::class, 'updateCatalog']);
+

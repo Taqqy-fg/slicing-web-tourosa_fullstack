@@ -53,6 +53,14 @@ a { text-decoration: none; color: inherit; }
 .tr-nav { transition: background .15s; }
 .tr-nav:hover { background: rgba(195, 154, 77, .10); }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.fade-enter-active, .fade-leave-active { transition: opacity .25s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
 @media print {
   [data-print="hide"] { display: none !important; }
   [data-print="area"] {

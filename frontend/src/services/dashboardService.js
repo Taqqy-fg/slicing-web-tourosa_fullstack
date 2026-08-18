@@ -8,16 +8,38 @@ export const dashboardService = {
      * @returns {Promise<import('../types/models').DashboardResponse>}
      */
     async getDashboardData() {
-        // Since our interceptor returns response.data, this directly resolves to the payload
         return await apiClient.get('/dashboard');
     },
 
     /**
      * Create a new order
      * @param {import('../types/models').Order} orderData
-     * @returns {Promise<any>}
      */
     async createOrder(orderData) {
         return await apiClient.post('/orders', orderData);
-    }
+    },
+
+    /**
+     * Update expenses and terms on an existing order
+     * @param {{ invoiceNo: string, expenses: Array, terms: Array }} payload
+     */
+    async updateOrder({ invoiceNo, expenses, terms }) {
+        return await apiClient.put(`/orders/${invoiceNo}`, { expenses, terms });
+    },
+
+    /**
+     * Save site settings (waNumber, email, address, tagline, stats, clients)
+     * @param {Object} settingsData
+     */
+    async updateSettings(settingsData) {
+        return await apiClient.put('/settings', settingsData);
+    },
+
+    /**
+     * Replace full catalog (categories + vendors)
+     * @param {Array} catalog
+     */
+    async updateCatalog(catalog) {
+        return await apiClient.put('/catalog', { catalog });
+    },
 };

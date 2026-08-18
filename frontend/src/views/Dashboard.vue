@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { useDashboardStore } from '../stores/dashboardStore'
@@ -21,22 +21,26 @@ const { data } = useQuery({
   queryFn: dashboardService.getDashboardData
 })
 
-const orders = computed(() => data.value?.orders || [])
-const catalog = computed(() => data.value?.catalog || [])
-const site = computed(() => {
-  const s = data.value?.site || {}
-  return {
-    waNumber: s.waNumber || '6281200000000',
-    email: s.email || 'halo@tourosa.id',
-    address: s.address || 'Jakarta, Indonesia',
-    tagline: s.tagline || 'Tiket pesawat, hotel, group tour, hingga gathering korporat.',
-    stats: s.stats || [{ n: '12+', l: 'Tahun pengalaman' }, { n: '800+', l: 'Grup diberangkatkan' }, { n: '50+', l: 'Destinasi' }],
-    clients: s.clients || []
+watch(data, (newVal) => {
+  if (newVal) {
+    store.orders = newVal.orders || []
+    store.catalog = newVal.catalog || []
+    const s = newVal.site || {}
+    store.site = {
+      waNumber: s.waNumber || '6281200000000',
+      email: s.email || 'halo@tourosa.id',
+      address: s.address || 'Jakarta, Indonesia',
+      tagline: s.tagline || 'Tiket pesawat, hotel, group tour, hingga gathering korporat.',
+      stats: s.stats || [{ n: '12+', l: 'Tahun pengalaman' }, { n: '800+', l: 'Grup diberangkatkan' }, { n: '50+', l: 'Destinasi' }],
+      clients: s.clients || []
+    }
+    // Restore active invoice by matching invoice_no if possible
+    if (store.activeInvoice) {
+      const match = store.orders.find(o => o.no === store.activeInvoice.no)
+      if (match) store.activeInvoice = match
+    }
   }
-})
-
-// Share fetched data to child views via store
-store.setQueryData({ orders, catalog, site })
+}, { immediate: true })
 
 // Load user profile if not already loaded
 if (!auth.user) {
@@ -110,7 +114,7 @@ const todayF = fmtDate(new Date().toISOString().slice(0, 10))
       />
 
       <div ref="mainScroll" style="flex:1;overflow-y:auto;position:relative;">
-        <RouterView :orders="orders" :catalog="catalog" :site="site" />
+        <RouterView :orders="store.orders" :catalog="store.catalog" :site="store.site" />
       </div>
     </main>
   </div>

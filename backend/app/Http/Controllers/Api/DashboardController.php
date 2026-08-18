@@ -163,4 +163,94 @@ class DashboardController extends Controller
 
         return response()->json(['message' => 'Order created successfully'], 201);
     }
+
+    /**
+     * Update expenses and terms on existing order
+     */
+    public function update(Request $request, $invoice_no)
+    {
+        $order = Order::with(['expenses', 'terms'])->where('invoice_no', $invoice_no)->firstOrFail();
+
+        $data = $request->validate([
+            'expenses'         => 'nullable|array',
+            'expenses.*.label' => 'nullable|string',
+            'expenses.*.amount'=> 'nullable|numeric',
+            'terms'            => 'nullable|array',
+            'terms.*.label'    => 'nullable|string',
+            'terms.*.percent'  => 'nullable|numeric',
+            'terms.*.due'      => 'nullable|date',
+        ]);
+
+        // Replace expenses: delete old, insert new
+        $order->expenses()->delete();
+        foreach (($data['expenses'] ?? []) as $exp) {
+            $order->expenses()->create([
+                'label'  => $exp['label'] ?? '',
+                'amount' => $exp['amount'] ?? 0,
+            ]);
+        }
+
+        // Replace terms: delete old, insert new
+        $order->terms()->delete();
+        foreach (($data['terms'] ?? []) as $term) {
+            $order->terms()->create([
+                'label'    => $term['label'] ?? '',
+                'percent'  => $term['percent'] ?? 0,
+                'due_date' => $term['due'] ?? null,
+            ]);
+        }
+
+        return response()->json(['message' => 'Order updated successfully']);
+    }
+
+    /**
+     * Update site settings (waNumber, email, address, tagline, stats, clients)
+     */
+    public function updateSettings(Request $request)
+    {
+        $data = $request->validate([
+            'waNumber' => 'nullable|string',
+            'email'    => 'nullable|string',
+            'address'  => 'nullable|string',
+            'tagline'  => 'nullable|string',
+            'stats'    => 'nullable|array',
+            'clients'  => 'nullable|array',
+        ]);
+
+        foreach ($data as $key => $value) {
+            Setting::updateOrCreate(
+                ['key' => $key],
+                ['value' => json_encode($value)]
+            );
+        }
+
+        return response()->json(['message' => 'Settings saved successfully']);
+    }
+
+    /**
+     * Update catalog (categories + vendors) — full replace
+     */
+    public function updateCatalog(Request $request)
+    {
+        $data = $request->validate([
+            'catalog'          => 'required|array',
+            'catalog.*.cat'    => 'required|string',
+            'catalog.*.items'  => 'nullable|array',
+        ]);
+
+        // Delete all existing catalogs (cascade deletes items via FK)
+        \App\Models\CatalogItem::query()->delete();
+        \App\Models\Catalog::query()->delete();
+
+        foreach ($data['catalog'] as $entry) {
+            $cat = \App\Models\Catalog::create(['name' => $entry['cat']]);
+            foreach (($entry['items'] ?? []) as $itemName) {
+                if (trim($itemName)) {
+                    $cat->items()->create(['name' => trim($itemName)]);
+                }
+            }
+        }
+
+        return response()->json(['message' => 'Catalog saved successfully']);
+    }
 }

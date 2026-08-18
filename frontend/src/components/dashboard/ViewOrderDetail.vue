@@ -37,10 +37,12 @@ const detailExpenses = computed(() => {
   if (!store.activeInvoice) return []
   return (store.activeInvoice.expenses || []).map((e, idx) => ({
     idx, label: e.label, amount: e.amount, amountF: fmt(e.amount),
-    onLabel: ev => {}, onAmount: ev => {}, onRemove: () => {}
+    onLabel: ev => { store.updateExpense(idx, 'label', ev.target.value) }, 
+    onAmount: ev => { store.updateExpense(idx, 'amount', ev.target.value) }, 
+    onRemove: () => { store.removeExpenseFromInvoice(idx) }
   }))
 })
-const addExpense = () => {}
+const addExpense = () => { store.addExpenseToInvoice() }
 
 const detailTerms = computed(() => {
   if (!store.activeInvoice) return []
@@ -48,10 +50,13 @@ const detailTerms = computed(() => {
   return (o.terms || []).map((tm, idx) => ({
     idx, label: tm.label, percent: tm.percent, due: tm.due, dueF: tm.due ? fmtDate(tm.due) : '—',
     amountF: fmt(c.total * (Number(tm.percent) || 0) / 100),
-    onLabel: ev => {}, onPercent: ev => {}, onDue: ev => {}, onRemove: () => {}
+    onLabel: ev => { store.updateTerm(idx, 'label', ev.target.value) }, 
+    onPercent: ev => { store.updateTerm(idx, 'percent', ev.target.value) }, 
+    onDue: ev => { store.updateTerm(idx, 'due', ev.target.value) }, 
+    onRemove: () => { store.removeTermFromInvoice(idx) }
   }))
 })
-const addTerm = () => {}
+const addTerm = () => { store.addTermToInvoice() }
 
 const termSummary = computed(() => {
   if (!store.activeInvoice) return {}
@@ -130,13 +135,13 @@ const goInvoiceFromDetail = () => router.push('/dashboard/invoice')
       <div style="padding:14px 22px 8px;">
         <div class="table-scroll">
           <div style="min-width: 500px;">
-            <div class="table-header-mobile" style="display:grid;grid-template-columns:1fr 180px 34px;gap:10px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">
-              <span>Keterangan</span><span style="text-align:right;">Nominal</span><span></span>
+            <div class="table-header-mobile" style="display:grid;grid-template-columns:1fr 34px 180px;gap:10px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">
+              <span>Keterangan</span><span></span><span style="text-align:right;">Nominal</span>
             </div>
-            <div v-for="(e, idx) in detailExpenses" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:1fr 180px 34px;gap:10px;align-items:center;padding:5px 2px;">
+            <div v-for="(e, idx) in detailExpenses" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:1fr 34px 180px;gap:10px;align-items:center;padding:5px 2px;">
               <input class="col-full-mobile" :value="e.label" @input="e.onLabel" placeholder="Keterangan Pengeluaran" style="width:100%;padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
-              <input class="col-full-mobile text-right-mobile" :value="e.amount" @input="e.onAmount" type="number" placeholder="Nominal Rp" style="width:100%;padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
               <button class="del-btn-mobile tr-btn" @click="e.onRemove" style="background:none;border:none;cursor:pointer;color:#c2603a;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:7px;"><i class="ph ph-trash" style="font-size:16px;"></i></button>
+              <input class="col-full-mobile text-right-mobile" :value="e.amount" @input="e.onAmount" type="number" placeholder="Nominal Rp" style="width:100%;padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
             </div>
           </div>
         </div>
