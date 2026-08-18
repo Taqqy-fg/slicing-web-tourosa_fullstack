@@ -63,13 +63,13 @@ async function saveProfile() {
   }
 }
 
-const statEdit = computed(() => (props.site.stats || []).map((st, i) => ({ 
+const statEdit = computed(() => (store.site.stats || []).map((st, i) => ({ 
   idx: i, n: st.n, l: st.l, 
-  onN: ev => { props.site.stats[i].n = ev.target.value }, 
-  onL: ev => { props.site.stats[i].l = ev.target.value } 
+  onN: ev => { store.site.stats[i].n = ev.target.value }, 
+  onL: ev => { store.site.stats[i].l = ev.target.value } 
 })))
 
-const clientsEdit = computed(() => (props.site.clients || []).map((c, i) => ({ 
+const clientsEdit = computed(() => (store.site.clients || []).map((c, i) => ({ 
   idx: i, name: c.name, img: c.img, hasImg: !!c.img, notImg: !c.img, 
   onName: ev => { store.site.clients[i].name = ev.target.value }, 
   onLogo: ev => {
@@ -81,41 +81,54 @@ const clientsEdit = computed(() => (props.site.clients || []).map((c, i) => ({
     }
   }, 
   onRemove: () => { 
-    const updated = [...props.site.clients];
+    const updated = [...store.site.clients];
     updated.splice(i, 1);
     store.site.clients = updated;
   } 
 })))
 const addClient = () => {
-  const clients = props.site.clients || [];
+  const clients = store.site.clients || [];
   store.site.clients = [...clients, { name: '', img: '' }];
 }
 
-const catalogEdit = computed(() => props.catalog.map((c, ci) => ({
+const catalogEdit = computed(() => store.catalog.map((c, ci) => ({
   idx: ci, cat: c.cat, 
-  onName: ev => { store.catalog[ci].cat = ev.target.value }, 
+  onName: ev => { 
+    const updated = [...store.catalog];
+    updated[ci] = { ...updated[ci], cat: ev.target.value };
+    store.catalog = updated;
+  }, 
   onRemove: () => { 
-    const updated = [...props.catalog];
+    const updated = [...store.catalog];
     updated.splice(ci, 1);
     store.catalog = updated;
   }, 
   onAddVendor: () => { 
-    const items = [...props.catalog[ci].items];
-    items.push('');
-    store.catalog[ci].items = items;
+    const updated = [...store.catalog];
+    const items = [...(updated[ci].items || []), ''];
+    updated[ci] = { ...updated[ci], items };
+    store.catalog = updated;
   },
-  vendors: c.items.map((v, vi) => ({ 
+  vendors: (c.items || []).map((v, vi) => ({ 
     vidx: vi, val: v, 
-    onVal: ev => { store.catalog[ci].items[vi] = ev.target.value }, 
+    onVal: ev => { 
+      const updated = [...store.catalog];
+      const items = [...updated[ci].items];
+      items[vi] = ev.target.value;
+      updated[ci] = { ...updated[ci], items };
+      store.catalog = updated;
+    }, 
     onRemove: () => { 
-      const items = [...props.catalog[ci].items];
+      const updated = [...store.catalog];
+      const items = [...updated[ci].items];
       items.splice(vi, 1);
-      store.catalog[ci].items = items;
+      updated[ci] = { ...updated[ci], items };
+      store.catalog = updated;
     } 
   }))
 })))
 const addCat = () => {
-  store.catalog = [...props.catalog, { cat: 'Kategori Baru', items: [] }];
+  store.catalog = [...store.catalog, { cat: 'Kategori Baru', items: [] }];
 }
 
 // --- Save Settings ---
@@ -135,12 +148,12 @@ const saveSettingsMut = useMutation({
 const saveSettings = () => {
   saveSettingsStatus.value = 'saving'
   saveSettingsMut.mutate({
-    waNumber: props.site.waNumber,
-    email: props.site.email,
-    address: props.site.address,
-    tagline: props.site.tagline,
-    stats: props.site.stats,
-    clients: props.site.clients,
+    waNumber: store.site.waNumber,
+    email: store.site.email,
+    address: store.site.address,
+    tagline: store.site.tagline,
+    stats: store.site.stats,
+    clients: store.site.clients,
   })
 }
 
@@ -160,7 +173,7 @@ const saveCatalogMut = useMutation({
 })
 const saveCatalog = () => {
   saveCatalogStatus.value = 'saving'
-  saveCatalogMut.mutate(props.catalog)
+  saveCatalogMut.mutate(store.catalog)
 }
 </script>
 
