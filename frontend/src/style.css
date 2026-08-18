@@ -1,19 +1,24 @@
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-html, body { 
-  margin: 0; 
+html,
+body {
+  margin: 0;
   padding: 0;
-  overflow-x: clip; /* Blokir horizontal scroll di semua kondisi */
+  overflow-x: clip;
+  /* Blokir horizontal scroll di semua kondisi */
   width: 100%;
   max-width: 100%;
 }
 
 html {
-  overflow-y: auto; 
+  overflow-y: auto;
 }
 
 body {
-  overflow-y: visible; /* Konten mengalir vertikal, scroll diurus html */
+  overflow-y: visible;
+  /* Konten mengalir vertikal, scroll diurus html */
 }
 
 #app {
@@ -28,33 +33,73 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-input, select, textarea, button { font-family: inherit; }
-::placeholder { color: #9aa3b2; }
-a { text-decoration: none; color: inherit; }
-
-@keyframes flo {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: none; }
+input,
+select,
+textarea,
+button {
+  font-family: inherit;
 }
 
-.tr-link { transition: color .18s; }
-.tr-link:hover { color: #15294f; }
+::placeholder {
+  color: #9aa3b2;
+}
 
-.tr-card { transition: transform .25s, box-shadow .25s, border-color .25s; }
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+@keyframes flo {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tr-link {
+  transition: color .18s;
+}
+
+.tr-link:hover {
+  color: #15294f;
+}
+
+.tr-card {
+  transition: transform .25s, box-shadow .25s, border-color .25s;
+}
+
 .tr-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 18px 40px -18px rgba(21, 41, 79, .32);
   border-color: #d7c69a;
 }
 
-.tr-btn { transition: transform .15s, box-shadow .2s, background .2s, opacity .2s; }
-.tr-btn:hover { transform: translateY(-2px); }
+.tr-btn {
+  transition: transform .15s, box-shadow .2s, background .2s, opacity .2s;
+}
 
-.tr-nav { transition: background .15s; }
-.tr-nav:hover { background: rgba(195, 154, 77, .10); }
+.tr-btn:hover {
+  transform: translateY(-2px);
+}
+
+.tr-nav {
+  transition: background .15s;
+}
+
+.tr-nav:hover {
+  background: rgba(195, 154, 77, .10);
+}
 
 @media print {
-  [data-print="hide"] { display: none !important; }
+  [data-print="hide"] {
+    display: none !important;
+  }
+
   [data-print="area"] {
     box-shadow: none !important;
     border: none !important;
@@ -63,8 +108,95 @@ a { text-decoration: none; color: inherit; }
     margin: 0 !important;
     padding: 0 !important;
   }
-  body { background: #fff !important; }
-  @page { margin: 14mm; size: A4; }
+
+  body {
+    background: #fff !important;
+  }
+
+  @page {
+    margin: 14mm;
+    size: A4;
+  }
+
+  /* Matikan scroll container internal (sidebar layout, dashboard content, dll)
+     supaya konten mengalir penuh ke halaman print, bukan terpotong dalam box scroll.
+     Sengaja TIDAK pakai selector universal (*) supaya elemen seperti <img> logo
+     yang punya height inline tetap terjaga ukurannya. */
+  html,
+  body,
+  #app,
+  div,
+  section,
+  main,
+  article,
+  aside,
+  header,
+  footer,
+  table,
+  tbody,
+  tr {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Sidebar & elemen fixed/sticky lain jangan ikut ambil ruang saat print */
+  .dash-sidebar,
+  .sidebar-backdrop {
+    display: none !important;
+  }
+
+  /* ROOT CAUSE FIX — Dashboard.vue pakai position:fixed + overflow:hidden
+     di shell utama, dan mainScroll pakai overflow-y:auto, untuk bikin
+     sidebar diam sementara konten di-scroll SAAT DI LAYAR. Tapi elemen
+     position:fixed itu lepas dari alur dokumen, jadi saat print, browser
+     mengunci kontennya ke ukuran 1 viewport dan MEMOTONG sisanya alih-alih
+     melanjutkannya ke halaman berikutnya. Ini akar dari semua masalah
+     print sebelumnya (scrollbar, footer hilang, dll). Paksa jadi layout
+     block normal khusus saat print supaya konten bisa mengalir bebas
+     ke banyak halaman. */
+  .dash-shell {
+    position: static !important;
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    background: #fff !important;
+  }
+
+  .dash-main {
+    display: block !important;
+    height: auto !important;
+  }
+
+  .dash-scroll-area {
+    overflow: visible !important;
+    height: auto !important;
+    position: static !important;
+  }
+
+  /* Cegah blok penting (header invoice, bill-to, totals) terpotong
+     di tengah saat pindah halaman. Kalau nggak muat sisa ruang di halaman
+     berjalan, seluruh blok akan pindah utuh ke halaman berikutnya. */
+  [data-print="keep"] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Baris item / termin juga jangan sampai kepotong di tengah baris */
+  .table-row-mobile {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* FOOTER — sekarang setelah root cause (dash-shell fixed positioning)
+     sudah diperbaiki di atas, footer nggak lagi butuh dipaksa jadi block.
+     Cukup samakan perlakuannya dengan blok "keep" lain: dijaga supaya
+     tidak terpotong di tengah halaman, tapi tetap flex row (sejajar
+     kiri-kanan) persis seperti tampilan di layar. */
+  [data-print="keep-footer"] {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
 }
 
 /* Responsive Dashboard Utilities */
@@ -72,6 +204,7 @@ a { text-decoration: none; color: inherit; }
   width: 100%;
   overflow-x: auto;
 }
+
 .min-w-table {
   min-width: 800px;
 }
@@ -81,48 +214,57 @@ a { text-decoration: none; color: inherit; }
 }
 
 /* Tablet + landscape: stats grid 2 columns (covers all tablets portrait & landscape up to iPad Pro) */
-@media (min-width: 601px) and (max-width: 1366px) {
+@media screen and (min-width: 601px) and (max-width: 1366px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 14px !important;
   }
-  .stats-grid > div {
+
+  .stats-grid>div {
     padding: 18px !important;
     border-radius: 14px !important;
   }
 }
 
 /* Desktop (>1366px): restore 4 columns */
-@media (min-width: 1367px) {
+@media screen and (min-width: 1367px) {
   .stats-grid {
     grid-template-columns: repeat(4, 1fr) !important;
     gap: 18px !important;
   }
-  .stats-grid > div {
+
+  .stats-grid>div {
     padding: 22px !important;
     border-radius: 16px !important;
   }
 }
 
+@media screen and (max-width: 991px) {
 
-@media (max-width: 991px) {
   /* Sidebar Mobile Overlay */
   .dash-sidebar {
     position: fixed !important;
-    top: 0; left: 0;
+    top: 0;
+    left: 0;
     height: 100vh;
-    height: 100dvh; /* Dynamic viewport — accounts for browser address bar on mobile */
+    height: 100dvh;
+    /* Dynamic viewport — accounts for browser address bar on mobile */
     overflow-y: auto;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 50;
   }
+
   .dash-sidebar.open {
     transform: translateX(0);
   }
+
   .sidebar-backdrop {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(13, 27, 48, 0.5);
     backdrop-filter: blur(2px);
     z-index: 40;
@@ -130,10 +272,12 @@ a { text-decoration: none; color: inherit; }
     visibility: hidden;
     transition: all 0.3s ease;
   }
+
   .sidebar-backdrop.open {
     opacity: 1;
     visibility: visible;
   }
+
   .show-mobile-flex {
     display: flex !important;
   }
@@ -142,10 +286,12 @@ a { text-decoration: none; color: inherit; }
   .p-mobile {
     padding: 16px !important;
   }
+
   .py-mobile {
     padding-top: 16px !important;
     padding-bottom: 16px !important;
   }
+
   .px-mobile {
     padding-left: 16px !important;
     padding-right: 16px !important;
@@ -155,40 +301,46 @@ a { text-decoration: none; color: inherit; }
   .flex-col-mobile {
     flex-direction: column !important;
   }
+
   .grid-cols-1-mobile {
     grid-template-columns: 1fr !important;
   }
-  .grid-cols-1-mobile > * {
+
+  .grid-cols-1-mobile>* {
     grid-column: span 1 !important;
   }
+
   .grid-cols-2-mobile {
     grid-template-columns: repeat(2, 1fr) !important;
   }
-  
+
   /* Hide elements on mobile */
   .hide-mobile {
     display: none !important;
   }
-  
+
   /* Topbar Adjustments */
   .topbar-mobile {
     padding: 14px 16px !important;
     flex-wrap: wrap;
     gap: 12px;
   }
-  .topbar-mobile > div:last-child {
+
+  .topbar-mobile>div:last-child {
     width: 100%;
     justify-content: space-between;
   }
 
   /* Stats Grid: 2 col default on tablet, overridden by breakpoints above */
-  .stats-grid > div {
+  .stats-grid>div {
     padding: 16px !important;
     border-radius: 12px !important;
   }
+
   .stat-number {
     font-size: 22px !important;
   }
+
   .stat-label {
     font-size: 11px !important;
   }
@@ -197,11 +349,12 @@ a { text-decoration: none; color: inherit; }
   .min-w-table {
     min-width: 0 !important;
   }
-  
+
   /* Card Layout for Tables */
   .table-header-mobile {
     display: none !important;
   }
+
   .table-row-mobile {
     display: flex !important;
     flex-wrap: wrap !important;
@@ -214,34 +367,48 @@ a { text-decoration: none; color: inherit; }
     position: relative;
     align-items: flex-start !important;
   }
-  .table-row-mobile > * {
+
+  .table-row-mobile>* {
     flex: 1 1 100% !important;
     min-width: 0;
   }
-  
+
   /* Utilities for column widths within cards */
-  .col-full-mobile { flex: 1 1 100% !important; }
-  .col-half-mobile { flex: 1 1 calc(50% - 6px) !important; }
-  .col-third-mobile { flex: 1 1 calc(33.333% - 8px) !important; }
-  .col-auto-mobile { flex: 0 0 auto !important; width: auto !important; }
-  
-  .table-row-mobile .text-right-mobile {
-    text-align: left !important; /* Reset right alignment on mobile unless specified */
+  .col-full-mobile {
+    flex: 1 1 100% !important;
   }
-  
+
+  .col-half-mobile {
+    flex: 1 1 calc(50% - 6px) !important;
+  }
+
+  .col-third-mobile {
+    flex: 1 1 calc(33.333% - 8px) !important;
+  }
+
+  .col-auto-mobile {
+    flex: 0 0 auto !important;
+    width: auto !important;
+  }
+
+  .table-row-mobile .text-right-mobile {
+    text-align: left !important;
+    /* Reset right alignment on mobile unless specified */
+  }
+
   .del-btn-mobile {
     position: absolute;
     top: 12px;
     right: 12px;
     background: #fff !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border: 1px solid #f1f2f5 !important;
   }
-  
+
   .table-row-mobile {
     border-top: none !important;
   }
-  
+
   .invoice-item-row-mobile {
     padding-right: 48px !important;
   }
@@ -266,7 +433,7 @@ a { text-decoration: none; color: inherit; }
 }
 
 /* Small phones: stats grid 1 column */
-@media (max-width: 600px) {
+@media screen and (max-width: 600px) {
   .stats-grid {
     grid-template-columns: 1fr !important;
     gap: 12px !important;
