@@ -65,7 +65,7 @@ async function handleLogin() {
                 id="email"
                 v-model="email"
                 type="email"
-                placeholder="admin@tourosa.id"
+                placeholder="Masukkan email"
                 required
                 autocomplete="email"
               />
