@@ -26,17 +26,29 @@ const vendorsFor = (cat) => {
   return c ? c.items.filter(v => (v || '').trim()) : []
 }
 
+function fmtNum(n) {
+  if (n === null || n === undefined || n === '') return ''
+  const num = Number(String(n).replace(/[^0-9.-]/g, ''))
+  if (isNaN(num)) return ''
+  return num.toLocaleString('id-ID')
+}
+function parseNum(v) {
+  const raw = String(v ?? '').replace(/[^0-9]/g, '')
+  return raw ? Number(raw) : ''
+}
+
 const itemRows = computed(() => {
   return store.form.items.map((it, idx) => ({
-    idx, cat: it.cat, vendor: it.vendor || '', desc: it.desc, qty: it.qty, cost: it.cost, price: it.price,
+    idx, cat: it.cat, vendor: it.vendor || '', desc: it.desc, qty: it.qty,
+    costFmt: fmtNum(it.cost), priceFmt: fmtNum(it.price),
     vendorOptions: vendorsFor(it.cat),
     lineF: fmt((Number(it.qty) || 0) * (Number(it.price) || 0)),
     onCat: e => { store.updateFormItem(idx, 'cat', e.target.value); store.updateFormItem(idx, 'vendor', '') },
     onVendor: e => { store.updateFormItem(idx, 'vendor', e.target.value); if (!it.desc) store.updateFormItem(idx, 'desc', e.target.value) },
     onDesc: e => store.updateFormItem(idx, 'desc', e.target.value),
     onQty: e => store.updateFormItem(idx, 'qty', e.target.value),
-    onCost: e => store.updateFormItem(idx, 'cost', e.target.value),
-    onPrice: e => store.updateFormItem(idx, 'price', e.target.value),
+    onCost: e => store.updateFormItem(idx, 'cost', parseNum(e.target.value)),
+    onPrice: e => store.updateFormItem(idx, 'price', parseNum(e.target.value)),
     onRemove: () => store.removeItemFromForm(idx)
   }))
 })
@@ -83,11 +95,12 @@ const saveOrder = () => {
   })
 }
 
-// Variables for template
 const f = computed(() => store.form)
 const t = tCalc
 const addItem = () => store.addItemToForm()
 const resetForm = () => store.resetForm()
+const discountFmt = computed(() => fmtNum(f.value.discount))
+const onDiscount = e => { store.form.discount = parseNum(e.target.value) }
 </script>
 
 <template>
@@ -128,8 +141,8 @@ const resetForm = () => store.resetForm()
           </select>
           <input class="col-full-mobile" :value="r.desc" @input="r.onDesc" placeholder="Deskripsi (cth. Tiket PP)" style="width:100%;padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
           <input class="col-full-mobile" :value="r.qty" @input="r.onQty" type="number" placeholder="Qty" style="width:100%;padding:9px 8px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;text-align:center;font-family:'IBM Plex Mono',monospace;">
-          <input class="col-half-mobile text-right-mobile" :value="r.cost" @input="r.onCost" type="number" placeholder="Harga Beli" style="width:100%;padding:9px 9px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#5d6a82;background:#fafbfc;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
-          <input class="col-half-mobile text-right-mobile" :value="r.price" @input="r.onPrice" type="number" placeholder="Harga Jual" style="width:100%;padding:9px 9px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
+          <input class="col-half-mobile text-right-mobile" :value="r.costFmt" @input="r.onCost" inputmode="numeric" placeholder="Harga Beli" style="width:100%;padding:9px 9px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#5d6a82;background:#fafbfc;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
+          <input class="col-half-mobile text-right-mobile" :value="r.priceFmt" @input="r.onPrice" inputmode="numeric" placeholder="Harga Jual" style="width:100%;padding:9px 9px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
           <span class="col-full-mobile text-right-mobile" style="font-size:14px;font-weight:700;color:#13233f;text-align:right;font-family:'IBM Plex Mono',monospace;">Sub: {{ r.lineF }}</span>
             <button class="del-btn-mobile tr-btn" @click="r.onRemove" style="background:none;border:none;cursor:pointer;color:#c2603a;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:7px;"><i class="ph ph-trash" style="font-size:16px;"></i></button>
           </div>
@@ -140,7 +153,7 @@ const resetForm = () => store.resetForm()
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
         <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 18px;display:flex;align-items:center;gap:9px;"><i class="ph ph-sliders-horizontal" style="color:#c39a4d;font-size:20px;"></i>Diskon, Pajak &amp; Pembayaran</h3>
         <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
-          <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Diskon (Rp)</label><input v-model="f.discount" type="number" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
+          <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Diskon (Rp)</label><input :value="discountFmt" @input="onDiscount" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
           <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="11" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
           <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">DP (%)</label><input v-model="f.dpPercent" type="number" placeholder="50" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
           <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat Pembayaran</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
