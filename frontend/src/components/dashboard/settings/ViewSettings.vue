@@ -5,6 +5,7 @@ import { useAuthStore } from '../../../stores/authStore'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { dashboardService } from '../../../services/dashboardService'
 import { apiClient } from '../../../api/client'
+import { useToast } from '../../../composables/useToast'
 
 
 const props = defineProps({
@@ -15,6 +16,7 @@ const props = defineProps({
 const store = useDashboardStore()
 const auth = useAuthStore()
 const queryClient = useQueryClient()
+const toast = useToast()
 
 const tabWebsite = () => store.setSettingsTab('website')
 const tabCatalog = () => store.setSettingsTab('catalog')
@@ -41,13 +43,9 @@ const profilePasswordConfirm = ref('')
 const showPassword = ref(false)
 const showPasswordConfirm = ref(false)
 const profileLoading = ref(false)
-const profileSuccess = ref('')
-const profileError = ref('')
 
 async function saveProfile() {
   profileLoading.value = true
-  profileSuccess.value = ''
-  profileError.value = ''
   try {
     const payload = {
       name: profileName.value,
@@ -60,9 +58,9 @@ async function saveProfile() {
     await auth.updateProfile(payload)
     profilePassword.value = ''
     profilePasswordConfirm.value = ''
-    profileSuccess.value = 'Profil berhasil diperbarui.'
+    toast.success('Profil berhasil diperbarui.')
   } catch (e) {
-    profileError.value = e.response?.data?.message || e.response?.data?.errors?.email?.[0] || e.response?.data?.errors?.password?.[0] || 'Gagal memperbarui profil.'
+    toast.error(e.response?.data?.message || e.response?.data?.errors?.email?.[0] || e.response?.data?.errors?.password?.[0] || 'Gagal memperbarui profil.')
   } finally {
     profileLoading.value = false
   }
@@ -151,8 +149,8 @@ const addCat = () => {
 }
 
 // --- Testimonial CRUD ---
-const testimoniStatus = ref('')
 const pendingAvatars = ref({})
+const testimonialLoading = ref(false)
 
 const onTestimonialAvatar = (ev, idx) => {
   const file = ev.target.files[0]
@@ -199,7 +197,7 @@ const deleteTestimonial = async (idx) => {
 }
 
 const saveTestimonials = async () => {
-  testimoniStatus.value = 'saving'
+  testimonialLoading.value = true
   try {
     for (let i = 0; i < store.testimonials.length; i++) {
       const t = store.testimonials[i]
@@ -222,31 +220,27 @@ const saveTestimonials = async () => {
     }
     pendingAvatars.value = {}
     queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-    testimoniStatus.value = 'saved'
-    setTimeout(() => { testimoniStatus.value = '' }, 2500)
+    toast.success('Testimoni tersimpan.')
   } catch (e) {
     console.error(e)
-    testimoniStatus.value = 'error'
-    setTimeout(() => { testimoniStatus.value = '' }, 3000)
+    toast.error('Gagal menyimpan testimoni.')
+  } finally {
+    testimonialLoading.value = false
   }
 }
 
 // --- Save Settings ---
-const saveSettingsStatus = ref('')
 const saveSettingsMut = useMutation({
   mutationFn: dashboardService.updateSettings,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-    saveSettingsStatus.value = 'saved'
-    setTimeout(() => { saveSettingsStatus.value = '' }, 2500)
+    toast.success('Pengaturan tersimpan.')
   },
   onError: () => {
-    saveSettingsStatus.value = 'error'
-    setTimeout(() => { saveSettingsStatus.value = '' }, 3000)
+    toast.error('Gagal menyimpan pengaturan.')
   }
 })
 const saveSettings = () => {
-  saveSettingsStatus.value = 'saving'
   saveSettingsMut.mutate({
     waNumber: store.site.waNumber,
     email: store.site.email,
@@ -258,21 +252,17 @@ const saveSettings = () => {
 }
 
 // --- Save Catalog ---
-const saveCatalogStatus = ref('')
 const saveCatalogMut = useMutation({
   mutationFn: dashboardService.updateCatalog,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-    saveCatalogStatus.value = 'saved'
-    setTimeout(() => { saveCatalogStatus.value = '' }, 2500)
+    toast.success('Katalog tersimpan.')
   },
   onError: () => {
-    saveCatalogStatus.value = 'error'
-    setTimeout(() => { saveCatalogStatus.value = '' }, 3000)
+    toast.error('Gagal menyimpan katalog.')
   }
 })
 const saveCatalog = () => {
-  saveCatalogStatus.value = 'saving'
   saveCatalogMut.mutate(store.catalog)
 }
 </script>
@@ -327,14 +317,10 @@ const saveCatalog = () => {
       </div>
       <!-- Save website settings button -->
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;padding-top:4px;">
-        <transition name="fade">
-          <span v-if="saveSettingsStatus === 'saved'" style="font-size:13px;color:#1f7a5c;font-weight:600;display:flex;align-items:center;gap:5px;"><i class="ph-fill ph-check-circle" style="font-size:16px;"></i>Pengaturan Tersimpan</span>
-          <span v-else-if="saveSettingsStatus === 'error'" style="font-size:13px;color:#c2603a;font-weight:600;display:flex;align-items:center;gap:5px;"><i class="ph-fill ph-warning-circle" style="font-size:16px;"></i>Gagal menyimpan</span>
-        </transition>
-        <button @click="saveSettings" :disabled="saveSettingsStatus === 'saving'" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: saveSettingsStatus === 'saving' ? 0.7 : 1 }">
-          <i v-if="saveSettingsStatus === 'saving'" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+        <button @click="saveSettings" :disabled="saveSettingsMut.isPending.value" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: saveSettingsMut.isPending.value ? 0.7 : 1 }">
+          <i v-if="saveSettingsMut.isPending.value" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
           <i v-else class="ph ph-floppy-disk" style="font-size:16px;color:#c39a4d;"></i>
-          {{ saveSettingsStatus === 'saving' ? 'Menyimpan...' : 'Simpan Pengaturan' }}
+          {{ saveSettingsMut.isPending.value ? 'Menyimpan...' : 'Simpan Pengaturan' }}
         </button>
       </div>
     </div>
@@ -359,14 +345,10 @@ const saveCatalog = () => {
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
         <button @click="addCat" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 18px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px;"><i class="ph ph-plus" style="font-size:16px;color:#c39a4d;"></i>Tambah Kategori</button>
         <div style="display:flex;align-items:center;gap:12px;">
-          <transition name="fade">
-            <span v-if="saveCatalogStatus === 'saved'" style="font-size:13px;color:#1f7a5c;font-weight:600;display:flex;align-items:center;gap:5px;"><i class="ph-fill ph-check-circle" style="font-size:16px;"></i>Katalog Tersimpan</span>
-            <span v-else-if="saveCatalogStatus === 'error'" style="font-size:13px;color:#c2603a;font-weight:600;display:flex;align-items:center;gap:5px;"><i class="ph-fill ph-warning-circle" style="font-size:16px;"></i>Gagal menyimpan</span>
-          </transition>
-          <button @click="saveCatalog" :disabled="saveCatalogStatus === 'saving'" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: saveCatalogStatus === 'saving' ? 0.7 : 1 }">
-            <i v-if="saveCatalogStatus === 'saving'" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+          <button @click="saveCatalog" :disabled="saveCatalogMut.isPending.value" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: saveCatalogMut.isPending.value ? 0.7 : 1 }">
+            <i v-if="saveCatalogMut.isPending.value" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
             <i v-else class="ph ph-floppy-disk" style="font-size:16px;color:#c39a4d;"></i>
-            {{ saveCatalogStatus === 'saving' ? 'Menyimpan...' : 'Simpan Katalog' }}
+            {{ saveCatalogMut.isPending.value ? 'Menyimpan...' : 'Simpan Katalog' }}
           </button>
         </div>
       </div>
@@ -379,13 +361,6 @@ const saveCatalog = () => {
           <button @click="addTestimonial" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Testimoni</button>
         </div>
         <p style="font-size:13px;color:#8a93a5;margin:0 0 14px;">Kelola testimoni klien yang tampil di halaman depan. Upload foto profil (opsional, default: blank.png).</p>
-
-        <div v-if="testimoniStatus === 'saved'" style="display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;margin-bottom:12px;">
-          <i class="ph ph-check-circle" style="font-size:16px;flex-shrink:0;"></i>Tersimpan
-        </div>
-        <div v-if="testimoniStatus === 'error'" style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;margin-bottom:12px;">
-          <i class="ph ph-warning-circle" style="font-size:16px;flex-shrink:0;"></i>Gagal menyimpan
-        </div>
 
         <div v-for="(t, idx) in store.testimonials" :key="t.id || idx" style="border-top:1px solid #f1f2f5;padding:16px 0;">
           <div style="display:flex;gap:14px;align-items:flex-start;">
@@ -419,10 +394,10 @@ const saveCatalog = () => {
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;padding-top:4px;">
-        <button @click="saveTestimonials" :disabled="testimoniStatus === 'saving'" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: testimoniStatus === 'saving' ? 0.7 : 1 }">
-          <i v-if="testimoniStatus === 'saving'" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+        <button @click="saveTestimonials" :disabled="testimonialLoading" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: testimonialLoading ? 0.7 : 1 }">
+          <i v-if="testimonialLoading" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
           <i v-else class="ph ph-floppy-disk" style="font-size:16px;color:#c39a4d;"></i>
-          {{ testimoniStatus === 'saving' ? 'Menyimpan...' : 'Simpan Testimoni' }}
+          {{ testimonialLoading ? 'Menyimpan...' : 'Simpan Testimoni' }}
         </button>
       </div>
     </div>
@@ -431,13 +406,6 @@ const saveCatalog = () => {
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
         <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 4px;display:flex;align-items:center;gap:9px;"><i class="ph ph-user-circle" style="color:#c39a4d;font-size:20px;"></i>Profil Admin</h3>
         <p style="font-size:13px;color:#8a93a5;margin:0 0 18px;">Perbarui nama, email, dan password akun Anda.</p>
-
-        <div v-if="profileSuccess" style="display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;font-size:13px;font-weight:600;padding:12px 14px;border-radius:10px;margin-bottom:16px;">
-          <i class="ph ph-check-circle" style="font-size:16px;flex-shrink:0;"></i>{{ profileSuccess }}
-        </div>
-        <div v-if="profileError" style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:13px;font-weight:600;padding:12px 14px;border-radius:10px;margin-bottom:16px;">
-          <i class="ph ph-warning-circle" style="font-size:16px;flex-shrink:0;"></i>{{ profileError }}
-        </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div style="grid-column:span 2;">

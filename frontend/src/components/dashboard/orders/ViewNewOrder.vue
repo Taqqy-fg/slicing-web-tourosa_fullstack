@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useDashboardStore } from '../../../stores/dashboardStore'
 import { useDashboardData } from '../../../composables/useDashboardData'
 import { dashboardService } from '../../../services/dashboardService'
+import { useToast } from '../../../composables/useToast'
 import DatePicker from '../../DatePicker.vue'
 
 const props = defineProps({
@@ -16,6 +17,7 @@ const store = useDashboardStore()
 const router = useRouter()
 const queryClient = useQueryClient()
 const { fmt, calc } = useDashboardData()
+const toast = useToast()
 
 const catalog = computed(() => props.catalog ?? store.catalog)
 const orders = computed(() => props.orders ?? store.orders)
@@ -68,6 +70,9 @@ const createOrderMut = useMutation({
   mutationFn: dashboardService.createOrder,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  },
+  onError: () => {
+    toast.error('Gagal membuat pesanan.')
   }
 })
 
@@ -91,6 +96,7 @@ const saveOrder = () => {
         store.setActiveInvoice(payload)
         router.push('/orders/invoice/' + encodeURIComponent(payload.no))
         store.resetForm()
+        toast.success('Pesanan baru berhasil dibuat.')
     }
   })
 }

@@ -6,6 +6,7 @@ import { useVueTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, g
 import { useDashboardStore } from '../../../stores/dashboardStore'
 import { useDashboardData } from '../../../composables/useDashboardData'
 import { dashboardService } from '../../../services/dashboardService'
+import { useToast } from '../../../composables/useToast'
 
 const props = defineProps({
   orders: Array
@@ -15,6 +16,7 @@ const store = useDashboardStore()
 const router = useRouter()
 const queryClient = useQueryClient()
 const { fmt, fmtDate, fmtShort, calc, statusMeta } = useDashboardData()
+const toast = useToast()
 
 const orders = computed(() => props.orders ?? store.orders)
 
@@ -82,6 +84,10 @@ const deleteMut = useMutation({
     queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     deleteModal.value = false
     deleteTarget.value = null
+    toast.success('Pesanan berhasil dihapus.')
+  },
+  onError: () => {
+    toast.error('Gagal menghapus pesanan.')
   }
 })
 
