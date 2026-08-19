@@ -165,13 +165,32 @@ class DashboardController extends Controller
     }
 
     /**
-     * Update expenses and terms on existing order
+     * Update order (full: header fields, items, expenses, terms)
      */
     public function update(Request $request, $invoice_no)
     {
-        $order = Order::with(['expenses', 'terms'])->where('invoice_no', $invoice_no)->firstOrFail();
+        $order = Order::with(['items', 'expenses', 'terms'])->where('invoice_no', $invoice_no)->firstOrFail();
 
         $data = $request->validate([
+            'group'            => 'nullable|string',
+            'pic'              => 'nullable|string',
+            'contact'          => 'nullable|string',
+            'dest'             => 'nullable|string',
+            'depart'           => 'nullable|date',
+            'ret'              => 'nullable|date',
+            'pax'              => 'nullable|numeric',
+            'status'           => 'nullable|string',
+            'discount'         => 'nullable|numeric',
+            'taxPercent'       => 'nullable|numeric',
+            'dpPercent'        => 'nullable|numeric',
+            'notes'            => 'nullable|string',
+            'items'            => 'nullable|array',
+            'items.*.cat'      => 'nullable|string',
+            'items.*.vendor'   => 'nullable|string',
+            'items.*.desc'     => 'nullable|string',
+            'items.*.qty'      => 'nullable|numeric',
+            'items.*.cost'     => 'nullable|numeric',
+            'items.*.price'    => 'nullable|numeric',
             'expenses'         => 'nullable|array',
             'expenses.*.label' => 'nullable|string',
             'expenses.*.amount'=> 'nullable|numeric',
@@ -181,26 +200,71 @@ class DashboardController extends Controller
             'terms.*.due'      => 'nullable|date',
         ]);
 
-        // Replace expenses: delete old, insert new
-        $order->expenses()->delete();
-        foreach (($data['expenses'] ?? []) as $exp) {
-            $order->expenses()->create([
-                'label'  => $exp['label'] ?? '',
-                'amount' => $exp['amount'] ?? 0,
-            ]);
+        $order->update([
+            'group_name'  => $data['group'] ?? $order->group_name,
+            'pic_name'    => $data['pic'] ?? $order->pic_name,
+            'contact_info'=> $data['contact'] ?? $order->contact_info,
+            'destination' => $data['dest'] ?? $order->destination,
+            'depart_date' => $data['depart'] ?? $order->depart_date,
+            'return_date' => $data['ret'] ?? $order->return_date,
+            'pax'         => $data['pax'] ?? $order->pax,
+            'status'      => $data['status'] ?? $order->status,
+            'discount'    => $data['discount'] ?? $order->discount,
+            'tax_percent' => $data['taxPercent'] ?? $order->tax_percent,
+            'dp_percent'  => $data['dpPercent'] ?? $order->dp_percent,
+            'notes'       => $data['notes'] ?? $order->notes,
+        ]);
+
+        if (array_key_exists('items', $data)) {
+            $order->items()->delete();
+            foreach (($data['items'] ?? []) as $item) {
+                $order->items()->create([
+                    'category'    => $item['cat'] ?? 'Lainnya',
+                    'vendor'      => $item['vendor'] ?? null,
+                    'description' => $item['desc'] ?? '',
+                    'qty'         => $item['qty'] ?? 0,
+                    'cost'        => $item['cost'] ?? 0,
+                    'price'       => $item['price'] ?? 0,
+                ]);
+            }
         }
 
-        // Replace terms: delete old, insert new
-        $order->terms()->delete();
-        foreach (($data['terms'] ?? []) as $term) {
-            $order->terms()->create([
-                'label'    => $term['label'] ?? '',
-                'percent'  => $term['percent'] ?? 0,
-                'due_date' => $term['due'] ?? null,
-            ]);
+        if (array_key_exists('expenses', $data)) {
+            $order->expenses()->delete();
+            foreach (($data['expenses'] ?? []) as $exp) {
+                $order->expenses()->create([
+                    'label'  => $exp['label'] ?? '',
+                    'amount' => $exp['amount'] ?? 0,
+                ]);
+            }
+        }
+
+        if (array_key_exists('terms', $data)) {
+            $order->terms()->delete();
+            foreach (($data['terms'] ?? []) as $term) {
+                $order->terms()->create([
+                    'label'    => $term['label'] ?? '',
+                    'percent'  => $term['percent'] ?? 0,
+                    'due_date' => $term['due'] ?? null,
+                ]);
+            }
         }
 
         return response()->json(['message' => 'Order updated successfully']);
+    }
+
+    /**
+     * Delete order and all related data
+     */
+    public function destroy($invoice_no)
+    {
+        $order = Order::where('invoice_no', $invoice_no)->firstOrFail();
+        $order->items()->delete();
+        $order->expenses()->delete();
+        $order->terms()->delete();
+        $order->delete();
+
+        return response()->json(['message' => 'Order deleted successfully']);
     }
 
     /**

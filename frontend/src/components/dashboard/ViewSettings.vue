@@ -227,7 +227,7 @@ const saveCatalog = () => {
           <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0;display:flex;align-items:center;gap:9px;"><i class="ph ph-buildings" style="color:#c39a4d;font-size:20px;"></i>Logo Klien</h3>
           <button @click="addClient" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Klien</button>
         </div>
-        <p style="font-size:13px;color:#8a93a5;margin:0 0 14px;">Unggah logo (PNG/JPG). Jika kosong, ditampilkan sebagai teks nama.</p>
+        <p style="font-size:13px;color:#8a93a5;margin:0 0 14px;">Unggah logo (PNG/JPG). Jika kosong, ditampilkan sebagai teks nama. Ukuran gambar: 140 x 36 pixel.</p>
         <div v-for="(cl, idx) in clientsEdit" :key="'client-' + idx" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:9px 0;border-top:1px solid #f1f2f5;">
           <label style="cursor:pointer;display:block;flex-shrink:0;">
             <img v-if="cl.hasImg" :src="cl.img" style="height:44px;width:130px;object-fit:contain;border:1px solid #e2e4ea;border-radius:8px;background:#fafbfc;display:block;">

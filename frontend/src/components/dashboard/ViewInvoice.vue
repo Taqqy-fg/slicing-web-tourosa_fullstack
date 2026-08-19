@@ -42,19 +42,22 @@ const siteAddress = computed(() => props.site?.address || store.site.address)
 const siteEmail = computed(() => props.site?.email || store.site.email)
 const waDisplay = computed(() => props.site?.waNumber || store.site.waNumber)
 const goNew = () => router.push('/dashboard/new-order')
+const goOrderList = () => router.push('/dashboard/order-list')
+const goOrderDetail = () => router.push('/dashboard/order-detail')
 const backFromInvoice = () => router.push('/dashboard/order-detail')
 const doPrint = () => window.print()
 </script>
 <template>
-  <div class="p-mobile" style="padding:24px 32px 48px;">
-    <div data-print="hide"
-      style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;max-width:820px;margin-left:auto;margin-right:auto;gap:12px;">
-      <button @click="backFromInvoice" class="tr-btn"
-        style="background:#fff;border:1px solid #e2e4ea;color:#5d6a82;font-size:13.5px;font-weight:600;padding:10px 16px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;"><i
-          class="ph ph-arrow-left" style="font-size:16px;"></i>Kembali</button>
-      <button @click="doPrint" class="tr-btn"
-        style="background:#15294f;color:#fff;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;"><i
-          class="ph ph-printer" style="font-size:17px;color:#c39a4d;"></i>Cetak / Simpan PDF</button>
+  <div class="p-mobile" style="padding:30px 32px;max-width:1060px;margin:0 auto;">
+    <nav data-print="hide" style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:20px;flex-wrap:wrap;">
+      <a @click.prevent="goOrderList" href="#" style="color:#5d6a82;text-decoration:none;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="ph ph-list-checks" style="font-size:15px;"></i>Daftar Pesanan</a>
+      <i class="ph ph-caret-right" style="color:#c2c8d4;font-size:13px;"></i>
+      <a @click.prevent="goOrderDetail" href="#" style="color:#5d6a82;text-decoration:none;font-weight:600;cursor:pointer;">Detail Pesanan</a>
+      <i class="ph ph-caret-right" style="color:#c2c8d4;font-size:13px;"></i>
+      <span style="color:#13233f;font-weight:700;">Invoice</span>
+    </nav>
+    <div data-print="hide" style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:20px;gap:12px;">
+      <button @click="doPrint" class="tr-btn" style="background:#15294f;color:#fff;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;"><i class="ph ph-printer" style="font-size:17px;color:#c39a4d;"></i>Cetak / Simpan PDF</button>
     </div>
     <div v-if="inv" data-print="area" class="px-mobile py-mobile"
       style="max-width:820px;margin:0 auto;background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:48px 52px;box-shadow:0 18px 50px -28px rgba(21,41,79,.3);">
