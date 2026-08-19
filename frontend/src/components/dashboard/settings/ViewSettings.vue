@@ -168,6 +168,13 @@ const onTestimonialAvatar = (ev, idx) => {
   ev.target.value = ''
 }
 
+const removeTestimonialAvatar = (idx) => {
+  delete pendingAvatars.value[idx]
+  const updated = [...store.testimonials]
+  updated[idx] = { ...updated[idx], avatar_url: null, avatar_path: null }
+  store.testimonials = updated
+}
+
 const addTestimonial = () => {
   store.testimonials = [...store.testimonials, {
     id: null, quote: '', name: '', role: '', company: '',
@@ -382,10 +389,11 @@ const saveCatalog = () => {
 
         <div v-for="(t, idx) in store.testimonials" :key="t.id || idx" style="border-top:1px solid #f1f2f5;padding:16px 0;">
           <div style="display:flex;gap:14px;align-items:flex-start;">
-            <label style="cursor:pointer;flex-shrink:0;">
+            <label style="cursor:pointer;flex-shrink:0;position:relative;display:block;width:52px;height:52px;">
               <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid #c39a4d;background:#1b2e4a;display:flex;align-items:center;justify-content:center;">
                 <img :src="t.avatar_url || '/assets/blank.png'" :alt="t.name" style="width:100%;height:100%;object-fit:cover;display:block;">
               </div>
+              <span v-if="t.avatar_url" @click.prevent.stop="removeTestimonialAvatar(idx)" style="position:absolute;right:-4px;top:-4px;width:20px;height:20px;background:#c2603a;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #fff;"><i class="ph ph-x" style="font-size:11px;color:#fff;"></i></span>
               <input type="file" accept="image/*" @change="(ev) => onTestimonialAvatar(ev, idx)" style="display:none;">
             </label>
             <div style="flex:1;display:flex;flex-direction:column;gap:10px;">

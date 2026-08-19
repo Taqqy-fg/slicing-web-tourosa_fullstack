@@ -70,6 +70,7 @@ class TestimonialController extends Controller
             $data['avatar_path'] = str_replace('testimonials/', '', $avatarPath);
         }
 
+        unset($data['avatar']);
         $testimonial->update($data);
         return response()->json(['testimonial' => $testimonial]);
     }
