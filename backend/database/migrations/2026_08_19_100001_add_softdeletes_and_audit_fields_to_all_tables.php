@@ -6,54 +6,40 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    protected array $tables = [
+        'users',
+        'orders',
+        'order_items',
+        'order_expenses',
+        'order_terms',
+        'catalogs',
+        'catalog_items',
+        'settings',
+        'testimonials',
+    ];
+
     public function up(): void
     {
-        $tables = [
-            'users',
-            'orders',
-            'order_items',
-            'order_expenses',
-            'order_terms',
-            'catalogs',
-            'catalog_items',
-            'settings',
-            'testimonials',
-        ];
-
-        foreach ($tables as $table) {
+        foreach ($this->tables as $table) {
             Schema::table($table, function (Blueprint $bl) {
-                // Add created_by and updated_by at the end
-                $bl->unsignedBigInteger('created_by')->nullable();
-                $bl->unsignedBigInteger('updated_by')->nullable();
+                // deleted_at nempel setelah updated_at
+                $bl->softDeletes()->after('updated_at');
 
-                // Add soft delete columns at the very end
-                $bl->softDeletes();       // adds deleted_at
-                $bl->unsignedBigInteger('deleted_by')->nullable()->after('deleted_at');
+                // lalu created_by, updated_by, deleted_by berurutan
+                $bl->unsignedBigInteger('created_by')->nullable()->after('deleted_at');
+                $bl->unsignedBigInteger('updated_by')->nullable()->after('created_by');
+                $bl->unsignedBigInteger('deleted_by')->nullable()->after('updated_by');
             });
         }
     }
 
     public function down(): void
     {
-        $tables = [
-            'users',
-            'orders',
-            'order_items',
-            'order_expenses',
-            'order_terms',
-            'catalogs',
-            'catalog_items',
-            'settings',
-            'testimonials',
-        ];
-
-        foreach ($tables as $table) {
+        foreach ($this->tables as $table) {
             Schema::table($table, function (Blueprint $bl) {
-                // Reverse order: drop deleted_by first, then softDeletes
-                $bl->dropColumn('deleted_by');
+                // Reverse: drop dari yang paling terakhir ditambahkan
+                $bl->dropColumn(['deleted_by', 'updated_by', 'created_by']);
                 $bl->dropSoftDeletes();
-                // Then drop created_by + updated_by from end
-                $bl->dropColumn(['created_by', 'updated_by']);
             });
         }
     }
