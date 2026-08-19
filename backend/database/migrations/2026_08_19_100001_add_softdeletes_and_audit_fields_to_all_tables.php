@@ -22,12 +22,13 @@ return new class extends Migration
 
         foreach ($tables as $table) {
             Schema::table($table, function (Blueprint $bl) {
-                // Add at end: created_by, updated_by
+                // Add created_by and updated_by at the end
                 $bl->unsignedBigInteger('created_by')->nullable();
                 $bl->unsignedBigInteger('updated_by')->nullable();
 
-                // softDeletes() adds deleted_at + deleted_by at the end
-                $bl->softDeletes();
+                // Add soft delete columns at the very end
+                $bl->softDeletes();       // adds deleted_at
+                $bl->unsignedBigInteger('deleted_by')->nullable()->after('deleted_at');
             });
         }
     }
@@ -48,7 +49,8 @@ return new class extends Migration
 
         foreach ($tables as $table) {
             Schema::table($table, function (Blueprint $bl) {
-                // Reverse order: first drop softDeletes (deleted_at + deleted_by)
+                // Reverse order: drop deleted_by first, then softDeletes
+                $bl->dropColumn('deleted_by');
                 $bl->dropSoftDeletes();
                 // Then drop created_by + updated_by from end
                 $bl->dropColumn(['created_by', 'updated_by']);
