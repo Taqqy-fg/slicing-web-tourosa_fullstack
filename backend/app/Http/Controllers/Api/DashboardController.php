@@ -11,6 +11,9 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
+    /**
+     * Dapatkan data site untuk landing page (public).
+     */
     public function site()
     {
         $settings = Setting::all();
@@ -25,6 +28,9 @@ class DashboardController extends Controller
         return response()->json(['site' => $formattedSettings, 'testimonials' => $testimonials]);
     }
 
+    /**
+     * Dapatkan semua data dashboard (orders, catalog, settings, testimonials).
+     */
     public function index()
     {
         $orders = Order::with(['items', 'expenses', 'terms'])->orderBy('id', 'desc')->get();
@@ -94,6 +100,13 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * Buat order baru.
+     *
+     * @bodyParam no string required Nomor invoice. Example: INV-001
+     * @bodyParam date string required Tanggal invoice. Example: 2026-08-19
+     * @bodyParam status string required Status order. Example: Pending
+     */
     public function store(Request $request)
     {
         $userId = $request->user()->id;
@@ -178,6 +191,9 @@ class DashboardController extends Controller
         return response()->json(['message' => 'Order created successfully'], 201);
     }
 
+    /**
+     * Update order berdasarkan nomor invoice.
+     */
     public function update(Request $request, $invoice_no)
     {
         $userId = $request->user()->id;
@@ -281,6 +297,9 @@ class DashboardController extends Controller
         return response()->json(['message' => 'Order updated successfully']);
     }
 
+    /**
+     * Hapus order berdasarkan nomor invoice.
+     */
     public function destroy(Request $request, $invoice_no)
     {
         $userId = $request->user()->id;
@@ -305,6 +324,9 @@ class DashboardController extends Controller
         return response()->json(['message' => 'Order deleted successfully']);
     }
 
+    /**
+     * Simpan pengaturan site (waNumber, email, address, tagline, stats, clients).
+     */
     public function updateSettings(Request $request)
     {
         $userId = $request->user()->id;
@@ -332,6 +354,9 @@ class DashboardController extends Controller
         return response()->json(['message' => 'Settings saved successfully']);
     }
 
+    /**
+     * Simpan catalog lengkap (kategori + vendor).
+     */
     public function updateCatalog(Request $request)
     {
         $userId = $request->user()->id;
