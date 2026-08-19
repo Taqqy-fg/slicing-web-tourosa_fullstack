@@ -71,7 +71,7 @@ if (!auth.user) {
 const isSidebarOpen = ref(false)
 const mainScroll = ref(null)
 const allNavDefs = [
-  { key: 'overview', label: 'Ringkasan', icon: 'ph-squares-four', route: '/dashboard' },
+  { key: 'overview', label: 'Dashboard', icon: 'ph-squares-four', route: '/dashboard' },
   { key: 'new-order', label: 'Buat Pesanan', icon: 'ph-note-pencil', route: '/orders/new' },
   { key: 'order-list', label: 'Daftar Pesanan', icon: 'ph-list-checks', route: '/orders' },
   { key: 'report', label: 'Laporan', icon: 'ph-chart-bar', route: '/reports' },
@@ -109,7 +109,7 @@ const navItems = computed(() => {
   })
 })
 const pageMeta = {
-  ViewOverview: ['Ringkasan', 'Pantau seluruh pesanan grup dalam satu layar.'],
+  ViewOverview: ['Dashboard', 'Pantau seluruh pesanan grup dalam satu layar.'],
   ViewNewOrder: ['Buat Pesanan', 'Input rincian perjalanan grup dan hasilkan invoice.'],
   ViewOrderList: ['Daftar Pesanan', 'Seluruh pemesanan grup yang tercatat.'],
   ViewOrderDetail: ['Detail Pesanan', 'Rincian pesanan & estimasi profit (internal).'],

@@ -106,4 +106,22 @@ router.beforeEach((to, from, next) => {
   }
 })
 
+const routeTitles = {
+  Home: 'Tourosa Travel',
+  Login: 'Masuk — Tourosa Travel',
+  ViewOverview: 'Dashboard — Tourosa Travel',
+  ViewNewOrder: 'Buat Pesanan — Tourosa Travel',
+  ViewOrderList: 'Daftar Pesanan — Tourosa Travel',
+  ViewOrderDetail: 'Detail Pesanan — Tourosa Travel',
+  ViewInvoice: 'Invoice — Tourosa Travel',
+  ViewEditOrder: 'Edit Pesanan — Tourosa Travel',
+  ViewReport: 'Laporan — Tourosa Travel',
+  ViewAdmin: 'Admin — Tourosa Travel',
+  ViewSettings: 'Pengaturan — Tourosa Travel',
+}
+
+router.afterEach((to) => {
+  document.title = routeTitles[to.name] || 'Tourosa Travel'
+})
+
 export default router
