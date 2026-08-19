@@ -27,7 +27,7 @@ const repProfitF = computed(() => fmt(repProfit.value))
 const repMarginF = computed(() => repMargin.value + '%')
 
 const maxP = computed(() => Math.max(1, ...calcs.value.map(c => c.profit)))
-const openDetail = (o) => { store.setActiveInvoice(o); router.push('/dashboard/order-detail') }
+const openDetail = (o) => { store.setActiveInvoice(o); router.push('/dashboard/order-detail/' + encodeURIComponent(o.no)) }
 
 const repOrders = computed(() => {
   return orders.value.map((o, i) => {

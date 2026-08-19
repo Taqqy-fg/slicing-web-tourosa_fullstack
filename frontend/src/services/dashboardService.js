@@ -20,11 +20,19 @@ export const dashboardService = {
     },
 
     /**
-     * Update expenses and terms on an existing order
-     * @param {{ invoiceNo: string, expenses: Array, terms: Array }} payload
+     * Update an existing order (full: header fields, items, expenses, terms)
+     * @param {{ invoiceNo: string, orderData: Object }} payload
      */
-    async updateOrder({ invoiceNo, expenses, terms }) {
-        return await apiClient.put(`/orders/${invoiceNo}`, { expenses, terms });
+    async updateOrder({ invoiceNo, orderData }) {
+        return await apiClient.put(`/orders/${encodeURIComponent(invoiceNo)}`, orderData);
+    },
+
+    /**
+     * Delete an order by invoice_no
+     * @param {string} invoiceNo
+     */
+    async deleteOrder(invoiceNo) {
+        return await apiClient.delete(`/orders/${encodeURIComponent(invoiceNo)}`);
     },
 
     /**

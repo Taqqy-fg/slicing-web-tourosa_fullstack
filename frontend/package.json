@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tanstack/vue-query": "^5.101.4",
+    "@tanstack/vue-table": "^8.21.3",
     "aos": "^2.3.4",
     "axios": "^1.19.0",
     "pinia": "^4.0.3",

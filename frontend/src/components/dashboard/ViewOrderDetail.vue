@@ -1,12 +1,20 @@
 <script setup>
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import { useDashboardData } from '../../composables/useDashboardData'
 
 const store = useDashboardStore()
+const route = useRoute()
 const router = useRouter()
 const { fmt, fmtDate, calc, statusMeta } = useDashboardData()
+
+watch(() => route.params.id, (id) => {
+  const decoded = id ? decodeURIComponent(id) : null
+  if (decoded && (!store.activeInvoice || store.activeInvoice.no !== decoded)) {
+    store.findOrderById(decoded)
+  }
+}, { immediate: true })
 
 const detailData = computed(() => {
   if (!store.activeInvoice) return null
@@ -66,14 +74,19 @@ const termSummary = computed(() => {
 })
 
 const detail = detailData
+const invoiceId = computed(() => store.activeInvoice?.no || (route.params.id ? decodeURIComponent(route.params.id) : ''))
 const goList = () => router.push('/dashboard/order-list')
-const goInvoiceFromDetail = () => router.push('/dashboard/invoice')
+const goInvoiceFromDetail = () => router.push('/dashboard/invoice/' + encodeURIComponent(invoiceId.value))
 </script>
 
 <template>
   <div v-if="detail" class="p-mobile" style="padding:30px 32px;max-width:1060px;margin:0 auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:12px;">
-      <button @click="goList" class="tr-btn" style="background:#fff;border:1px solid #e2e4ea;color:#5d6a82;font-size:13.5px;font-weight:600;padding:10px 16px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;"><i class="ph ph-arrow-left" style="font-size:16px;"></i>Kembali</button>
+    <nav style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:20px;flex-wrap:wrap;">
+      <a @click.prevent="goList" href="#" style="color:#5d6a82;text-decoration:none;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="ph ph-list-checks" style="font-size:15px;"></i>Daftar Pesanan</a>
+      <i class="ph ph-caret-right" style="color:#c2c8d4;font-size:13px;"></i>
+      <span style="color:#13233f;font-weight:700;">Detail Pesanan</span>
+    </nav>
+    <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:20px;gap:12px;">
       <button @click="goInvoiceFromDetail" class="tr-btn" style="background:#15294f;color:#fff;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;"><i class="ph ph-receipt" style="font-size:17px;color:#c39a4d;"></i>Lihat / Cetak Invoice</button>
     </div>
     

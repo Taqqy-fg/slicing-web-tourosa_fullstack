@@ -32,10 +32,17 @@ watch(data, (newVal) => {
       stats: s.stats || [{ n: '12+', l: 'Tahun pengalaman' }, { n: '800+', l: 'Grup diberangkatkan' }, { n: '50+', l: 'Destinasi' }],
       clients: s.clients || []
     }
-    // Restore active invoice by matching invoice_no if possible
-    if (store.activeInvoice) {
+    // Resolve active invoice from route param or refresh existing
+    const routeId = route.params.id ? decodeURIComponent(route.params.id) : null
+    if (routeId) {
+      if (route.name === 'ViewEditOrder') {
+        store.findAndLoadEditForm(routeId)
+      } else {
+        store.findOrderById(routeId)
+      }
+    } else if (store.activeInvoice) {
       const match = store.orders.find(o => o.no === store.activeInvoice.no)
-      if (match) store.activeInvoice = match
+      if (match) store.setActiveInvoice(match)
     }
   }
 }, { immediate: true })
@@ -76,9 +83,12 @@ const routeNameMap = {
   'report': 'ViewReport',
   'settings': 'ViewSettings',
 }
+const orderSubRoutes = ['ViewOrderDetail', 'ViewInvoice', 'ViewEditOrder']
 const navItems = computed(() => {
-  const items = navDefs.map(n => {
-    const active = route.name === routeNameMap[n.key]
+  return navDefs.map(n => {
+    const active = n.key === 'order-list'
+      ? orderSubRoutes.includes(route.name) || route.name === routeNameMap[n.key]
+      : route.name === routeNameMap[n.key]
     return {
       key: n.key, label: n.label, icon: n.icon,
       onClick: () => { router.push(n.route); isSidebarOpen.value = false },
@@ -86,13 +96,6 @@ const navItems = computed(() => {
       color: active ? '#f0d79a' : '#aab3c4'
     }
   })
-  if (store.activeInvoice && route.name === 'ViewInvoice') {
-    items.push({ key: 'invoice', label: 'Invoice', icon: 'ph-receipt', onClick: () => { }, bg: 'rgba(195,154,77,.15)', color: '#f0d79a' })
-  }
-  if (store.activeInvoice && route.name === 'ViewOrderDetail') {
-    items.push({ key: 'order-detail', label: 'Detail Pesanan', icon: 'ph-file-text', onClick: () => { }, bg: 'rgba(195,154,77,.15)', color: '#f0d79a' })
-  }
-  return items
 })
 const pageMeta = {
   ViewOverview: ['Ringkasan', 'Pantau seluruh pesanan grup dalam satu layar.'],
@@ -102,6 +105,7 @@ const pageMeta = {
   ViewReport: ['Laporan', 'Ringkasan pendapatan, modal, dan profit.'],
   ViewSettings: ['Pengaturan', 'Kelola konten website, kategori, dan vendor.'],
   ViewInvoice: ['Invoice', 'Pratinjau dan cetak invoice resmi.'],
+  ViewEditOrder: ['Edit Pesanan', 'Ubah rincian perjalanan grup.'],
 }
 const pm = computed(() => pageMeta[route.name] || pageMeta.ViewOverview)
 const todayF = fmtDate(new Date().toISOString().slice(0, 10))

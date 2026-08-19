@@ -16,6 +16,8 @@ export const useDashboardStore = defineStore('dashboard', {
         activeInvoice: null,
         settingsTab: 'website',
         form: createBlankForm(11),
+        editForm: null,
+        editInvoiceNo: null,
         // Shared query data from Dashboard layout
         orders: [],
         catalog: [],
@@ -96,6 +98,61 @@ export const useDashboardStore = defineStore('dashboard', {
             if (this.activeInvoice && this.activeInvoice.terms) {
                 this.activeInvoice.terms[idx][field] = val;
             }
+        },
+        loadEditForm(order) {
+            const o = JSON.parse(JSON.stringify(order));
+            this.editInvoiceNo = o.no;
+            this.editForm = {
+                group: o.group || '',
+                pic: o.pic || '',
+                contact: o.contact || '',
+                dest: o.dest || '',
+                depart: o.depart || '',
+                ret: o.ret || '',
+                pax: o.pax || '',
+                items: (o.items && o.items.length) ? o.items.map(it => ({
+                    cat: it.cat || 'Lainnya',
+                    vendor: it.vendor || '',
+                    desc: it.desc || '',
+                    qty: it.qty ?? '',
+                    cost: it.cost ?? '',
+                    price: it.price ?? '',
+                })) : [{ cat: 'Lainnya', vendor: '', desc: '', qty: '', cost: '', price: '' }],
+                discount: o.discount ?? '',
+                taxPercent: o.taxPercent ?? 11,
+                dpPercent: o.dpPercent ?? '50',
+                notes: o.notes || '',
+                status: o.status || 'DP',
+            }
+        },
+        resetEditForm() {
+            this.editForm = null;
+            this.editInvoiceNo = null;
+        },
+        addItemToEditForm() {
+            if (this.editForm) {
+                this.editForm.items.push({ cat: 'Lainnya', vendor: '', desc: '', qty: '', cost: '', price: '' });
+            }
+        },
+        removeItemFromEditForm(idx) {
+            if (this.editForm && this.editForm.items.length > 1) {
+                this.editForm.items.splice(idx, 1);
+            }
+        },
+        updateEditFormItem(idx, field, val) {
+            if (this.editForm) {
+                this.editForm.items[idx][field] = val;
+            }
+        },
+        findOrderById(id) {
+            const match = this.orders.find(o => o.no === id)
+            if (match) this.setActiveInvoice(match)
+            return match || null
+        },
+        findAndLoadEditForm(id) {
+            const match = this.orders.find(o => o.no === id)
+            if (match) this.loadEditForm(match)
+            return match || null
         }
     }
 })
