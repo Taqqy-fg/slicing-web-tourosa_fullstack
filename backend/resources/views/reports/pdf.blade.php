@@ -1,3 +1,12 @@
+@php
+function fmtDatePdf($d) {
+    if (!$d) return '-';
+    $p = explode('-', $d);
+    if (count($p) < 3) return $d;
+    $m = [1=>'Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    return intval($p[2]).' '.$m[intval($p[1])].' '.$p[0];
+}
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
@@ -65,10 +74,10 @@
             <tr>
                 <td>{{ $o['no'] }}</td>
                 <td>{{ $o['group'] }}</td>
-                <td>{{ $o['date'] }}</td>
-                <td class="right">{{ number_format($o['revenue'], 0, ',', '.') }}</td>
-                <td class="right">{{ number_format($o['cost'], 0, ',', '.') }}</td>
-                <td class="right">{{ number_format($o['profit'], 0, ',', '.') }}</td>
+                <td>{{ fmtDatePdf($o['date']) }}</td>
+                <td class="right">Rp {{ number_format($o['revenue'], 0, ',', '.') }}</td>
+                <td class="right">Rp {{ number_format($o['cost'], 0, ',', '.') }}</td>
+                <td class="right">Rp {{ number_format($o['profit'], 0, ',', '.') }}</td>
                 <td class="right">{{ $o['margin'] }}%</td>
             </tr>
             @endforeach
