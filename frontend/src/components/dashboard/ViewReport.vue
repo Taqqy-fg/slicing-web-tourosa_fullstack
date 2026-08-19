@@ -1,9 +1,11 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import CountUp from '../CountUp.vue'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import { useDashboardData } from '../../composables/useDashboardData'
+
+import { dashboardService } from '../../services/dashboardService'
 
 const props = defineProps({
   orders: Array
@@ -50,10 +52,69 @@ const catBreakdown = computed(() => {
     color: catColors[i % catColors.length]
   }))
 })
+
+// Export functions
+const isExportingPdf = ref(false);
+const isExportingExcel = ref(false);
+
+const downloadFile = (blob, filename) => {
+  const url = window.URL.createObjectURL(new Blob([blob]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.parentNode.removeChild(link);
+}
+
+const getTimestamp = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}`;
+}
+
+const doExportPdf = async () => {
+  isExportingPdf.value = true;
+  try {
+    const blob = await dashboardService.exportPdf();
+    downloadFile(blob, `Laporan_Tourosa_${getTimestamp()}.pdf`);
+  } catch (e) {
+    console.error('Failed to export PDF:', e);
+  } finally {
+    isExportingPdf.value = false;
+  }
+}
+
+const doExportExcel = async () => {
+  isExportingExcel.value = true;
+  try {
+    const blob = await dashboardService.exportExcel();
+    downloadFile(blob, `Laporan_Tourosa_${getTimestamp()}.xlsx`);
+  } catch (e) {
+    console.error('Failed to export Excel:', e);
+  } finally {
+    isExportingExcel.value = false;
+  }
+}
 </script>
 
 <template>
   <div class="p-mobile" style="padding:30px 32px;">
+    
+    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 14px;">
+      <h2 style="font-size:20px; font-weight:800; color:#13233f; margin:0;">Laporan Keuangan & Penjualan</h2>
+      <div style="display:flex; gap: 10px;">
+        <button @click="doExportExcel" :disabled="isExportingExcel" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13.5px;font-weight:700;padding:9px 16px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+          <i class="ph ph-file-xls" style="font-size:18px;color:#217346;"></i> 
+          {{ isExportingExcel ? 'Proses...' : 'Export Excel' }}
+        </button>
+        <button @click="doExportPdf" :disabled="isExportingPdf" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:9px 16px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+          <i class="ph ph-file-pdf" style="font-size:18px;color:#ff4d4f;"></i> 
+          {{ isExportingPdf ? 'Proses...' : 'Export PDF' }}
+        </button>
+      </div>
+    </div>
+
     <div class="stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:22px;">
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
         <div style="width:42px;height:42px;border-radius:11px;background:#eef3fb;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><i class="ph-fill ph-wallet" style="font-size:21px;color:#15294f;"></i></div>

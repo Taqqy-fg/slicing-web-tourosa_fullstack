@@ -50,4 +50,20 @@ export const dashboardService = {
     async updateCatalog(catalog) {
         return await apiClient.put('/catalog', { catalog });
     },
+
+    /**
+     * Download Excel Report
+     */
+    async exportExcel() {
+        const response = await apiClient.get('/reports/excel', { responseType: 'blob' });
+        return response;
+    },
+
+    /**
+     * Download PDF Report
+     */
+    async exportPdf() {
+        const response = await apiClient.get('/reports/pdf', { responseType: 'blob' });
+        return response;
+    }
 };
