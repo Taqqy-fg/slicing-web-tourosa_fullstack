@@ -11,6 +11,7 @@ use App\Models\OrderTerm;
 use App\Models\Catalog;
 use App\Models\CatalogItem;
 use App\Models\Setting;
+use App\Models\Testimonial;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
@@ -176,5 +177,22 @@ class DatabaseSeeder extends Seeder
                 }
             }
         }
+
+        // SEED TESTIMONIALS
+        Testimonial::firstOrCreate(
+            ['quote' => 'Outing kantor 120 orang ke Bali berjalan mulus tanpa drama. Penawaran jelas, invoice rapi untuk reimbursement, dan tim Tourosa standby penuh di lokasi.'],
+            [
+                'name' => 'Rendra Pratama',
+                'role' => 'HRD',
+                'company' => 'PT Sinar Abadi',
+                'avatar_path' => null,
+                'sort_order' => 0,
+                'is_active' => true,
+                'created_by' => 1,
+                'updated_by' => 1,
+                'created_at' => '2026-08-19 07:31:39',
+                'updated_at' => '2026-08-19 07:31:39',
+            ]
+        );
     }
 }
