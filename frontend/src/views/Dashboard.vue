@@ -32,10 +32,17 @@ watch(data, (newVal) => {
       stats: s.stats || [{ n: '12+', l: 'Tahun pengalaman' }, { n: '800+', l: 'Grup diberangkatkan' }, { n: '50+', l: 'Destinasi' }],
       clients: s.clients || []
     }
-    // Restore active invoice by matching invoice_no if possible
-    if (store.activeInvoice) {
+    // Resolve active invoice from route param or refresh existing
+    const routeId = route.params.id
+    if (routeId) {
+      if (route.name === 'ViewEditOrder') {
+        store.findAndLoadEditForm(routeId)
+      } else {
+        store.findOrderById(routeId)
+      }
+    } else if (store.activeInvoice) {
       const match = store.orders.find(o => o.no === store.activeInvoice.no)
-      if (match) store.activeInvoice = match
+      if (match) store.setActiveInvoice(match)
     }
   }
 }, { immediate: true })

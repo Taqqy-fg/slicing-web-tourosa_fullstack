@@ -143,6 +143,16 @@ export const useDashboardStore = defineStore('dashboard', {
             if (this.editForm) {
                 this.editForm.items[idx][field] = val;
             }
+        },
+        findOrderById(id) {
+            const match = this.orders.find(o => o.no === id)
+            if (match) this.setActiveInvoice(match)
+            return match || null
+        },
+        findAndLoadEditForm(id) {
+            const match = this.orders.find(o => o.no === id)
+            if (match) this.loadEditForm(match)
+            return match || null
         }
     }
 })

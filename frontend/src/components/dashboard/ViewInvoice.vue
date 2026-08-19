@@ -1,14 +1,21 @@
 <script setup>
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import { useDashboardData } from '../../composables/useDashboardData'
 const props = defineProps({
   site: Object
 })
 const store = useDashboardStore()
+const route = useRoute()
 const router = useRouter()
 const { fmt, fmtDate, calc, statusMeta } = useDashboardData()
+
+watch(() => route.params.id, (id) => {
+  if (id && (!store.activeInvoice || store.activeInvoice.no !== id)) {
+    store.findOrderById(id)
+  }
+}, { immediate: true })
 const invData = computed(() => {
   if (!store.activeInvoice) return null
   const o = store.activeInvoice; const c = calc(o); const m = statusMeta(o.status)
@@ -43,8 +50,8 @@ const siteEmail = computed(() => props.site?.email || store.site.email)
 const waDisplay = computed(() => props.site?.waNumber || store.site.waNumber)
 const goNew = () => router.push('/dashboard/new-order')
 const goOrderList = () => router.push('/dashboard/order-list')
-const goOrderDetail = () => router.push('/dashboard/order-detail')
-const backFromInvoice = () => router.push('/dashboard/order-detail')
+const goOrderDetail = () => router.push('/dashboard/order-detail/' + (store.activeInvoice?.no || route.params.id))
+const backFromInvoice = () => router.push('/dashboard/order-detail/' + (store.activeInvoice?.no || route.params.id))
 const doPrint = () => window.print()
 </script>
 <template>

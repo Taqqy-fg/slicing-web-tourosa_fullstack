@@ -18,9 +18,9 @@ const { fmt, fmtDate, fmtShort, calc, statusMeta } = useDashboardData()
 const orders = computed(() => props.orders ?? store.orders)
 const sOrders = computed(() => orders.value.length)
 
-const viewInvoice = (o) => { store.setActiveInvoice(o); router.push('/dashboard/invoice') }
-const openDetail = (o) => { store.setActiveInvoice(o); router.push('/dashboard/order-detail') }
-const editOrder = (o) => { store.loadEditForm(o); router.push('/dashboard/edit-order') }
+const viewInvoice = (o) => { store.setActiveInvoice(o); router.push('/dashboard/invoice/' + o.no) }
+const openDetail = (o) => { store.setActiveInvoice(o); router.push('/dashboard/order-detail/' + o.no) }
+const editOrder = (o) => { store.loadEditForm(o); router.push('/dashboard/edit-order/' + o.no) }
 
 const allOrders = computed(() => orders.value.map(o => {
   const c = calc(o); const m = statusMeta(o.status);

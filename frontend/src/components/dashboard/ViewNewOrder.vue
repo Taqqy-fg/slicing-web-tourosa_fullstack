@@ -76,7 +76,7 @@ const saveOrder = () => {
   createOrderMut.mutate(payload, {
     onSuccess: () => {
         store.setActiveInvoice(payload)
-        router.push('/dashboard/invoice')
+        router.push('/dashboard/invoice/' + payload.no)
         store.resetForm()
     }
   })

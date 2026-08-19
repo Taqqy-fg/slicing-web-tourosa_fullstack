@@ -20,7 +20,7 @@ const calcs = computed(() => orders.value.map(o => calc(o)))
 const sRevenue = computed(() => fmt(calcs.value.reduce((a, c) => a + c.total, 0)))
 const sActive = computed(() => orders.value.filter(o => o.status !== 'Lunas').length)
 
-const openDetail = (o) => { store.setActiveInvoice(o); router.push('/dashboard/order-detail') }
+const openDetail = (o) => { store.setActiveInvoice(o); router.push('/dashboard/order-detail/' + o.no) }
 
 const toRow = (o) => {
   const c = calc(o); const m = statusMeta(o.status);

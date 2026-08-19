@@ -1,6 +1,6 @@
 <script setup>
-import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import { useDashboardData } from '../../composables/useDashboardData'
@@ -12,19 +12,20 @@ const props = defineProps({
 })
 
 const store = useDashboardStore()
+const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const { fmt, calc } = useDashboardData()
 
 const catalog = computed(() => props.catalog ?? store.catalog)
 const ef = computed(() => store.editForm)
-const invoiceNo = computed(() => store.editInvoiceNo)
+const invoiceNo = computed(() => store.editInvoiceNo || route.params.id)
 
-onMounted(() => {
-  if (!ef.value) {
-    router.push('/dashboard/order-list')
+watch(() => route.params.id, (id) => {
+  if (id && !ef.value) {
+    store.findAndLoadEditForm(id)
   }
-})
+}, { immediate: true })
 
 const catOptions = computed(() => catalog.value.map(c => c.cat))
 const vendorsFor = (cat) => {
