@@ -70,7 +70,7 @@ if (!auth.user) {
 }
 const isSidebarOpen = ref(false)
 const mainScroll = ref(null)
-const navDefs = [
+const allNavDefs = [
   { key: 'overview', label: 'Ringkasan', icon: 'ph-squares-four', route: '/dashboard' },
   { key: 'new-order', label: 'Buat Pesanan', icon: 'ph-note-pencil', route: '/orders/new' },
   { key: 'order-list', label: 'Daftar Pesanan', icon: 'ph-list-checks', route: '/orders' },
@@ -83,11 +83,20 @@ const routeNameMap = {
   'new-order': 'ViewNewOrder',
   'order-list': 'ViewOrderList',
   'report': 'ViewReport',
+  'admin': 'ViewAdmin',
   'settings': 'ViewSettings',
 }
+const navDefs = computed(() => {
+  const items = [...allNavDefs]
+  if (auth.user?.is_superadmin) {
+    // Insert "Admin" right after "Laporan"
+    items.splice(4, 0, { key: 'admin', label: 'Admin', icon: 'ph-users-three', route: '/admins' })
+  }
+  return items
+})
 const orderSubRoutes = ['ViewOrderDetail', 'ViewInvoice', 'ViewEditOrder']
 const navItems = computed(() => {
-  return navDefs.map(n => {
+  return navDefs.value.map(n => {
     const active = n.key === 'order-list'
       ? orderSubRoutes.includes(route.name) || route.name === routeNameMap[n.key]
       : route.name === routeNameMap[n.key]
@@ -105,6 +114,7 @@ const pageMeta = {
   ViewOrderList: ['Daftar Pesanan', 'Seluruh pemesanan grup yang tercatat.'],
   ViewOrderDetail: ['Detail Pesanan', 'Rincian pesanan & estimasi profit (internal).'],
   ViewReport: ['Laporan', 'Ringkasan pendapatan, modal, dan profit.'],
+  ViewAdmin: ['Admin', 'Kelola akun admin & super admin.'],
   ViewSettings: ['Pengaturan', 'Kelola konten website, kategori, dan vendor.'],
   ViewInvoice: ['Invoice', 'Pratinjau dan cetak invoice resmi.'],
   ViewEditOrder: ['Edit Pesanan', 'Ubah rincian perjalanan grup.'],

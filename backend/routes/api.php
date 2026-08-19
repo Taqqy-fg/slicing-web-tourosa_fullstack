@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\TestimonialController;
+use App\Http\Controllers\Api\AdminController;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
@@ -28,6 +29,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/testimonials', [TestimonialController::class, 'store']);
     Route::put('/testimonials/{id}', [TestimonialController::class, 'update']);
     Route::delete('/testimonials/{id}', [TestimonialController::class, 'destroy']);
+
+    // Admin (super admin only)
+    Route::get('/admins', [AdminController::class, 'index']);
+    Route::post('/admins', [AdminController::class, 'store']);
+    Route::put('/admins/{id}', [AdminController::class, 'update']);
+    Route::delete('/admins/{id}', [AdminController::class, 'destroy']);
 
     // Reports export routes
     Route::get('/reports/excel', [\App\Http\Controllers\Api\ReportController::class, 'exportExcel']);

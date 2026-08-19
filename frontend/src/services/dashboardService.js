@@ -91,5 +91,33 @@ export const dashboardService = {
      */
     async deleteTestimonial(id) {
         return await apiClient.delete(`/testimonials/${id}`);
+    },
+
+    /**
+     * List all admin accounts (super admin only)
+     */
+    async getAdmins() {
+        return await apiClient.get('/admins');
+    },
+
+    /**
+     * Create a new admin account (super admin only)
+     */
+    async createAdmin(adminData) {
+        return await apiClient.post('/admins', adminData);
+    },
+
+    /**
+     * Update an admin account (super admin only)
+     */
+    async updateAdmin({ id, adminData }) {
+        return await apiClient.put(`/admins/${id}`, adminData);
+    },
+
+    /**
+     * Delete an admin account (super admin only)
+     */
+    async deleteAdmin(id) {
+        return await apiClient.delete(`/admins/${id}`);
     }
 };

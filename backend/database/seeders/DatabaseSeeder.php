@@ -20,13 +20,15 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // SEED USER
-        User::firstOrCreate(
+        $admin = User::firstOrCreate(
             ['email' => 'admin@tourosa.id'],
             [
                 'name' => 'Admin Tourosa',
                 'password' => Hash::make('password'),
             ]
         );
+        $admin->is_superadmin = true;
+        $admin->save();
 
         // SEED SETTINGS
         Setting::insert([

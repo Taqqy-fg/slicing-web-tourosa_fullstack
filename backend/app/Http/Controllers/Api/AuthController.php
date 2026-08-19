@@ -33,6 +33,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'is_superadmin' => $user->is_superadmin,
             ],
             'token' => $token,
         ]);
@@ -53,6 +54,7 @@ class AuthController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'is_superadmin' => $user->is_superadmin,
         ]);
     }
 
@@ -82,6 +84,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'is_superadmin' => $user->is_superadmin,
             ],
         ]);
     }

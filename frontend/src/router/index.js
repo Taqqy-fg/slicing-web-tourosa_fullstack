@@ -9,6 +9,7 @@ import ViewInvoice from '../components/dashboard/orders/ViewInvoice.vue'
 import ViewOrderDetail from '../components/dashboard/orders/ViewOrderDetail.vue'
 import ViewReport from '../components/dashboard/reports/ViewReport.vue'
 import ViewSettings from '../components/dashboard/settings/ViewSettings.vue'
+import ViewAdmin from '../components/dashboard/admin/ViewAdmin.vue'
 import ViewEditOrder from '../components/dashboard/orders/ViewEditOrder.vue'
 
 const routes = [
@@ -63,6 +64,11 @@ const routes = [
         path: 'reports',
         name: 'ViewReport',
         component: ViewReport
+      },
+      {
+        path: 'admins',
+        name: 'ViewAdmin',
+        component: ViewAdmin
       },
       {
         path: 'settings',
