@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Api;
 
@@ -16,6 +16,8 @@ class TestimonialController extends Controller
 
     public function store(Request $request)
     {
+        $userId = $request->user()->id;
+
         $data = $request->validate([
             'quote'   => 'required|string',
             'name'    => 'required|string|max:255',
@@ -40,6 +42,8 @@ class TestimonialController extends Controller
             'avatar_path' => $avatarPath,
             'sort_order'  => $data['sort_order'] ?? 0,
             'is_active'   => $data['is_active'] ?? true,
+            'created_by'  => $userId,
+            'updated_by'  => $userId,
         ]);
 
         return response()->json(['testimonial' => $testimonial], 201);
@@ -47,6 +51,7 @@ class TestimonialController extends Controller
 
     public function update(Request $request, $id)
     {
+        $userId = $request->user()->id;
         $testimonial = Testimonial::findOrFail($id);
 
         $data = $request->validate([
@@ -71,12 +76,14 @@ class TestimonialController extends Controller
         }
 
         unset($data['avatar']);
+        $data['updated_by'] = $userId;
         $testimonial->update($data);
         return response()->json(['testimonial' => $testimonial]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        $userId = $request->user()->id;
         $testimonial = Testimonial::findOrFail($id);
 
         if ($testimonial->avatar_path) {
@@ -86,6 +93,7 @@ class TestimonialController extends Controller
             }
         }
 
+        $testimonial->update(['deleted_by' => $userId]);
         $testimonial->delete();
         return response()->json(['message' => 'Testimonial deleted']);
     }

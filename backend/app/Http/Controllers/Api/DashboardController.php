@@ -32,7 +32,6 @@ class DashboardController extends Controller
         $settings = Setting::all();
         $testimonials = Testimonial::orderBy('sort_order')->orderBy('id')->get();
 
-        // Format data to match frontend requirements
         $formattedOrders = $orders->map(function ($order) {
             return [
                 'no' => $order->invoice_no,
@@ -97,6 +96,8 @@ class DashboardController extends Controller
 
     public function store(Request $request)
     {
+        $userId = $request->user()->id;
+
         $data = $request->validate([
             'no' => 'required|string|unique:orders,invoice_no',
             'date' => 'required|date',
@@ -131,7 +132,9 @@ class DashboardController extends Controller
             'discount' => $data['discount'] ?? 0,
             'tax_percent' => $data['taxPercent'] ?? 0,
             'dp_percent' => $data['dpPercent'] ?? 0,
-            'notes' => $data['notes'] ?? ''
+            'notes' => $data['notes'] ?? '',
+            'created_by' => $userId,
+            'updated_by' => $userId,
         ]);
 
         if (!empty($data['items'])) {
@@ -143,6 +146,8 @@ class DashboardController extends Controller
                     'qty' => $item['qty'] ?? 0,
                     'cost' => $item['cost'] ?? 0,
                     'price' => $item['price'] ?? 0,
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
                 ]);
             }
         }
@@ -152,6 +157,8 @@ class DashboardController extends Controller
                 $order->expenses()->create([
                     'label' => $exp['label'] ?? '',
                     'amount' => $exp['amount'] ?? 0,
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
                 ]);
             }
         }
@@ -162,6 +169,8 @@ class DashboardController extends Controller
                     'label' => $term['label'] ?? '',
                     'percent' => $term['percent'] ?? 0,
                     'due_date' => $term['due'] ?? null,
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
                 ]);
             }
         }
@@ -169,11 +178,9 @@ class DashboardController extends Controller
         return response()->json(['message' => 'Order created successfully'], 201);
     }
 
-    /**
-     * Update order (full: header fields, items, expenses, terms)
-     */
     public function update(Request $request, $invoice_no)
     {
+        $userId = $request->user()->id;
         $order = Order::with(['items', 'expenses', 'terms'])->where('invoice_no', $invoice_no)->firstOrFail();
 
         $data = $request->validate([
@@ -218,10 +225,14 @@ class DashboardController extends Controller
             'tax_percent' => $data['taxPercent'] ?? $order->tax_percent,
             'dp_percent'  => $data['dpPercent'] ?? $order->dp_percent,
             'notes'       => $data['notes'] ?? $order->notes,
+            'updated_by'  => $userId,
         ]);
 
         if (array_key_exists('items', $data)) {
-            $order->items()->delete();
+            foreach ($order->items as $item) {
+                $item->update(['deleted_by' => $userId]);
+                $item->delete();
+            }
             foreach (($data['items'] ?? []) as $item) {
                 $order->items()->create([
                     'category'    => $item['cat'] ?? 'Lainnya',
@@ -230,27 +241,39 @@ class DashboardController extends Controller
                     'qty'         => $item['qty'] ?? 0,
                     'cost'        => $item['cost'] ?? 0,
                     'price'       => $item['price'] ?? 0,
+                    'created_by'  => $userId,
+                    'updated_by'  => $userId,
                 ]);
             }
         }
 
         if (array_key_exists('expenses', $data)) {
-            $order->expenses()->delete();
+            foreach ($order->expenses as $exp) {
+                $exp->update(['deleted_by' => $userId]);
+                $exp->delete();
+            }
             foreach (($data['expenses'] ?? []) as $exp) {
                 $order->expenses()->create([
-                    'label'  => $exp['label'] ?? '',
-                    'amount' => $exp['amount'] ?? 0,
+                    'label'      => $exp['label'] ?? '',
+                    'amount'     => $exp['amount'] ?? 0,
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
                 ]);
             }
         }
 
         if (array_key_exists('terms', $data)) {
-            $order->terms()->delete();
+            foreach ($order->terms as $term) {
+                $term->update(['deleted_by' => $userId]);
+                $term->delete();
+            }
             foreach (($data['terms'] ?? []) as $term) {
                 $order->terms()->create([
-                    'label'    => $term['label'] ?? '',
-                    'percent'  => $term['percent'] ?? 0,
-                    'due_date' => $term['due'] ?? null,
+                    'label'      => $term['label'] ?? '',
+                    'percent'    => $term['percent'] ?? 0,
+                    'due_date'   => $term['due'] ?? null,
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
                 ]);
             }
         }
@@ -258,25 +281,34 @@ class DashboardController extends Controller
         return response()->json(['message' => 'Order updated successfully']);
     }
 
-    /**
-     * Delete order and all related data
-     */
-    public function destroy($invoice_no)
+    public function destroy(Request $request, $invoice_no)
     {
+        $userId = $request->user()->id;
         $order = Order::where('invoice_no', $invoice_no)->firstOrFail();
-        $order->items()->delete();
-        $order->expenses()->delete();
-        $order->terms()->delete();
+
+        foreach ($order->items as $item) {
+            $item->update(['deleted_by' => $userId]);
+            $item->delete();
+        }
+        foreach ($order->expenses as $exp) {
+            $exp->update(['deleted_by' => $userId]);
+            $exp->delete();
+        }
+        foreach ($order->terms as $term) {
+            $term->update(['deleted_by' => $userId]);
+            $term->delete();
+        }
+
+        $order->update(['deleted_by' => $userId]);
         $order->delete();
 
         return response()->json(['message' => 'Order deleted successfully']);
     }
 
-    /**
-     * Update site settings (waNumber, email, address, tagline, stats, clients)
-     */
     public function updateSettings(Request $request)
     {
+        $userId = $request->user()->id;
+
         $data = $request->validate([
             'waNumber' => 'nullable|string',
             'email'    => 'nullable|string',
@@ -289,33 +321,52 @@ class DashboardController extends Controller
         foreach ($data as $key => $value) {
             Setting::updateOrCreate(
                 ['key' => $key],
-                ['value' => json_encode($value)]
+                [
+                    'value' => json_encode($value),
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
+                ]
             );
         }
 
         return response()->json(['message' => 'Settings saved successfully']);
     }
 
-    /**
-     * Update catalog (categories + vendors) — full replace
-     */
     public function updateCatalog(Request $request)
     {
+        $userId = $request->user()->id;
+
         $data = $request->validate([
             'catalog'          => 'required|array',
             'catalog.*.cat'    => 'required|string',
             'catalog.*.items'  => 'nullable|array',
         ]);
 
-        // Delete all existing catalogs (cascade deletes items via FK)
-        \App\Models\CatalogItem::query()->delete();
-        \App\Models\Catalog::query()->delete();
+        $oldCatalogItems = CatalogItem::all();
+        foreach ($oldCatalogItems as $item) {
+            $item->update(['deleted_by' => $userId]);
+        }
+        $oldCatalogs = Catalog::all();
+        foreach ($oldCatalogs as $cat) {
+            $cat->update(['deleted_by' => $userId]);
+        }
+
+        CatalogItem::query()->delete();
+        Catalog::query()->delete();
 
         foreach ($data['catalog'] as $entry) {
-            $cat = \App\Models\Catalog::create(['name' => $entry['cat']]);
+            $cat = Catalog::create([
+                'name' => $entry['cat'],
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]);
             foreach (($entry['items'] ?? []) as $itemName) {
                 if (trim($itemName)) {
-                    $cat->items()->create(['name' => trim($itemName)]);
+                    $cat->items()->create([
+                        'name' => trim($itemName),
+                        'created_by' => $userId,
+                        'updated_by' => $userId,
+                    ]);
                 }
             }
         }

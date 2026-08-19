@@ -68,6 +68,7 @@ class AuthController extends Controller
 
         $user->name = $request->name;
         $user->email = $request->email;
+        $user->updated_by = $user->id;
 
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
