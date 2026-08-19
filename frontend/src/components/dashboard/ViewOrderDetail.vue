@@ -10,8 +10,9 @@ const router = useRouter()
 const { fmt, fmtDate, calc, statusMeta } = useDashboardData()
 
 watch(() => route.params.id, (id) => {
-  if (id && (!store.activeInvoice || store.activeInvoice.no !== id)) {
-    store.findOrderById(id)
+  const decoded = id ? decodeURIComponent(id) : null
+  if (decoded && (!store.activeInvoice || store.activeInvoice.no !== decoded)) {
+    store.findOrderById(decoded)
   }
 }, { immediate: true })
 
@@ -73,9 +74,9 @@ const termSummary = computed(() => {
 })
 
 const detail = detailData
-const invoiceId = computed(() => store.activeInvoice?.no || route.params.id)
+const invoiceId = computed(() => store.activeInvoice?.no || (route.params.id ? decodeURIComponent(route.params.id) : ''))
 const goList = () => router.push('/dashboard/order-list')
-const goInvoiceFromDetail = () => router.push('/dashboard/invoice/' + invoiceId.value)
+const goInvoiceFromDetail = () => router.push('/dashboard/invoice/' + encodeURIComponent(invoiceId.value))
 </script>
 
 <template>

@@ -12,8 +12,9 @@ const router = useRouter()
 const { fmt, fmtDate, calc, statusMeta } = useDashboardData()
 
 watch(() => route.params.id, (id) => {
-  if (id && (!store.activeInvoice || store.activeInvoice.no !== id)) {
-    store.findOrderById(id)
+  const decoded = id ? decodeURIComponent(id) : null
+  if (decoded && (!store.activeInvoice || store.activeInvoice.no !== decoded)) {
+    store.findOrderById(decoded)
   }
 }, { immediate: true })
 const invData = computed(() => {
@@ -50,8 +51,8 @@ const siteEmail = computed(() => props.site?.email || store.site.email)
 const waDisplay = computed(() => props.site?.waNumber || store.site.waNumber)
 const goNew = () => router.push('/dashboard/new-order')
 const goOrderList = () => router.push('/dashboard/order-list')
-const goOrderDetail = () => router.push('/dashboard/order-detail/' + (store.activeInvoice?.no || route.params.id))
-const backFromInvoice = () => router.push('/dashboard/order-detail/' + (store.activeInvoice?.no || route.params.id))
+const goOrderDetail = () => router.push('/dashboard/order-detail/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
+const backFromInvoice = () => router.push('/dashboard/order-detail/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
 const doPrint = () => window.print()
 </script>
 <template>

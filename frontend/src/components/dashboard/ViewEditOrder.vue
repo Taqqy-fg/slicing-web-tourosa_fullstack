@@ -22,8 +22,9 @@ const ef = computed(() => store.editForm)
 const invoiceNo = computed(() => store.editInvoiceNo || route.params.id)
 
 watch(() => route.params.id, (id) => {
-  if (id && !ef.value) {
-    store.findAndLoadEditForm(id)
+  const decoded = id ? decodeURIComponent(id) : null
+  if (decoded && !ef.value) {
+    store.findAndLoadEditForm(decoded)
   }
 }, { immediate: true })
 

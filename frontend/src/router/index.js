@@ -46,12 +46,12 @@ const routes = [
         component: ViewOrderList
       },
       {
-        path: 'invoice/:id',
+        path: 'invoice/:id(.*)',
         name: 'ViewInvoice',
         component: ViewInvoice
       },
       {
-        path: 'order-detail/:id',
+        path: 'order-detail/:id(.*)',
         name: 'ViewOrderDetail',
         component: ViewOrderDetail
       },
@@ -66,7 +66,7 @@ const routes = [
         component: ViewSettings
       },
       {
-        path: 'edit-order/:id',
+        path: 'edit-order/:id(.*)',
         name: 'ViewEditOrder',
         component: ViewEditOrder
       }

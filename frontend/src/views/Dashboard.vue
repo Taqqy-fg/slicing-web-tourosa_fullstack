@@ -33,7 +33,7 @@ watch(data, (newVal) => {
       clients: s.clients || []
     }
     // Resolve active invoice from route param or refresh existing
-    const routeId = route.params.id
+    const routeId = route.params.id ? decodeURIComponent(route.params.id) : null
     if (routeId) {
       if (route.name === 'ViewEditOrder') {
         store.findAndLoadEditForm(routeId)
