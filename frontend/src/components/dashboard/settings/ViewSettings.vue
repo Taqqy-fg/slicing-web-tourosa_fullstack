@@ -4,6 +4,7 @@ import { useDashboardStore } from '../../../stores/dashboardStore'
 import { useAuthStore } from '../../../stores/authStore'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { dashboardService } from '../../../services/dashboardService'
+import { apiClient } from '../../../api/client'
 
 
 const props = defineProps({
@@ -17,15 +18,19 @@ const queryClient = useQueryClient()
 
 const tabWebsite = () => store.setSettingsTab('website')
 const tabCatalog = () => store.setSettingsTab('catalog')
+const tabTestimoni = () => store.setSettingsTab('testimoni')
 const tabProfile = () => store.setSettingsTab('profile')
 const tabWebBg = computed(() => store.settingsTab === 'website' ? '#15294f' : 'transparent')
 const tabWebColor = computed(() => store.settingsTab === 'website' ? '#fff' : '#5d6a82')
 const tabCatBg = computed(() => store.settingsTab === 'catalog' ? '#15294f' : 'transparent')
 const tabCatColor = computed(() => store.settingsTab === 'catalog' ? '#fff' : '#5d6a82')
+const tabTestBg = computed(() => store.settingsTab === 'testimoni' ? '#15294f' : 'transparent')
+const tabTestColor = computed(() => store.settingsTab === 'testimoni' ? '#fff' : '#5d6a82')
 const tabProfBg = computed(() => store.settingsTab === 'profile' ? '#15294f' : 'transparent')
 const tabProfColor = computed(() => store.settingsTab === 'profile' ? '#fff' : '#5d6a82')
 const isTabWebsite = computed(() => store.settingsTab === 'website')
 const isTabCatalog = computed(() => store.settingsTab === 'catalog')
+const isTabTestimoni = computed(() => store.settingsTab === 'testimoni')
 const isTabProfile = computed(() => store.settingsTab === 'profile')
 
 // Profile form
@@ -145,6 +150,80 @@ const addCat = () => {
   store.catalog = [...store.catalog, { cat: 'Kategori Baru', items: [] }];
 }
 
+// --- Testimonial CRUD ---
+const testimoniStatus = ref('')
+const pendingAvatars = ref({})
+
+const onTestimonialAvatar = (ev, idx) => {
+  const file = ev.target.files[0]
+  if (!file) return
+  pendingAvatars.value[idx] = file
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const updated = [...store.testimonials]
+    updated[idx] = { ...updated[idx], avatar_url: e.target.result }
+    store.testimonials = updated
+  }
+  reader.readAsDataURL(file)
+  ev.target.value = ''
+}
+
+const addTestimonial = () => {
+  store.testimonials = [...store.testimonials, {
+    id: null, quote: '', name: '', role: '', company: '',
+    avatar_url: '/assets/blank.png', avatar_path: null,
+    is_active: true, sort_order: store.testimonials.length,
+    _new: true
+  }]
+}
+
+const deleteTestimonial = async (idx) => {
+  const t = store.testimonials[idx]
+  if (t.id && !t._new) {
+    try {
+      await dashboardService.deleteTestimonial(t.id)
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    } catch (e) { console.error(e) }
+  }
+  const updated = [...store.testimonials]
+  updated.splice(idx, 1)
+  store.testimonials = updated
+  delete pendingAvatars.value[idx]
+}
+
+const saveTestimonials = async () => {
+  testimoniStatus.value = 'saving'
+  try {
+    for (let i = 0; i < store.testimonials.length; i++) {
+      const t = store.testimonials[i]
+      const fd = new FormData()
+      fd.append('quote', t.quote || '')
+      fd.append('name', t.name || '')
+      fd.append('role', t.role || '')
+      fd.append('company', t.company || '')
+      fd.append('sort_order', i)
+      fd.append('is_active', t.is_active ? '1' : '0')
+      if (pendingAvatars.value[i]) {
+        fd.append('avatar', pendingAvatars.value[i])
+      }
+      if (t.id) {
+        await dashboardService.updateTestimonial({ id: t.id, formData: fd })
+      } else {
+        const res = await dashboardService.createTestimonial(fd)
+        store.testimonials[i] = { ...t, id: res.testimonial.id, avatar_path: res.testimonial.avatar_path, _new: false }
+      }
+    }
+    pendingAvatars.value = {}
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    testimoniStatus.value = 'saved'
+    setTimeout(() => { testimoniStatus.value = '' }, 2500)
+  } catch (e) {
+    console.error(e)
+    testimoniStatus.value = 'error'
+    setTimeout(() => { testimoniStatus.value = '' }, 3000)
+  }
+}
+
 // --- Save Settings ---
 const saveSettingsStatus = ref('')
 const saveSettingsMut = useMutation({
@@ -196,6 +275,7 @@ const saveCatalog = () => {
     <div style="display:inline-flex;flex-wrap:wrap;background:#fff;border:1px solid #e8e9ee;border-radius:12px;padding:5px;margin-bottom:22px;gap:4px;">
       <button @click="tabWebsite" class="tr-btn" :style="{ background: tabWebBg, color: tabWebColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-globe-hemisphere-west" style="font-size:16px;"></i>Konten Website</button>
       <button @click="tabCatalog" class="tr-btn" :style="{ background: tabCatBg, color: tabCatColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-tag" style="font-size:16px;"></i>Kategori &amp; Vendor</button>
+      <button @click="tabTestimoni" class="tr-btn" :style="{ background: tabTestBg, color: tabTestColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-quotes" style="font-size:16px;"></i>Testimoni</button>
       <button @click="tabProfile" class="tr-btn" :style="{ background: tabProfBg, color: tabProfColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-user-circle" style="font-size:16px;"></i>Profil Admin</button>
     </div>
 
@@ -276,12 +356,66 @@ const saveCatalog = () => {
             <span v-if="saveCatalogStatus === 'saved'" style="font-size:13px;color:#1f7a5c;font-weight:600;display:flex;align-items:center;gap:5px;"><i class="ph-fill ph-check-circle" style="font-size:16px;"></i>Katalog Tersimpan</span>
             <span v-else-if="saveCatalogStatus === 'error'" style="font-size:13px;color:#c2603a;font-weight:600;display:flex;align-items:center;gap:5px;"><i class="ph-fill ph-warning-circle" style="font-size:16px;"></i>Gagal menyimpan</span>
           </transition>
-          <button @click="saveCatalog" :disabled="saveCatalogStatus === 'saving'" class="tr-btn" style="background:#1f7a5c;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: saveCatalogStatus === 'saving' ? 0.7 : 1 }">
+          <button @click="saveCatalog" :disabled="saveCatalogStatus === 'saving'" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: saveCatalogStatus === 'saving' ? 0.7 : 1 }">
             <i v-if="saveCatalogStatus === 'saving'" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
-            <i v-else class="ph ph-floppy-disk" style="font-size:16px;"></i>
+            <i v-else class="ph ph-floppy-disk" style="font-size:16px;color:#c39a4d;"></i>
             {{ saveCatalogStatus === 'saving' ? 'Menyimpan...' : 'Simpan Katalog' }}
           </button>
         </div>
+      </div>
+    </div>
+
+    <div v-if="isTabTestimoni" style="display:flex;flex-direction:column;gap:18px;">
+      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap;">
+          <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0;display:flex;align-items:center;gap:9px;"><i class="ph ph-quotes" style="color:#c39a4d;font-size:20px;"></i>Testimoni Klien</h3>
+          <button @click="addTestimonial" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Testimoni</button>
+        </div>
+        <p style="font-size:13px;color:#8a93a5;margin:0 0 14px;">Kelola testimoni klien yang tampil di halaman depan. Upload foto profil (opsional, default: blank.png).</p>
+
+        <div v-if="testimoniStatus === 'saved'" style="display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;margin-bottom:12px;">
+          <i class="ph ph-check-circle" style="font-size:16px;flex-shrink:0;"></i>Tersimpan
+        </div>
+        <div v-if="testimoniStatus === 'error'" style="display:flex;align-items:center;gap:8px;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;font-size:13px;font-weight:600;padding:10px 14px;border-radius:10px;margin-bottom:12px;">
+          <i class="ph ph-warning-circle" style="font-size:16px;flex-shrink:0;"></i>Gagal menyimpan
+        </div>
+
+        <div v-for="(t, idx) in store.testimonials" :key="t.id || idx" style="border-top:1px solid #f1f2f5;padding:16px 0;">
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <label style="cursor:pointer;flex-shrink:0;">
+              <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid #c39a4d;background:#1b2e4a;display:flex;align-items:center;justify-content:center;">
+                <img :src="t.avatar_url || '/assets/blank.png'" :alt="t.name" style="width:100%;height:100%;object-fit:cover;display:block;">
+              </div>
+              <input type="file" accept="image/*" @change="(ev) => onTestimonialAvatar(ev, idx)" style="display:none;">
+            </label>
+            <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <input :value="t.name" @input="e => store.testimonials[idx].name = e.target.value" placeholder="Nama" style="padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
+                <input :value="t.role" @input="e => store.testimonials[idx].role = e.target.value" placeholder="Jabatan (cth. HRD)" style="padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
+              </div>
+              <input :value="t.company" @input="e => store.testimonials[idx].company = e.target.value" placeholder="Perusahaan (cth. PT Sinar Abadi)" style="padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
+              <textarea :value="t.quote" @input="e => store.testimonials[idx].quote = e.target.value" rows="2" placeholder="Tulis testimoni klien..." style="padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#5d6a82;cursor:pointer;">
+                  <input type="checkbox" :checked="t.is_active" @change="e => store.testimonials[idx].is_active = e.target.checked" style="accent-color:#15294f;">
+                  Aktif
+                </label>
+                <span style="flex:1;"></span>
+                <button @click="deleteTestimonial(idx)" class="tr-btn" style="background:none;border:none;cursor:pointer;color:#c2603a;padding:6px;display:flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;"><i class="ph ph-trash" style="font-size:15px;"></i>Hapus</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-if="!store.testimonials.length" style="text-align:center;padding:32px;color:#9aa0ad;font-size:13.5px;">
+          <i class="ph ph-quotes" style="font-size:32px;display:block;margin-bottom:8px;"></i>Belum ada testimoni.
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;padding-top:4px;">
+        <button @click="saveTestimonials" :disabled="testimoniStatus === 'saving'" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: testimoniStatus === 'saving' ? 0.7 : 1 }">
+          <i v-if="testimoniStatus === 'saving'" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+          <i v-else class="ph ph-floppy-disk" style="font-size:16px;color:#c39a4d;"></i>
+          {{ testimoniStatus === 'saving' ? 'Menyimpan...' : 'Simpan Testimoni' }}
+        </button>
       </div>
     </div>
 
@@ -317,11 +451,13 @@ const saveCatalog = () => {
             <button type="button" @click="showPasswordConfirm = !showPasswordConfirm" tabindex="-1" style="position:absolute;right:8px;bottom:8px;background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;color:#9aa3b2;font-size:16px;transition:color .2s;"><i :class="showPasswordConfirm ? 'ph ph-eye-slash' : 'ph ph-eye'"></i></button>
           </div>
         </div>
-        <button @click="saveProfile" :disabled="profileLoading" class="tr-btn" style="margin-top:18px;background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 22px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px;">
-          <span v-if="profileLoading" style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span>
-          <i v-else class="ph ph-floppy-disk" style="font-size:16px;"></i>
-          {{ profileLoading ? 'Menyimpan...' : 'Simpan Profil' }}
-        </button>
+        <div style="display:flex;justify-content:flex-end;margin-top:18px;">
+          <button @click="saveProfile" :disabled="profileLoading" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 22px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px;">
+            <i v-if="profileLoading" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+            <i v-else class="ph ph-floppy-disk" style="font-size:16px;color:#c39a4d;"></i>
+            {{ profileLoading ? 'Menyimpan...' : 'Simpan Profil' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

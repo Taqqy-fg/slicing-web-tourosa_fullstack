@@ -23,6 +23,7 @@ watch(data, (newVal) => {
   if (newVal) {
     store.orders = newVal.orders || []
     store.catalog = newVal.catalog || []
+    store.testimonials = newVal.testimonials || []
     const s = newVal.site || {}
     store.site = {
       waNumber: s.waNumber || '6281200000000',
@@ -49,6 +50,7 @@ watch(data, (newVal) => {
 
 const orders = computed(() => data.value?.orders || [])
 const catalog = computed(() => data.value?.catalog || [])
+const testimonials = computed(() => data.value?.testimonials || [])
 const site = computed(() => {
   const s = data.value?.site || {}
   return {
@@ -61,7 +63,7 @@ const site = computed(() => {
   }
 })
 // Share fetched data to child views via store
-store.setQueryData({ orders, catalog, site })
+store.setQueryData({ orders, catalog, site, testimonials })
 // Load user profile if not already loaded
 if (!auth.user) {
   auth.fetchUser()

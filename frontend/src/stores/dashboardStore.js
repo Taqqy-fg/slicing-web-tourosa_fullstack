@@ -29,9 +29,10 @@ export const useDashboardStore = defineStore('dashboard', {
             stats: [],
             clients: []
         },
+        testimonials: [],
     }),
     actions: {
-        setQueryData({ orders, catalog, site }) {
+        setQueryData({ orders, catalog, site, testimonials }) {
             // Watch the computed refs and sync to store state
             this.orders = orders.value;
             this.catalog = catalog.value;
@@ -41,6 +42,8 @@ export const useDashboardStore = defineStore('dashboard', {
             if (!clonedSite.stats) clonedSite.stats = [];
             if (!clonedSite.clients) clonedSite.clients = [];
             this.site = clonedSite;
+
+            this.testimonials = JSON.parse(JSON.stringify(testimonials.value || []));
         },
         setActiveInvoice(invoice) {
             // Deep-clone so we own the object and Vue reactivity can track all fields.

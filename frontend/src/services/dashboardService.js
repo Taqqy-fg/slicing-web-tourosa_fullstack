@@ -65,5 +65,31 @@ export const dashboardService = {
     async exportPdf() {
         const response = await apiClient.get('/reports/pdf', { responseType: 'blob' });
         return response;
+    },
+
+    /**
+     * Create a testimonial (multipart for avatar upload)
+     */
+    async createTestimonial(formData) {
+        return await apiClient.post('/testimonials', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+
+    /**
+     * Update a testimonial (multipart for avatar upload)
+     */
+    async updateTestimonial({ id, formData }) {
+        formData.append('_method', 'PUT');
+        return await apiClient.post(`/testimonials/${id}`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+
+    /**
+     * Delete a testimonial
+     */
+    async deleteTestimonial(id) {
+        return await apiClient.delete(`/testimonials/${id}`);
     }
 };

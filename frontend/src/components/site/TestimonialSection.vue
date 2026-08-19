@@ -1,14 +1,17 @@
 <script setup>
+const props = defineProps({
+  testimonials: { type: Array, default: () => [] }
+})
 </script>
 
 <template>
-  <section style="background:#13233f;color:#fff;">
-    <div data-aos="zoom-in" class="testimonial-inner">
+  <section v-if="testimonials.length" style="background:#13233f;color:#fff;">
+    <div v-for="(t, idx) in testimonials" :key="t.id || idx" data-aos="zoom-in" class="testimonial-inner">
       <i class="ph-fill ph-quotes" style="font-size:40px;color:#c39a4d;"></i>
-      <p class="testimonial-quote">"Outing kantor 120 orang ke Bali berjalan mulus tanpa drama. Penawaran jelas, invoice rapi untuk reimbursement, dan tim Tourosa standby penuh di lokasi."</p>
+      <p class="testimonial-quote">"{{ t.quote }}"</p>
       <div style="display:flex;align-items:center;justify-content:center;gap:14px;">
-        <div class="testimonial-avatar"><img src="/assets/foto_profil.png" alt="Rendra Pratama" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
-        <div style="text-align:left;"><div style="font-size:15px;font-weight:700;">Rendra Pratama</div><div style="font-size:13px;color:#9fabc4;">HRD · PT Sinar Abadi</div></div>
+        <div class="testimonial-avatar"><img :src="t.avatar_url || '/assets/blank.png'" :alt="t.name" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
+        <div style="text-align:left;"><div style="font-size:15px;font-weight:700;">{{ t.name }}</div><div style="font-size:13px;color:#9fabc4;">{{ t.role }} · {{ t.company }}</div></div>
       </div>
     </div>
   </section>

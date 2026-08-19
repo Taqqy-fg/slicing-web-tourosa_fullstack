@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Catalog;
 use App\Models\Setting;
+use App\Models\Testimonial;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -19,7 +20,9 @@ class DashboardController extends Controller
             $formattedSettings[$setting->key] = json_decode($setting->value, true);
         }
 
-        return response()->json(['site' => $formattedSettings]);
+        $testimonials = Testimonial::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get();
+
+        return response()->json(['site' => $formattedSettings, 'testimonials' => $testimonials]);
     }
 
     public function index()
@@ -27,6 +30,7 @@ class DashboardController extends Controller
         $orders = Order::with(['items', 'expenses', 'terms'])->orderBy('id', 'desc')->get();
         $catalogs = Catalog::with('items')->get();
         $settings = Setting::all();
+        $testimonials = Testimonial::orderBy('sort_order')->orderBy('id')->get();
 
         // Format data to match frontend requirements
         $formattedOrders = $orders->map(function ($order) {
@@ -86,7 +90,8 @@ class DashboardController extends Controller
         return response()->json([
             'orders' => $formattedOrders,
             'catalog' => $formattedCatalogs,
-            'site' => $formattedSettings
+            'site' => $formattedSettings,
+            'testimonials' => $testimonials
         ]);
     }
 

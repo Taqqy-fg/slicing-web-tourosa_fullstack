@@ -31,6 +31,8 @@ const site = computed(() => {
   }
 })
 
+const testimonials = computed(() => data.value?.testimonials || [])
+
 // Computed values based on state logic from the HTML script
 const waNum = computed(() => (site.value.waNumber || '6281200000000').replace(/[^0-9]/g, ''))
 const waMsg = encodeURIComponent('Halo Tourosa, saya ingin konsultasi perjalanan grup.')
@@ -47,7 +49,7 @@ const waDisplay = computed(() => '+' + waNum.value.replace(/^(\d{2})(\d{3,4})(\d
     <ServicesSection />
     <AboutSection />
     <ProcessSection />
-    <TestimonialSection />
+    <TestimonialSection :testimonials="testimonials" />
     <CtaSection :wa-link="waLink" :wa-display="waDisplay" />
     <SiteFooter :wa-display="waDisplay" :site-email="site.email" :site-address="site.address" />
     <ScrollToTop />
