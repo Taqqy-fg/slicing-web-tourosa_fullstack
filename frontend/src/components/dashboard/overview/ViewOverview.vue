@@ -1,9 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import CountUp from '../CountUp.vue'
-import { useDashboardStore } from '../../stores/dashboardStore'
-import { useDashboardData } from '../../composables/useDashboardData'
+import CountUp from '../../CountUp.vue'
+import { useDashboardStore } from '../../../stores/dashboardStore'
+import { useDashboardData } from '../../../composables/useDashboardData'
 
 const props = defineProps({
   orders: Array
@@ -20,7 +20,7 @@ const calcs = computed(() => orders.value.map(o => calc(o)))
 const sRevenue = computed(() => fmt(calcs.value.reduce((a, c) => a + c.total, 0)))
 const sActive = computed(() => orders.value.filter(o => o.status !== 'Lunas').length)
 
-const openDetail = (o) => { store.setActiveInvoice(o); router.push('/dashboard/order-detail/' + encodeURIComponent(o.no)) }
+const openDetail = (o) => { store.setActiveInvoice(o); router.push('/orders/detail/' + encodeURIComponent(o.no)) }
 
 const toRow = (o) => {
   const c = calc(o); const m = statusMeta(o.status);
@@ -42,8 +42,8 @@ const statusBars = computed(() => [
   { label: 'Pending', count: pendCount.value, width: Math.round(pendCount.value / totCount.value * 100) + '%', color: '#9aa0ad' },
 ])
 
-const goList = () => router.push('/dashboard/order-list')
-const goNew = () => router.push('/dashboard/new-order')
+const goList = () => router.push('/orders')
+const goNew = () => router.push('/orders/new')
 </script>
 
 <template>

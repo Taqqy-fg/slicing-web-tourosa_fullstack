@@ -1,8 +1,8 @@
 <script setup>
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useDashboardStore } from '../../stores/dashboardStore'
-import { useDashboardData } from '../../composables/useDashboardData'
+import { useDashboardStore } from '../../../stores/dashboardStore'
+import { useDashboardData } from '../../../composables/useDashboardData'
 
 const store = useDashboardStore()
 const route = useRoute()
@@ -75,8 +75,8 @@ const termSummary = computed(() => {
 
 const detail = detailData
 const invoiceId = computed(() => store.activeInvoice?.no || (route.params.id ? decodeURIComponent(route.params.id) : ''))
-const goList = () => router.push('/dashboard/order-list')
-const goInvoiceFromDetail = () => router.push('/dashboard/invoice/' + encodeURIComponent(invoiceId.value))
+const goList = () => router.push('/orders')
+const goInvoiceFromDetail = () => router.push('/orders/invoice/' + encodeURIComponent(invoiceId.value))
 </script>
 
 <template>

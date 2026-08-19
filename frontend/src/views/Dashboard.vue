@@ -6,8 +6,8 @@ import { useDashboardStore } from '../stores/dashboardStore'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardService } from '../services/dashboardService'
 import { useDashboardData } from '../composables/useDashboardData'
-import DashSidebar from '../components/dashboard/DashSidebar.vue'
-import DashTopbar from '../components/dashboard/DashTopbar.vue'
+import DashSidebar from '../components/dashboard/layout/DashSidebar.vue'
+import DashTopbar from '../components/dashboard/layout/DashTopbar.vue'
 const store = useDashboardStore()
 const auth = useAuthStore()
 const { fmtDate } = useDashboardData()
@@ -69,11 +69,11 @@ if (!auth.user) {
 const isSidebarOpen = ref(false)
 const mainScroll = ref(null)
 const navDefs = [
-  { key: 'overview', label: 'Ringkasan', icon: 'ph-squares-four', route: '/dashboard/overview' },
-  { key: 'new-order', label: 'Buat Pesanan', icon: 'ph-note-pencil', route: '/dashboard/new-order' },
-  { key: 'order-list', label: 'Daftar Pesanan', icon: 'ph-list-checks', route: '/dashboard/order-list' },
-  { key: 'report', label: 'Laporan', icon: 'ph-chart-bar', route: '/dashboard/report' },
-  { key: 'settings', label: 'Pengaturan', icon: 'ph-gear', route: '/dashboard/settings' },
+  { key: 'overview', label: 'Ringkasan', icon: 'ph-squares-four', route: '/dashboard' },
+  { key: 'new-order', label: 'Buat Pesanan', icon: 'ph-note-pencil', route: '/orders/new' },
+  { key: 'order-list', label: 'Daftar Pesanan', icon: 'ph-list-checks', route: '/orders' },
+  { key: 'report', label: 'Laporan', icon: 'ph-chart-bar', route: '/reports' },
+  { key: 'settings', label: 'Pengaturan', icon: 'ph-gear', route: '/settings' },
 ]
 // Map route key → expected route.name
 const routeNameMap = {
@@ -121,7 +121,7 @@ const todayF = fmtDate(new Date().toISOString().slice(0, 10))
         :page-title="pm[0]"
         :page-sub="pm[1]"
         :today-f="todayF"
-        :go-new="() => router.push('/dashboard/new-order')"
+        :go-new="() => router.push('/orders/new')"
         @toggle-sidebar="isSidebarOpen = !isSidebarOpen"
       />
 

@@ -2,14 +2,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
-import ViewOverview from '../components/dashboard/ViewOverview.vue'
-import ViewNewOrder from '../components/dashboard/ViewNewOrder.vue'
-import ViewOrderList from '../components/dashboard/ViewOrderList.vue'
-import ViewInvoice from '../components/dashboard/ViewInvoice.vue'
-import ViewOrderDetail from '../components/dashboard/ViewOrderDetail.vue'
-import ViewReport from '../components/dashboard/ViewReport.vue'
-import ViewSettings from '../components/dashboard/ViewSettings.vue'
-import ViewEditOrder from '../components/dashboard/ViewEditOrder.vue'
+import ViewOverview from '../components/dashboard/overview/ViewOverview.vue'
+import ViewNewOrder from '../components/dashboard/orders/ViewNewOrder.vue'
+import ViewOrderList from '../components/dashboard/orders/ViewOrderList.vue'
+import ViewInvoice from '../components/dashboard/orders/ViewInvoice.vue'
+import ViewOrderDetail from '../components/dashboard/orders/ViewOrderDetail.vue'
+import ViewReport from '../components/dashboard/reports/ViewReport.vue'
+import ViewSettings from '../components/dashboard/settings/ViewSettings.vue'
+import ViewEditOrder from '../components/dashboard/orders/ViewEditOrder.vue'
 
 const routes = [
   {
@@ -24,39 +24,43 @@ const routes = [
     meta: { guest: true }
   },
   {
-    path: '/dashboard',
+    path: '/',
     name: 'Dashboard',
     component: Dashboard,
-    redirect: '/dashboard/overview',
     meta: { requiresAuth: true },
     children: [
       {
-        path: 'overview',
+        path: 'dashboard',
         name: 'ViewOverview',
         component: ViewOverview
       },
       {
-        path: 'new-order',
-        name: 'ViewNewOrder',
-        component: ViewNewOrder
-      },
-      {
-        path: 'order-list',
+        path: 'orders',
         name: 'ViewOrderList',
         component: ViewOrderList
       },
       {
-        path: 'invoice/:id(.*)',
+        path: 'orders/new',
+        name: 'ViewNewOrder',
+        component: ViewNewOrder
+      },
+      {
+        path: 'orders/invoice/:id(.*)',
         name: 'ViewInvoice',
         component: ViewInvoice
       },
       {
-        path: 'order-detail/:id(.*)',
+        path: 'orders/detail/:id(.*)',
         name: 'ViewOrderDetail',
         component: ViewOrderDetail
       },
       {
-        path: 'report',
+        path: 'orders/edit/:id(.*)',
+        name: 'ViewEditOrder',
+        component: ViewEditOrder
+      },
+      {
+        path: 'reports',
         name: 'ViewReport',
         component: ViewReport
       },
@@ -66,9 +70,8 @@ const routes = [
         component: ViewSettings
       },
       {
-        path: 'edit-order/:id(.*)',
-        name: 'ViewEditOrder',
-        component: ViewEditOrder
+        path: '',
+        redirect: '/dashboard'
       }
     ]
   }

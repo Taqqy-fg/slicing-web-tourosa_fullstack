@@ -1,8 +1,8 @@
 <script setup>
 import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useDashboardStore } from '../../stores/dashboardStore'
-import { useDashboardData } from '../../composables/useDashboardData'
+import { useDashboardStore } from '../../../stores/dashboardStore'
+import { useDashboardData } from '../../../composables/useDashboardData'
 const props = defineProps({
   site: Object
 })
@@ -49,10 +49,10 @@ const hasTerms = computed(() => invData.value?.hasTerms || false)
 const siteAddress = computed(() => props.site?.address || store.site.address)
 const siteEmail = computed(() => props.site?.email || store.site.email)
 const waDisplay = computed(() => props.site?.waNumber || store.site.waNumber)
-const goNew = () => router.push('/dashboard/new-order')
-const goOrderList = () => router.push('/dashboard/order-list')
-const goOrderDetail = () => router.push('/dashboard/order-detail/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
-const backFromInvoice = () => router.push('/dashboard/order-detail/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
+const goNew = () => router.push('/orders/new')
+const goOrderList = () => router.push('/orders')
+const goOrderDetail = () => router.push('/orders/detail/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
+const backFromInvoice = () => router.push('/orders/detail/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
 const doPrint = () => window.print()
 </script>
 <template>

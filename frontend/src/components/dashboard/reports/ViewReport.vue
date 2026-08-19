@@ -1,11 +1,11 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import CountUp from '../CountUp.vue'
-import { useDashboardStore } from '../../stores/dashboardStore'
-import { useDashboardData } from '../../composables/useDashboardData'
+import CountUp from '../../CountUp.vue'
+import { useDashboardStore } from '../../../stores/dashboardStore'
+import { useDashboardData } from '../../../composables/useDashboardData'
 
-import { dashboardService } from '../../services/dashboardService'
+import { dashboardService } from '../../../services/dashboardService'
 
 const props = defineProps({
   orders: Array
@@ -29,7 +29,7 @@ const repProfitF = computed(() => fmt(repProfit.value))
 const repMarginF = computed(() => repMargin.value + '%')
 
 const maxP = computed(() => Math.max(1, ...calcs.value.map(c => c.profit)))
-const openDetail = (o) => { store.setActiveInvoice(o); router.push('/dashboard/order-detail/' + encodeURIComponent(o.no)) }
+const openDetail = (o) => { store.setActiveInvoice(o); router.push('/orders/detail/' + encodeURIComponent(o.no)) }
 
 const repOrders = computed(() => {
   return orders.value.map((o, i) => {

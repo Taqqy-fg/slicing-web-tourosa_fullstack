@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/authStore'
+import { useAuthStore } from '../../../stores/authStore'
 
 defineProps({
   pageTitle: String,

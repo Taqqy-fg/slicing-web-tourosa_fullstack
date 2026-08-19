@@ -3,9 +3,9 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useVueTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, getPaginationRowModel } from '@tanstack/vue-table'
-import { useDashboardStore } from '../../stores/dashboardStore'
-import { useDashboardData } from '../../composables/useDashboardData'
-import { dashboardService } from '../../services/dashboardService'
+import { useDashboardStore } from '../../../stores/dashboardStore'
+import { useDashboardData } from '../../../composables/useDashboardData'
+import { dashboardService } from '../../../services/dashboardService'
 
 const props = defineProps({
   orders: Array
@@ -18,9 +18,9 @@ const { fmt, fmtDate, fmtShort, calc, statusMeta } = useDashboardData()
 
 const orders = computed(() => props.orders ?? store.orders)
 
-const viewInvoice = (o) => { store.setActiveInvoice(o); router.push('/dashboard/invoice/' + encodeURIComponent(o.no)) }
-const openDetail = (o) => { store.setActiveInvoice(o); router.push('/dashboard/order-detail/' + encodeURIComponent(o.no)) }
-const editOrder = (o) => { store.loadEditForm(o); router.push('/dashboard/edit-order/' + encodeURIComponent(o.no)) }
+const viewInvoice = (o) => { store.setActiveInvoice(o); router.push('/orders/invoice/' + encodeURIComponent(o.no)) }
+const openDetail = (o) => { store.setActiveInvoice(o); router.push('/orders/detail/' + encodeURIComponent(o.no)) }
+const editOrder = (o) => { store.loadEditForm(o); router.push('/orders/edit/' + encodeURIComponent(o.no)) }
 
 const rawData = computed(() => orders.value.map(o => {
   const c = calc(o); const m = statusMeta(o.status)
@@ -72,7 +72,7 @@ const sortIcon = (col) => {
   return s.desc ? 'ph-arrow-down' : 'ph-arrow-up'
 }
 
-const goNew = () => router.push('/dashboard/new-order')
+const goNew = () => router.push('/orders/new')
 
 const deleteModal = ref(false)
 const deleteTarget = ref(null)

@@ -1,9 +1,9 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { useDashboardStore } from '../../stores/dashboardStore'
-import { useAuthStore } from '../../stores/authStore'
+import { useDashboardStore } from '../../../stores/dashboardStore'
+import { useAuthStore } from '../../../stores/authStore'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { dashboardService } from '../../services/dashboardService'
+import { dashboardService } from '../../../services/dashboardService'
 
 
 const props = defineProps({
