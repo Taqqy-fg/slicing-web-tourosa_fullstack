@@ -447,3 +447,249 @@ a {
     gap: 12px !important;
   }
 }
+
+/* ── Flatpickr Tourosa Theme ────────────────────────── */
+.flatpickr-calendar {
+  border: 1px solid #e8e9ee !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(21,41,79,.18) !important;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  overflow: hidden;
+}
+
+/* header bar */
+.flatpickr-months {
+  background: #15294f !important;
+  padding: 0 !important;
+}
+
+/* month + year label */
+.flatpickr-current-month {
+  color: #fff !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  padding: 12px 0 !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+  color: #fff !important;
+  font-weight: 700 !important;
+  background: transparent !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months option {
+  background: #15294f !important;
+  color: #fff !important;
+}
+
+/* prev / next arrows (month + year) — gold */
+span.flatpickr-prev-month,
+span.flatpickr-next-month {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  padding: 0 !important;
+  margin: 4px 2px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: background .15s !important;
+  color: #c39a4d !important;
+  fill: #c39a4d !important;
+  position: relative !important;
+}
+
+span.flatpickr-prev-month:hover,
+span.flatpickr-next-month:hover {
+  background: rgba(195,154,77,.15) !important;
+  color: #c39a4d !important;
+}
+
+span.flatpickr-prev-month:hover svg,
+span.flatpickr-next-month:hover svg,
+span.flatpickr-prev-month:hover svg path,
+span.flatpickr-next-month:hover svg path {
+  fill: #c39a4d !important;
+}
+
+span.flatpickr-prev-month svg,
+span.flatpickr-next-month svg {
+  fill: #c39a4d !important;
+  width: 14px !important;
+  height: 14px !important;
+}
+
+span.flatpickr-prev-month svg path,
+span.flatpickr-next-month svg path {
+  fill: #c39a4d !important;
+  stroke: none !important;
+}
+
+/* inner nav for year skip: «  » */
+.flatpickr-months .flatpickr-prev-month i,
+.flatpickr-months .flatpickr-next-month i {
+  color: #c39a4d !important;
+  font-style: normal !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+/* weekday header row */
+.flatpickr-weekdays {
+  background: #fafbfc !important;
+  padding: 6px 0 !important;
+}
+
+span.flatpickr-weekday {
+  color: #c39a4d !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  padding: 6px 0 !important;
+  background: transparent !important;
+}
+
+span.flatpickr-weekday:first-child {
+  color: #c2603a !important;
+}
+
+span.flatpickr-weekday:last-child {
+  color: #1f7a5c !important;
+}
+
+/* day cells */
+.flatpickr-day {
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: background .12s, color .12s;
+}
+
+.flatpickr-day.today {
+  border-color: #c39a4d !important;
+  font-weight: 700 !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover,
+.flatpickr-day.selected.flatpickr-range-start,
+.flatpickr-day.selected.flatpickr-range-end {
+  background: #15294f !important;
+  border-color: #15294f !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+}
+
+.flatpickr-day:hover:not(.selected):not(.flatpickr-disabled) {
+  background: #eef3fb !important;
+  border-color: #eef3fb !important;
+  color: #15294f !important;
+}
+
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+  color: #c2c8d4 !important;
+}
+
+.flatpickr-day.inRange {
+  background: #eef3fb !important;
+  border-color: #eef3fb !important;
+  box-shadow: none !important;
+  color: #15294f !important;
+  border-radius: 0 !important;
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover {
+  color: #d8dce4 !important;
+  background: transparent !important;
+}
+
+/* clear button */
+.flatpickr-clear {
+  color: #c39a4d !important;
+  background: transparent !important;
+  border-color: #c39a4d !important;
+}
+
+.flatpickr-clear:hover {
+  background: #c39a4d !important;
+  color: #fff !important;
+}
+
+/* year input up/down arrows (triangle via border) */
+.numInputWrapper .arrowUp,
+.numInputWrapper .arrowDown {
+  cursor: pointer !important;
+}
+
+.numInputWrapper .arrowUp:after {
+  border-bottom-color: #c39a4d !important;
+}
+
+.numInputWrapper .arrowUp:hover:after {
+  border-bottom-color: #15294f !important;
+}
+
+.numInputWrapper .arrowDown:after {
+  border-top-color: #c39a4d !important;
+}
+
+.numInputWrapper .arrowDown:hover:after {
+  border-top-color: #15294f !important;
+}
+
+/* hover state on year arrows wrapper */
+.numInputWrapper:hover .arrowUp:after {
+  border-bottom-color: #c39a4d !important;
+}
+
+.numInputWrapper:hover .arrowDown:after {
+  border-top-color: #c39a4d !important;
+}
+
+/* keep calendar visible when scrolling */
+.flatpickr-calendar.open {
+  position: fixed !important;
+  z-index: 99999 !important;
+}
+
+/* Flatpickr input styling (matches tourosa form fields) */
+.flatpickr-input,
+.tr-datepicker {
+  width: 100%;
+  padding: 11px 36px 11px 38px;
+  border: 1px solid #d8dce4;
+  border-radius: 9px;
+  font-size: 14px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: #1a2235;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239aa0ad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  background-size: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.flatpickr-input:focus,
+.tr-datepicker:focus {
+  border-color: #15294f;
+  box-shadow: 0 0 0 3px rgba(21,41,79,.08);
+}
+
+.flatpickr-input::placeholder,
+.tr-datepicker::placeholder {
+  color: #9aa3b2;
+  font-size: 14px;
+}
+
+input.flatpickr-input[readonly],
+input.tr-datepicker[readonly] {
+  cursor: pointer;
+  opacity: 1;
+}

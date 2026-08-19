@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useDashboardStore } from '../../stores/dashboardStore'
 import { useDashboardData } from '../../composables/useDashboardData'
 import { dashboardService } from '../../services/dashboardService'
+import DatePicker from '../DatePicker.vue'
 
 const props = defineProps({
   orders: Array,
@@ -117,8 +118,8 @@ const addItem = () => store.addItemToEditForm()
           <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label><input v-model="f.contact" placeholder="cth. 0812-3344-5566" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
           <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Destinasi</label><input v-model="f.dest" placeholder="cth. Bali (Denpasar)" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
           <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Jumlah Peserta (pax)</label><input v-model="f.pax" type="number" placeholder="cth. 45" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
-          <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Berangkat</label><input v-model="f.depart" type="date" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
-          <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Kembali</label><input v-model="f.ret" type="date" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
+          <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Berangkat</label><DatePicker v-model="f.depart" /></div>
+          <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Kembali</label><DatePicker v-model="f.ret" /></div>
         </div>
       </div>
       <!-- items -->
