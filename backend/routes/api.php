@@ -21,5 +21,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/orders/{invoice_no}', [DashboardController::class, 'destroy'])->where('invoice_no', '.*');
     Route::put('/settings', [DashboardController::class, 'updateSettings']);
     Route::put('/catalog', [DashboardController::class, 'updateCatalog']);
+
+    // Reports export routes
+    Route::get('/reports/excel', [\App\Http\Controllers\Api\ReportController::class, 'exportExcel']);
+    Route::get('/reports/pdf', [\App\Http\Controllers\Api\ReportController::class, 'exportPdf']);
 });
 
