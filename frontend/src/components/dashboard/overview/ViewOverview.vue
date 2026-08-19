@@ -101,12 +101,12 @@ const goNew = () => router.push('/orders/new')
             <div style="height:7px;background:#f1f2f5;border-radius:5px;overflow:hidden;"><div :style="{ width: b.width, background: b.color, height: '100%', borderRadius: '5px' }"></div></div>
           </div>
         </div>
-        <div style="background:linear-gradient(135deg,#15294f,#0d1b30);border-radius:16px;padding:22px;color:#fff;">
+        <!-- <div style="background:linear-gradient(135deg,#15294f,#0d1b30);border-radius:16px;padding:22px;color:#fff;">
           <i class="ph-fill ph-note-pencil" style="font-size:26px;color:#c39a4d;"></i>
           <h3 style="font-size:16px;font-weight:700;margin:14px 0 6px;">Input pesanan baru</h3>
           <p style="font-size:13px;color:#aeb8cc;line-height:1.5;margin:0 0 16px;">Buat pesanan grup dan cetak invoice resmi dalam hitungan menit.</p>
           <button @click="goNew" class="tr-btn" style="background:#c39a4d;color:#13233f;font-size:13.5px;font-weight:700;padding:11px 18px;border-radius:10px;border:none;cursor:pointer;width:100%;">+ Buat Pesanan</button>
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
