@@ -12,7 +12,7 @@ export function useDashboardData() {
     if (!iso) return '-'
     const p = String(iso).split('-'); if (p.length < 3) return iso;
     const b = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-    return Number(p[2]) + ' ' + b[Number(p[1]) - 1]
+    return Number(p[2]) + ' ' + b[Number(p[1]) - 1] + ' ' + p[0]
   }
 
   // Calculator
