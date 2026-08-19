@@ -10,7 +10,7 @@ const props = defineProps({
       <i class="ph-fill ph-quotes" style="font-size:40px;color:#c39a4d;"></i>
       <p class="testimonial-quote">"{{ t.quote }}"</p>
       <div style="display:flex;align-items:center;justify-content:center;gap:14px;">
-        <div class="testimonial-avatar"><img :src="t.avatar_url || '/assets/blank.png'" :alt="t.name" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
+        <div class="testimonial-avatar"><img :src="t.avatar_url || '/assets/blank.png'" :alt="t.name" style="width:100%;height:100%;object-fit:cover;object-position:center center;display:block;"></div>
         <div style="text-align:left;"><div style="font-size:15px;font-weight:700;">{{ t.name }}</div><div style="font-size:13px;color:#9fabc4;">{{ t.role }} · {{ t.company }}</div></div>
       </div>
     </div>
@@ -37,7 +37,6 @@ const props = defineProps({
   height: 52px;
   flex-shrink: 0;
   background: #1b2e4a;
-  border: 2px solid #c39a4d;
   display: flex;
   align-items: center;
   justify-content: center;
