@@ -24,6 +24,7 @@ const detailData = computed(() => {
     tripF: (o.depart ? fmtDate(o.depart) : '-') + (o.ret ? '  –  ' + fmtDate(o.ret) : ''), paxF: (o.pax || '-') + ' pax',
     statusLabel: o.status, statusBg: m.bg, statusColor: m.color,
     revenueF: fmt(c.grandTotal), costF: fmt(c.totalCost), totalExpensesF: fmt(c.totalExpenses), profitF: fmt(c.profit), marginF: Math.round(c.marginPct) + '%',
+    totalMarkupResellerF: fmt(c.items.reduce((s, it) => s + it.qty * (Number(it.markupCost) || 0), 0)),
     subtotalF: fmt(c.subtotal), discountF: fmt(c.discountAmount),
     discountLabel: c.discountType === '%' ? 'Diskon (' + (Number(o.discount) || 0) + '%)' : 'Diskon',
     serviceFeeF: fmt(c.serviceFee), hasServiceFee: Number(o.serviceFee) > 0,
@@ -114,7 +115,12 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
     <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Pendapatan</div><div style="font-size:19px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ detail.revenueF }}</div></div>
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Total Modal (HPP)</div><div style="font-size:19px;font-weight:800;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.costF }}</div></div>
-      <div style="background:linear-gradient(135deg,#15294f,#0d1b30);border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#f0d79a;font-weight:600;margin-bottom:9px;">Estimasi Profit</div><div style="font-size:19px;font-weight:800;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;">{{ detail.profitF }}</div></div>
+      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Markup Reseller</div><div style="font-size:19px;font-weight:800;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.totalMarkupResellerF }}</div></div>
+      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Service Fee</div><div style="font-size:19px;font-weight:800;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.serviceFeeF }}</div></div>
+    </div>
+    <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Pajak / VAT</div><div style="font-size:19px;font-weight:800;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.taxF }}</div></div>
+      <div style="background:linear-gradient(135deg,#15294f,#0d1b30);border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#f0d79a;font-weight:600;margin-bottom:9px;">Profit Perusahaan</div><div style="font-size:19px;font-weight:800;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;">{{ detail.profitF }}</div></div>
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Margin</div><div style="font-size:19px;font-weight:800;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;">{{ detail.marginF }}</div></div>
     </div>
     
@@ -123,7 +129,7 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
       <div class="table-scroll">
         <div class="min-w-table" style="min-width:1100px;">
           <div class="table-header-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 80px 80px 116px 116px 120px 116px;gap:8px;padding:11px 24px;background:#fafbfc;font-size:10.5px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">
-            <span>#</span><span>Deskripsi</span><span>Tipe</span><span>Qty</span><span>Beli (HPP)</span><span>Markup Beli</span><span>Jual</span><span>Markup Jual</span><span style="text-align:right;">Subtotal</span><span style="text-align:right;">Profit</span>
+            <span>#</span><span>Deskripsi</span><span>Tipe</span><span>Qty</span><span>Beli (HPP)</span><span>Markup Reseller</span><span>Markup Perusahaan</span><span>Harga Jual</span><span style="text-align:right;">Subtotal</span><span style="text-align:right;">Profit</span>
           </div>
           <div v-for="(it, idx) in detailItems" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 80px 80px 116px 116px 120px 116px;gap:8px;padding:13px 24px;border-top:1px solid #f1f2f5;align-items:flex-start;">
             <span class="hide-mobile" style="font-size:13px;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;">{{ it.no }}</span>

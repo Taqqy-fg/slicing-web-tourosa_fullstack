@@ -227,15 +227,15 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
                   <input :value="r.costFmt" @input="r.onCost" inputmode="numeric" placeholder="0" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#5d6a82;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Markup Beli</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Markup Reseller</label>
                   <input :value="r.markupCostFmt" @input="r.onMarkupCost" inputmode="numeric" placeholder="0" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#5d6a82;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Jual</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Markup Perusahaan</label>
                   <input :value="r.priceFmt" @input="r.onPrice" inputmode="numeric" placeholder="0" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Markup Perusahaan</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Harga Jual</label>
                   <input :value="r.markupCompanyFmt" readonly tabindex="-1" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#13233f;background:#f0f1f4;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:600;cursor:default;">
                 </div>
               </div>
