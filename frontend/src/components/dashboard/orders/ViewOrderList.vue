@@ -27,8 +27,8 @@ const editOrder = (o) => { store.loadEditForm(o); router.push('/orders/edit/' + 
 const rawData = computed(() => orders.value.map(o => {
   const c = calc(o); const m = statusMeta(o.status)
   return {
-    no: o.no, group: o.group, dest: o.dest, pax: o.pax || '-', total: fmt(c.total),
-    totalRaw: c.total, tripShort: o.depart ? fmtShort(o.depart) : '-',
+    no: o.no, group: o.group, dest: o.dest, pax: (o.items || []).reduce((s, it) => s + (Number(it.qty) || 0), 0) || '-', total: fmt(c.grandTotal),
+    totalRaw: c.grandTotal, tripShort: o.depart ? fmtShort(o.depart) : '-',
     status: o.status, statusBg: m.bg, statusColor: m.color, date: fmtDate(o.date),
     raw: o
   }

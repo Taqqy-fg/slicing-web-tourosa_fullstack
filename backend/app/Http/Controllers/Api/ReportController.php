@@ -33,17 +33,20 @@ class ReportController extends Controller
         $totalProfit = 0;
 
         $processedOrders = $orders->map(function ($o) use (&$totalRevenue, &$totalCost, &$totalProfit) {
-            $subtotal = $o->items->sum(fn($i) => $i->qty * $i->price);
-            $totalCostOrder = $o->items->sum(fn($i) => $i->qty * $i->cost) + $o->expenses->sum('amount');
+            $subtotal = $o->items->sum(fn($i) => $i->qty * ($i->price + ($i->markup_price ?? 0)));
+            $totalCostOrder = $o->items->sum(fn($i) => $i->qty * ($i->cost + ($i->markup_cost ?? 0))) + $o->expenses->sum('amount');
             
+            $discountType = $o->discount_type ?? 'Rp';
             $discount = (float)$o->discount;
+            $discountAmount = $discountType === '%' ? $subtotal * $discount / 100 : $discount;
+            
+            $afterDisc = max(0, $subtotal - $discountAmount);
+            $serviceFee = (float) ($o->service_fee ?? 0);
             $taxPercent = (float)$o->tax_percent;
-            
-            $afterDisc = $subtotal - $discount;
             $tax = $afterDisc * ($taxPercent / 100);
-            $grandTotal = $afterDisc + $tax;
+            $grandTotal = $afterDisc + $serviceFee + $tax;
             
-            $profit = $grandTotal - $totalCostOrder;
+            $profit = $afterDisc - $totalCostOrder;
             
             $totalRevenue += $grandTotal;
             $totalCost += $totalCostOrder;
@@ -52,7 +55,7 @@ class ReportController extends Controller
             return [
                 'no' => $o->invoice_no,
                 'group' => $o->group_name,
-                'date' => $o->depart_date ?? $o->invoice_date,
+                'date' => $o->invoice_date,
                 'revenue' => $grandTotal,
                 'cost' => $totalCostOrder,
                 'profit' => $profit,
