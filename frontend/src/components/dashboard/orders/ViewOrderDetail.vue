@@ -27,7 +27,7 @@ const detailData = computed(() => {
     totalMarkupResellerF: fmt(c.items.reduce((s, it) => s + it.qty * (Number(it.markupCost) || 0), 0)),
     subtotalF: fmt(c.subtotal), discountF: fmt(c.discountAmount),
     discountLabel: c.discountType === '%' ? 'Diskon (' + (Number(o.discount) || 0) + '%)' : 'Diskon',
-    serviceFeeF: fmt(c.serviceFee), hasServiceFee: Number(o.serviceFee) > 0,
+    serviceFeeF: fmt(c.serviceFeeAmount), hasServiceFee: Number(o.serviceFee) > 0,
     taxF: fmt(c.tax), taxPercentF: String(c.taxPercent),
     grandTotalF: fmt(c.grandTotal), perPaxF: fmt(c.perPax), dpPercentF: String(c.dpPercent), dpF: fmt(c.dp), dpDueDateF: fmtDate(o.dpDueDate), hasDpDueDate: !!o.dpDueDate, sisaF: fmt(c.sisa),
     profitColor: c.profit >= 0 ? '#1f7a5c' : '#c2603a'

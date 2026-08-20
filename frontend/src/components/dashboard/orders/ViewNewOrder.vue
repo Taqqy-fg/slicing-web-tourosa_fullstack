@@ -87,7 +87,7 @@ const itemRows = computed(() => {
 const tCalc = computed(() => {
   const c = calc(store.form)
   return {
-    tSubtotal: fmt(c.subtotal), tDiscount: fmt(c.discountAmount), tServiceFee: fmt(c.serviceFee),
+    tSubtotal: fmt(c.subtotal), tDiscount: fmt(c.discountAmount), tServiceFee: fmt(c.serviceFeeAmount),
     tTax: fmt(c.tax), tGrandTotal: fmt(c.grandTotal),
     tPerPax: fmt(c.perPax), tDp: fmt(c.dp), tSisa: fmt(c.sisa),
     tCost: fmt(c.totalCost), tProfit: fmt(c.profit), tMargin: Math.round(c.marginPct) + '%'
@@ -116,7 +116,7 @@ const saveOrder = () => {
     pic: f.pic, contact: f.contact, dest: '-', depart: null, ret: null, pax: 0,
     items: items.length ? items : [{ cat: 'Lainnya', desc: '(belum ada item)', qty: 0, cost: 0, price: 0 }],
     expenses: [], terms: [],
-    discount: f.discount, discountType: f.discountType, serviceFee: f.serviceFee,
+    discount: f.discount, discountType: f.discountType, serviceFee: f.serviceFee, serviceFeeType: f.serviceFeeType,
     taxPercent: f.taxPercent, dpPercent: f.dpPercent, dpDueDate: f.dpDueDate, notes: f.notes,
     status: (Number(f.dpPercent) >= 100 ? 'Lunas' : 'DP'),
   }
@@ -140,6 +140,7 @@ const discountFmt = computed(() => fmtNum(f.value.discount))
 const onDiscount = e => { store.form.discount = parseNum(e.target.value) }
 const serviceFeeFmt = computed(() => fmtNum(f.value.serviceFee))
 const onServiceFee = e => { store.form.serviceFee = parseNum(e.target.value) }
+const toggleServiceFeeType = () => { store.form.serviceFeeType = store.form.serviceFeeType === 'Rp' ? '%' : 'Rp' }
 const toggleDiscountType = () => { store.form.discountType = store.form.discountType === 'Rp' ? '%' : 'Rp' }
 </script>
 
@@ -201,7 +202,7 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
               </div>
               <div style="margin-bottom:14px;">
                 <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Deskripsi</label>
-                <textarea :value="r.desc" @input="r.onDesc" rows="2" placeholder="cth. Tiket Garuda CGK - DPS, 3 malam, Ocean View" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;resize:vertical;"></textarea>
+                <textarea :value="r.desc" @input="r.onDesc" rows="4" placeholder="cth. Tiket Garuda CGK - DPS, 3 malam, Ocean View" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;resize:vertical;"></textarea>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
                 <div>
@@ -250,7 +251,7 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
         <!-- diskon, pajak & pembayaran -->
         <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
           <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 18px;display:flex;align-items:center;gap:9px;"><i class="ph ph-sliders-horizontal" style="color:#c39a4d;font-size:20px;"></i>Diskon, Pajak &amp; Pembayaran</h3>
-          <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:16px;">
+          <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Diskon</label>
               <div style="display:flex;gap:0;">
@@ -259,13 +260,16 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
               </div>
             </div>
             <div>
-              <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Service Fee (Rp)</label>
-              <input :value="serviceFeeFmt" @input="onServiceFee" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
+              <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Service Fee</label>
+              <div style="display:flex;gap:0;">
+                <input :value="serviceFeeFmt" @input="onServiceFee" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px 0 0 9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
+                <button @click="toggleServiceFeeType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-left:none;border-radius:0 9px 9px 0;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.serviceFeeType }}</button>
+              </div>
             </div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="11" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">DP (%)</label><input v-model="f.dpPercent" type="number" placeholder="50" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Jatuh Tempo DP</label><DatePicker v-model="f.dpDueDate" placeholder="Pilih tanggal..." /></div>
-            <div style="grid-column:span 5;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat Pembayaran</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
+            <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat Pembayaran</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
           </div>
         </div>
       </div>
@@ -280,7 +284,7 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
           <div style="padding:20px 22px;">
             <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Subtotal</span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tSubtotal }}</span></div>
             <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Diskon{{ f.discountType === '%' ? ' (' + f.discount + '%)' : '' }}</span><span style="font-size:13.5px;font-weight:600;color:#c2603a;font-family:'IBM Plex Mono',monospace;">- {{ t.tDiscount }}</span></div>
-            <div v-if="Number(f.serviceFee) > 0" style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Service Fee</span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tServiceFee }}</span></div>
+            <div v-if="Number(f.serviceFee) > 0" style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Service Fee{{ f.serviceFeeType === '%' ? ' (' + f.serviceFee + '%)' : '' }}</span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tServiceFee }}</span></div>
             <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Pajak / Service ({{ f.taxPercent }}%)</span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tTax }}</span></div>
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;margin-top:6px;border-top:2px solid #eef0f3;"><span style="font-size:15px;font-weight:700;color:#13233f;">Grand Total</span><span style="font-size:20px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tGrandTotal }}</span></div>
             <div style="background:#0d1b30;border-radius:11px;padding:13px 16px;margin:4px 0 10px;">

@@ -30,7 +30,7 @@ const invData = computed(() => {
     statusLabel: o.status, statusBg: m.bg, statusColor: m.color,
     subtotalF: fmt(c.subtotal), discountF: fmt(c.discountAmount),
     discountLabel: c.discountType === '%' ? 'Diskon (' + (Number(o.discount) || 0) + '%)' : 'Diskon',
-    serviceFeeF: fmt(c.serviceFee), hasServiceFee: Number(o.serviceFee) > 0,
+    serviceFeeF: fmt(c.serviceFeeAmount), hasServiceFee: Number(o.serviceFee) > 0,
     taxPercentF: String(c.taxPercent), taxF: fmt(c.tax),
     grandTotalF: fmt(c.grandTotal), perPaxF: fmt(c.perPax),
     dpPercentF: String(c.dpPercent), dpF: fmt(c.dp), dpDueDateF: fmtDate(o.dpDueDate), hasDpDueDate: !!o.dpDueDate,
