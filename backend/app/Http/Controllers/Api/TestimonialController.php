@@ -8,12 +8,23 @@ use Illuminate\Http\Request;
 
 class TestimonialController extends Controller
 {
+    /**
+     * Dapatkan semua testimonial (public).
+     */
     public function index()
     {
         $testimonials = Testimonial::orderBy('sort_order')->orderBy('id')->get();
         return response()->json(['testimonials' => $testimonials]);
     }
 
+    /**
+     * Buat testimonial baru (dengan upload avatar).
+     *
+     * @bodyParam quote string required Kutipan testimonial. Example: Pelayanan terbaik!
+     * @bodyParam name string required Nama. Example: Budi Santoso
+     * @bodyParam role string required Jabatan. Example: Manager
+     * @bodyParam company string required Perusahaan. Example: PT Maju Jaya
+     */
     public function store(Request $request)
     {
         $userId = $request->user()->id;
@@ -49,6 +60,9 @@ class TestimonialController extends Controller
         return response()->json(['testimonial' => $testimonial], 201);
     }
 
+    /**
+     * Update testimonial berdasarkan ID.
+     */
     public function update(Request $request, $id)
     {
         $userId = $request->user()->id;
@@ -81,6 +95,9 @@ class TestimonialController extends Controller
         return response()->json(['testimonial' => $testimonial]);
     }
 
+    /**
+     * Hapus testimonial berdasarkan ID.
+     */
     public function destroy(Request $request, $id)
     {
         $userId = $request->user()->id;

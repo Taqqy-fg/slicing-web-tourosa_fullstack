@@ -11,6 +11,12 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * Login dan dapatkan Bearer token.
+     *
+     * @bodyParam email string required Email admin. Example: admin@tourosa.com
+     * @bodyParam password string required Password. Example: password123
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -39,6 +45,9 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Logout dan hapus token saat ini.
+     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -46,6 +55,9 @@ class AuthController extends Controller
         return response()->json(['message' => 'Berhasil logout.']);
     }
 
+    /**
+     * Dapatkan data user yang sedang login.
+     */
     public function me(Request $request)
     {
         $user = $request->user();
@@ -58,6 +70,13 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Update profil user yang sedang login.
+     *
+     * @bodyParam name string required Nama lengkap. Example: John Doe
+     * @bodyParam email string required Email. Example: admin@tourosa.com
+     * @bodyParam password string Password baru (opsional). Example: newpassword123
+     */
     public function updateProfile(Request $request)
     {
         $user = $request->user();

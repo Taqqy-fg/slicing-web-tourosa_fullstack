@@ -20,6 +20,9 @@ class AdminController extends Controller
         }
     }
 
+    /**
+     * Dapatkan semua akun admin (super admin only).
+     */
     public function index(Request $request)
     {
         $this->ensureSuperAdmin($request);
@@ -31,6 +34,13 @@ class AdminController extends Controller
         return response()->json(['admins' => $admins]);
     }
 
+    /**
+     * Buat akun admin baru (super admin only).
+     *
+     * @bodyParam name string required Nama admin. Example: Admin Baru
+     * @bodyParam email string required Email. Example: admin2@tourosa.com
+     * @bodyParam password string required Password minimal 6 karakter. Example: password123
+     */
     public function store(Request $request)
     {
         $this->ensureSuperAdmin($request);
@@ -54,6 +64,9 @@ class AdminController extends Controller
         return response()->json(['admin' => $admin], 201);
     }
 
+    /**
+     * Update akun admin berdasarkan ID (super admin only).
+     */
     public function update(Request $request, $id)
     {
         $this->ensureSuperAdmin($request);
@@ -92,6 +105,9 @@ class AdminController extends Controller
         return response()->json(['admin' => $admin]);
     }
 
+    /**
+     * Hapus akun admin berdasarkan ID (super admin only).
+     */
     public function destroy(Request $request, $id)
     {
         $this->ensureSuperAdmin($request);

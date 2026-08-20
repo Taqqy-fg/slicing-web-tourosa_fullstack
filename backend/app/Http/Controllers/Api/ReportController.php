@@ -11,12 +11,18 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportController extends Controller
 {
+    /**
+     * Download laporan dalam format Excel (.xlsx).
+     */
     public function exportExcel(Request $request)
     {
         $timestamp = now()->format('d-m-Y');
         return Excel::download(new OrderExport, "Laporan_Tourosa_{$timestamp}.xlsx");
     }
 
+    /**
+     * Download laporan dalam format PDF.
+     */
     public function exportPdf(Request $request)
     {
         $orders = Order::with(['items', 'expenses', 'terms'])->orderBy('id', 'desc')->get();
