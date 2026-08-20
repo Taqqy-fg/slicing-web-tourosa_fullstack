@@ -20,17 +20,21 @@ watch(() => route.params.id, (id) => {
 const invData = computed(() => {
   if (!store.activeInvoice) return null
   const o = store.activeInvoice; const c = calc(o); const m = statusMeta(o.status)
-  const tripF = (o.depart ? fmtDate(o.depart) : '-') + (o.ret ? '  –  ' + fmtDate(o.ret) : '')
   const invTerms = (o.terms || []).map((tm, i) => ({
     no: i + 1, label: tm.label || ('Termin ' + (i + 1)),
     dueF: tm.due ? fmtDate(tm.due) : '-', percentF: (Number(tm.percent) || 0) + '%',
-    amountF: fmt(c.total * (Number(tm.percent) || 0) / 100)
+    amountF: fmt(c.grandTotal * (Number(tm.percent) || 0) / 100)
   }))
   return {
-    no: o.no, dateF: fmtDate(o.date), group: o.group, pic: o.pic || '-', contact: o.contact || '-', dest: o.dest || '-',
-    tripF, paxF: (o.pax || '-') + ' pax', statusLabel: o.status, statusBg: m.bg, statusColor: m.color,
-    subtotalF: fmt(c.subtotal), discountF: fmt(c.discount), taxPercentF: String(c.taxPercent), taxF: fmt(c.tax),
-    totalF: fmt(c.total), perPaxF: fmt(c.perPax), dpPercentF: String(c.dpPercent), dpF: fmt(c.dp), sisaF: fmt(c.sisa),
+    no: o.no, dateF: fmtDate(o.date), group: o.group, pic: o.pic || '-', contact: o.contact || '-',
+    statusLabel: o.status, statusBg: m.bg, statusColor: m.color,
+    subtotalF: fmt(c.subtotal), discountF: fmt(c.discountAmount),
+    discountLabel: c.discountType === '%' ? 'Diskon (' + (Number(o.discount) || 0) + '%)' : 'Diskon',
+    serviceFeeF: fmt(c.serviceFee), hasServiceFee: Number(o.serviceFee) > 0,
+    taxPercentF: String(c.taxPercent), taxF: fmt(c.tax),
+    grandTotalF: fmt(c.grandTotal), perPaxF: fmt(c.perPax),
+    dpPercentF: String(c.dpPercent), dpF: fmt(c.dp), dpDueDateF: fmtDate(o.dpDueDate), hasDpDueDate: !!o.dpDueDate,
+    sisaF: fmt(c.sisa),
     notes: o.notes || '-', invTerms, hasTerms: invTerms.length > 0
   }
 })
@@ -38,11 +42,12 @@ const invItems = computed(() => {
   if (!store.activeInvoice) return []
   const o = store.activeInvoice; const c = calc(o);
   return c.items.map((it, i) => ({
-    no: i + 1, desc: (it.desc || '').trim() || it.cat, cat: (it.vendor && it.vendor.trim()) ? it.cat + ' · ' + it.vendor : it.cat,
-    qtyF: String(it.qty || 0), priceF: fmt(it.price), lineF: fmt(it.line)
+    no: i + 1, desc: (it.desc || '').trim() || it.cat,
+    cat: (it.vendor && it.vendor.trim()) ? it.cat + ' · ' + it.vendor : it.cat,
+    tripType: it.tripType || '',
+    qtyF: String(it.qty || 0), priceF: fmt(it.unitPrice), lineF: fmt(it.line)
   }))
 })
-// Variables for template
 const inv = invData
 const invTerms = computed(() => invData.value?.invTerms || [])
 const hasTerms = computed(() => invData.value?.hasTerms || false)
@@ -52,6 +57,7 @@ const waDisplay = computed(() => props.site?.waNumber || store.site.waNumber)
 const goNew = () => router.push('/orders/new')
 const goOrderList = () => router.push('/orders')
 const goOrderDetail = () => router.push('/orders/detail/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
+const goEditOrder = () => router.push('/orders/edit/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
 const backFromInvoice = () => router.push('/orders/detail/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
 const doPrint = () => window.print()
 </script>
@@ -65,6 +71,7 @@ const doPrint = () => window.print()
       <span style="color:#13233f;font-weight:700;">Invoice</span>
     </nav>
     <div data-print="hide" style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:20px;gap:12px;">
+      <button @click="goEditOrder" class="tr-btn" style="background:#fff;color:#15294f;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:10px;border:1px solid #d6e1f2;cursor:pointer;display:flex;align-items:center;gap:8px;"><i class="ph ph-pencil-simple" style="font-size:17px;color:#15294f;"></i>Edit Invoice</button>
       <button @click="doPrint" class="tr-btn" style="background:#15294f;color:#fff;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;"><i class="ph ph-printer" style="font-size:17px;color:#c39a4d;"></i>Cetak / Simpan PDF</button>
     </div>
     <div v-if="inv" data-print="area" class="px-mobile py-mobile"
@@ -102,17 +109,6 @@ const doPrint = () => window.print()
               style="font-size:12.5px;color:#8a93a5;">Tanggal Invoice</span><span
               style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;min-width:120px;">{{
                 inv.dateF }}</span></div>
-          <div style="display:flex;justify-content:flex-start;gap:30px;margin-bottom:10px;"><span
-              style="font-size:12.5px;color:#8a93a5;">Destinasi</span><span
-              style="font-size:12.5px;font-weight:700;color:#13233f;min-width:120px;">{{ inv.dest }}</span></div>
-          <div style="display:flex;justify-content:flex-start;gap:30px;margin-bottom:10px;"><span
-              style="font-size:12.5px;color:#8a93a5;">Tanggal Perjalanan</span><span
-              style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;min-width:120px;">{{
-                inv.tripF }}</span></div>
-          <div style="display:flex;justify-content:flex-start;gap:30px;"><span
-              style="font-size:12.5px;color:#8a93a5;">Jumlah Peserta</span><span
-              style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;min-width:120px;">{{
-                inv.paxF }}</span></div>
         </div>
       </div>
       <!-- items table -->
@@ -130,7 +126,7 @@ const doPrint = () => window.print()
                 it.no }}</span>
               <div class="col-full-mobile">
                 <div style="font-size:13.5px;font-weight:600;color:#13233f;">{{ it.desc }}</div>
-                <div style="font-size:11.5px;color:#9aa0ad;margin-top:2px;">{{ it.cat }}</div>
+                <div style="font-size:11.5px;color:#9aa0ad;margin-top:2px;">{{ it.cat }}<span v-if="it.tripType"> · {{ it.tripType }}</span></div>
               </div>
               <span class="col-third-mobile"
                 style="font-size:13px;color:#5d6a82;text-align:center;font-family:'IBM Plex Mono',monospace;">{{ it.qtyF
@@ -168,16 +164,20 @@ const doPrint = () => window.print()
               style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
                 inv.subtotalF }}</span></div>
           <div style="display:flex;justify-content:space-between;padding:8px 0;"><span
-              style="font-size:13px;color:#5d6a82;">Diskon</span><span
+              style="font-size:13px;color:#5d6a82;">{{ inv.discountLabel }}</span><span
               style="font-size:13px;font-weight:600;color:#c2603a;font-family:'IBM Plex Mono',monospace;">- {{
                 inv.discountF }}</span></div>
+          <div v-if="inv.hasServiceFee" style="display:flex;justify-content:space-between;padding:8px 0;"><span
+              style="font-size:13px;color:#5d6a82;">Service Fee</span><span
+              style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
+                inv.serviceFeeF }}</span></div>
           <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eef0f3;"><span
               style="font-size:13px;color:#5d6a82;">Pajak / Service ({{ inv.taxPercentF }}%)</span><span
               style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ inv.taxF
               }}</span></div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;"><span
-              style="font-size:15px;font-weight:800;color:#13233f;">TOTAL</span><span
-              style="font-size:20px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ inv.totalF
+              style="font-size:15px;font-weight:800;color:#13233f;">GRAND TOTAL</span><span
+              style="font-size:20px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ inv.grandTotalF
               }}</span></div>
           <div style="background:#13233f;border-radius:11px;padding:14px 16px;">
             <div style="display:flex;justify-content:space-between;margin-bottom:9px;"><span
@@ -188,6 +188,9 @@ const doPrint = () => window.print()
                 style="font-size:12px;color:#9fabc4;">DP ({{ inv.dpPercentF }}%)</span><span
                 style="font-size:12.5px;font-weight:700;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;">{{ inv.dpF
                 }}</span></div>
+            <div v-if="inv.hasDpDueDate" style="display:flex;justify-content:space-between;margin-bottom:9px;"><span
+                style="font-size:12px;color:#9fabc4;">Jatuh Tempo</span><span
+                style="font-size:12px;font-weight:600;color:#f0c98a;font-family:'IBM Plex Mono',monospace;">{{ inv.dpDueDateF }}</span></div>
             <div style="display:flex;justify-content:space-between;padding-top:9px;border-top:1px solid #24365a;"><span
                 style="font-size:12px;color:#9fabc4;">Sisa pelunasan</span><span
                 style="font-size:12.5px;font-weight:700;color:#f0c98a;font-family:'IBM Plex Mono',monospace;">{{

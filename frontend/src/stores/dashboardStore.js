@@ -2,12 +2,14 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 const createBlankForm = (tax = 11) => ({
-    group: '', pic: '', contact: '', dest: '', depart: '', ret: '', pax: '',
+    group: '', pic: '', contact: '',
+    invoiceDate: new Date().toISOString().slice(0, 10),
     items: [
-      { cat: 'Tiket Pesawat', vendor: '', desc: '', qty: '', cost: '', price: '' },
-      { cat: 'Hotel', vendor: '', desc: '', qty: '', cost: '', price: '' },
+      { cat: 'Tiket Pesawat', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
+      { cat: 'Hotel', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
     ],
-    discount: '', taxPercent: tax, dpPercent: '50',
+    discount: '', discountType: 'Rp', serviceFee: '',
+    taxPercent: tax, dpPercent: '50', dpDueDate: '',
     notes: 'Pembayaran DP 50% saat konfirmasi booking. Pelunasan paling lambat H-14 sebelum keberangkatan.',
 })
 
@@ -33,11 +35,9 @@ export const useDashboardStore = defineStore('dashboard', {
     }),
     actions: {
         setQueryData({ orders, catalog, site, testimonials }) {
-            // Watch the computed refs and sync to store state
             this.orders = orders.value;
             this.catalog = catalog.value;
             
-            // Deep clone site to ensure Vue reactivity tracks everything
             const clonedSite = JSON.parse(JSON.stringify(site.value || {}));
             if (!clonedSite.stats) clonedSite.stats = [];
             if (!clonedSite.clients) clonedSite.clients = [];
@@ -46,8 +46,6 @@ export const useDashboardStore = defineStore('dashboard', {
             this.testimonials = JSON.parse(JSON.stringify(testimonials.value || []));
         },
         setActiveInvoice(invoice) {
-            // Deep-clone so we own the object and Vue reactivity can track all fields.
-            // Pre-initialize expenses and terms arrays so adding items always works.
             const cloned = JSON.parse(JSON.stringify(invoice));
             if (!cloned.expenses) cloned.expenses = [];
             if (!cloned.terms) cloned.terms = [];
@@ -60,12 +58,17 @@ export const useDashboardStore = defineStore('dashboard', {
             this.form = createBlankForm(this.form.taxPercent);
         },
         addItemToForm() {
-            this.form.items.push({ cat: 'Lainnya', vendor: '', desc: '', qty: '', cost: '', price: '' });
+            this.form.items.push({ cat: 'Lainnya', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
         },
         removeItemFromForm(idx) {
             if (this.form.items.length > 1) {
                 this.form.items.splice(idx, 1);
             }
+        },
+        duplicateItemFromForm(idx) {
+            const items = [...this.form.items.map(i => ({ ...i }))];
+            items.splice(idx + 1, 0, { ...this.form.items[idx] });
+            this.form.items = items;
         },
         updateFormItem(idx, field, val) {
             this.form.items[idx][field] = val;
@@ -109,6 +112,7 @@ export const useDashboardStore = defineStore('dashboard', {
                 group: o.group || '',
                 pic: o.pic || '',
                 contact: o.contact || '',
+                invoiceDate: o.date || new Date().toISOString().slice(0, 10),
                 dest: o.dest || '',
                 depart: o.depart || '',
                 ret: o.ret || '',
@@ -116,14 +120,23 @@ export const useDashboardStore = defineStore('dashboard', {
                 items: (o.items && o.items.length) ? o.items.map(it => ({
                     cat: it.cat || 'Lainnya',
                     vendor: it.vendor || '',
+                    tripType: it.tripType || 'Pergi-Pulang',
+                    dest: it.dest || '',
+                    depart: it.depart || '',
+                    ret: it.ret || '',
                     desc: it.desc || '',
                     qty: it.qty ?? '',
                     cost: it.cost ?? '',
+                    markupCost: it.markupCost ?? '',
                     price: it.price ?? '',
-                })) : [{ cat: 'Lainnya', vendor: '', desc: '', qty: '', cost: '', price: '' }],
+                    markupPrice: it.markupPrice ?? '',
+                })) : [{ cat: 'Lainnya', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' }],
                 discount: o.discount ?? '',
+                discountType: o.discountType ?? 'Rp',
+                serviceFee: o.serviceFee ?? '',
                 taxPercent: o.taxPercent ?? 11,
                 dpPercent: o.dpPercent ?? '50',
+                dpDueDate: o.dpDueDate ?? '',
                 notes: o.notes || '',
                 status: o.status || 'DP',
             }
@@ -134,12 +147,19 @@ export const useDashboardStore = defineStore('dashboard', {
         },
         addItemToEditForm() {
             if (this.editForm) {
-                this.editForm.items.push({ cat: 'Lainnya', vendor: '', desc: '', qty: '', cost: '', price: '' });
+                this.editForm.items.push({ cat: 'Lainnya', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
             }
         },
         removeItemFromEditForm(idx) {
             if (this.editForm && this.editForm.items.length > 1) {
                 this.editForm.items.splice(idx, 1);
+            }
+        },
+        duplicateItemFromEditForm(idx) {
+            if (this.editForm) {
+                const items = [...this.editForm.items.map(i => ({ ...i }))];
+                items.splice(idx + 1, 0, { ...this.editForm.items[idx] });
+                this.editForm.items = items;
             }
         },
         updateEditFormItem(idx, field, val) {

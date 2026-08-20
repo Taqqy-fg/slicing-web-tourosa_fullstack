@@ -22,14 +22,14 @@ class OrderExport implements FromCollection, WithHeadings, WithMapping, WithColu
     {
         return [
             'No Invoice',
-            'Tanggal Berangkat',
+            'Tanggal Invoice',
             'Nama Grup',
-            'Destinasi',
-            'Jumlah Pax',
             'Total Harga Jual (Omset)',
             'Total Modal (HPP)',
             'Diskon',
+            'Service Fee',
             'Pajak',
+            'Grand Total',
             'Pengeluaran Tambahan (Expenses)',
             'Profit Bersih',
             'Margin (%)',
@@ -43,12 +43,12 @@ class OrderExport implements FromCollection, WithHeadings, WithMapping, WithColu
             'A' => 22,
             'B' => 18,
             'C' => 36,
-            'D' => 22,
-            'E' => 12,
-            'F' => 24,
-            'G' => 20,
+            'D' => 24,
+            'E' => 20,
+            'F' => 16,
+            'G' => 16,
             'H' => 16,
-            'I' => 16,
+            'I' => 20,
             'J' => 38,
             'K' => 20,
             'L' => 12,
@@ -58,24 +58,26 @@ class OrderExport implements FromCollection, WithHeadings, WithMapping, WithColu
 
     public function map($order): array
     {
-        $subtotal = $order->items->sum(fn($i) => $i->qty * $i->price);
+        $subtotal = $order->items->sum(fn($i) => $i->qty * ($i->price + ($i->markup_price ?? 0)));
+        $totalCost = $order->items->sum(fn($i) => $i->qty * ($i->cost + ($i->markup_cost ?? 0)));
         $totalExpenses = $order->expenses->sum('amount');
-        $totalCostOrder = $order->items->sum(fn($i) => $i->qty * $i->cost) + $totalExpenses;
 
+        $discountType = $order->discount_type ?? 'Rp';
         $discount = (float) $order->discount;
+        $discountAmount = $discountType === '%' ? $subtotal * $discount / 100 : $discount;
+
+        $afterDisc = max(0, $subtotal - $discountAmount);
+        $serviceFee = (float) ($order->service_fee ?? 0);
         $taxPercent = (float) $order->tax_percent;
-
-        $afterDisc = $subtotal - $discount;
         $tax = $afterDisc * ($taxPercent / 100);
-        $grandTotal = $afterDisc + $tax;
+        $grandTotal = $afterDisc + $serviceFee + $tax;
 
-        $profit = $grandTotal - $totalCostOrder;
+        $profit = $afterDisc - $totalCost - $totalExpenses;
         $margin = $afterDisc > 0 ? round(($profit / $afterDisc) * 100) : 0;
 
-        $dateStr = $order->depart_date ?? null;
+        $dateStr = $order->invoice_date ?? null;
         $dateFormatted = '-';
-
-        if ($dateStr && $dateStr !== '-') {
+        if ($dateStr) {
             $p = explode('-', $dateStr);
             if (count($p) === 3) {
                 $dateFormatted = Carbon::create(intval($p[0]), intval($p[1]), intval($p[2]))->format('d/m/Y');
@@ -86,12 +88,12 @@ class OrderExport implements FromCollection, WithHeadings, WithMapping, WithColu
             $order->invoice_no,
             $dateFormatted,
             $order->group_name,
-            $order->destination,
-            $order->pax,
-            $grandTotal,
-            $totalCostOrder,
-            $discount,
+            $subtotal,
+            $totalCost + $totalExpenses,
+            $discountAmount,
+            $serviceFee,
             $tax,
+            $grandTotal,
             $totalExpenses,
             $profit,
             $margin,
