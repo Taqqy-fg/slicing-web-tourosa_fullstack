@@ -8,7 +8,7 @@ const createBlankForm = (tax = 11) => ({
       { cat: 'Tiket Pesawat', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
       { cat: 'Hotel', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
     ],
-    discount: '', discountType: 'Rp', serviceFee: '',
+    discount: '', discountType: 'Rp', serviceFee: '', serviceFeeType: 'Rp',
     taxPercent: tax, dpPercent: '50', dpDueDate: '',
     notes: 'Pembayaran DP 50% saat konfirmasi booking. Pelunasan paling lambat H-14 sebelum keberangkatan.',
 })
@@ -134,6 +134,7 @@ export const useDashboardStore = defineStore('dashboard', {
                 discount: o.discount ?? '',
                 discountType: o.discountType ?? 'Rp',
                 serviceFee: o.serviceFee ?? '',
+                serviceFeeType: o.serviceFeeType ?? 'Rp',
                 taxPercent: o.taxPercent ?? 11,
                 dpPercent: o.dpPercent ?? '50',
                 dpDueDate: o.dpDueDate ?? '',

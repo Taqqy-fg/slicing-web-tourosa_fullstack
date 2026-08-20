@@ -43,11 +43,13 @@ export function useDashboardData() {
     const afterDisc = Math.max(0, subtotal - discountAmount)
 
     const serviceFee = Number(o.serviceFee) || 0
+    const serviceFeeType = o.serviceFeeType || 'Rp'
+    const serviceFeeAmount = serviceFeeType === '%' ? Math.round(afterDisc * serviceFee / 100) : serviceFee
 
     const taxPercent = Number(o.taxPercent) || 0
     const tax = Math.round(afterDisc * taxPercent / 100)
 
-    const grandTotal = afterDisc + serviceFee + tax
+    const grandTotal = afterDisc + serviceFeeAmount + tax
 
     const pax = Number(o.pax) || 0
     const perPax = pax ? grandTotal / pax : 0
@@ -62,7 +64,7 @@ export function useDashboardData() {
     return {
       items, subtotal, totalCost, totalExpenses,
       discount, discountType, discountAmount,
-      afterDisc, serviceFee,
+      afterDisc, serviceFee, serviceFeeType, serviceFeeAmount,
       taxPercent, tax, grandTotal,
       pax, perPax, dpPercent, dp, sisa,
       profit, marginPct
