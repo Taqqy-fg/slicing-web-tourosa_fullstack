@@ -127,11 +127,11 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
     <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;">
       <div style="padding:24px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><i class="ph ph-list-checks" style="color:#c39a4d;font-size:19px;"></i><h3 style="font-size:15px;font-weight:700;color:#13233f;margin:0;">Rincian Item &amp; Margin</h3><span style="font-size:11px;color:#9aa0ad;background:#f4f5f8;padding:4px 10px;border-radius:6px;">Internal — tidak tampil di invoice</span></div>
       <div class="table-scroll">
-        <div class="min-w-table" style="min-width:1100px;">
-          <div class="table-header-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 80px 80px 116px 116px 120px 116px;gap:8px;padding:11px 24px;background:#fafbfc;font-size:10.5px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">
+        <div class="min-w-table" style="min-width:1130px;">
+          <div class="table-header-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 110px 80px 116px 116px 120px 116px;gap:8px;padding:11px 24px;background:#fafbfc;font-size:10.5px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">
             <span>#</span><span>Deskripsi</span><span>Tipe</span><span>Qty</span><span>Beli (HPP)</span><span>Markup Reseller</span><span>Markup Perusahaan</span><span>Harga Jual</span><span style="text-align:right;">Subtotal</span><span style="text-align:right;">Profit</span>
           </div>
-          <div v-for="(it, idx) in detailItems" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 80px 80px 116px 116px 120px 116px;gap:8px;padding:13px 24px;border-top:1px solid #f1f2f5;align-items:flex-start;">
+          <div v-for="(it, idx) in detailItems" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 110px 80px 116px 116px 120px 116px;gap:8px;padding:13px 24px;border-top:1px solid #f1f2f5;align-items:flex-start;">
             <span class="hide-mobile" style="font-size:13px;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;">{{ it.no }}</span>
             <div class="col-full-mobile"><div style="font-size:13.5px;font-weight:600;color:#13233f;white-space:pre-line;">{{ it.desc }}</div><div style="font-size:11.5px;color:#9aa0ad;margin-top:2px;">{{ it.cat }}<span v-if="it.dest"> · {{ it.dest }}</span></div></div>
             <span class="col-half-mobile" style="font-size:11.5px;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ it.tripType || '-' }}</span>

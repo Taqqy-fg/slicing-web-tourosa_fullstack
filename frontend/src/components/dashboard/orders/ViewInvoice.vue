@@ -132,7 +132,7 @@ const doPrint = () => window.print()
                 style="font-size:13px;color:#5d6a82;text-align:center;font-family:'IBM Plex Mono',monospace;">{{ it.qtyF
                 }}x</span>
               <span class="col-third-mobile text-right-mobile"
-                style="font-size:13px;color:#5d6a82;text-align:right;font-family:'IBM Plex Mono',monospace;">@ {{
+                style="font-size:13px;color:#5d6a82;text-align:right;font-family:'IBM Plex Mono',monospace;">{{
                   it.priceF }}</span>
               <span class="col-third-mobile text-right-mobile"
                 style="font-size:13px;font-weight:700;color:#13233f;text-align:right;font-family:'IBM Plex Mono',monospace;">=
