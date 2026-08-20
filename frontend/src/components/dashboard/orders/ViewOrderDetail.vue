@@ -89,18 +89,18 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
 </script>
 
 <template>
-  <div v-if="detail" class="p-mobile" style="padding:30px 32px;max-width:1060px;margin:0 auto;">
-    <nav style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:20px;flex-wrap:wrap;">
+  <div v-if="detail" class="p-mobile grid-cols-1-mobile" style="padding:30px 32px;display:flex;flex-direction:column;gap:18px;">
+    <nav style="display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap;">
       <a @click.prevent="goList" href="#" style="color:#5d6a82;text-decoration:none;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="ph ph-list-checks" style="font-size:15px;"></i>Daftar Pesanan</a>
       <i class="ph ph-caret-right" style="color:#c2c8d4;font-size:13px;"></i>
       <span style="color:#13233f;font-weight:700;">Detail Pesanan</span>
     </nav>
-    <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:20px;gap:12px;">
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px;">
       <button @click="goEditFromDetail" class="tr-btn" style="background:#fff;color:#15294f;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:10px;border:1px solid #d6e1f2;cursor:pointer;display:flex;align-items:center;gap:8px;"><i class="ph ph-pencil-simple" style="font-size:17px;color:#15294f;"></i>Edit Pesanan</button>
       <button @click="goInvoiceFromDetail" class="tr-btn" style="background:#15294f;color:#fff;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;"><i class="ph ph-receipt" style="font-size:17px;color:#c39a4d;"></i>Lihat / Cetak Invoice</button>
     </div>
-    
-    <div style="background:linear-gradient(135deg,#15294f,#0d1b30);border-radius:18px;padding:28px 30px;color:#fff;margin-bottom:18px;">
+
+    <div style="background:linear-gradient(135deg,#15294f,#0d1b30);border-radius:18px;padding:28px 30px;color:#fff;">
       <div class="flex-col-mobile" style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;">
         <div>
           <div style="font-size:12.5px;color:#c39a4d;font-family:'IBM Plex Mono',monospace;margin-bottom:8px;">{{ detail.no }}</div>
@@ -111,21 +111,21 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
       </div>
     </div>
     
-    <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px;">
+    <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Pendapatan</div><div style="font-size:19px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ detail.revenueF }}</div></div>
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Total Modal (HPP)</div><div style="font-size:19px;font-weight:800;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.costF }}</div></div>
       <div style="background:linear-gradient(135deg,#15294f,#0d1b30);border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#f0d79a;font-weight:600;margin-bottom:9px;">Estimasi Profit</div><div style="font-size:19px;font-weight:800;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;">{{ detail.profitF }}</div></div>
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Margin</div><div style="font-size:19px;font-weight:800;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;">{{ detail.marginF }}</div></div>
     </div>
     
-    <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;margin-bottom:18px;">
-      <div style="padding:16px 22px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><i class="ph ph-list-checks" style="color:#c39a4d;font-size:19px;"></i><h3 style="font-size:15px;font-weight:700;color:#13233f;margin:0;">Rincian Item &amp; Margin</h3><span style="font-size:11px;color:#9aa0ad;background:#f4f5f8;padding:4px 10px;border-radius:6px;">Internal — tidak tampil di invoice</span></div>
+    <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;">
+      <div style="padding:24px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><i class="ph ph-list-checks" style="color:#c39a4d;font-size:19px;"></i><h3 style="font-size:15px;font-weight:700;color:#13233f;margin:0;">Rincian Item &amp; Margin</h3><span style="font-size:11px;color:#9aa0ad;background:#f4f5f8;padding:4px 10px;border-radius:6px;">Internal — tidak tampil di invoice</span></div>
       <div class="table-scroll">
         <div class="min-w-table" style="min-width:1100px;">
-          <div class="table-header-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 80px 80px 116px 116px 120px 116px;gap:8px;padding:11px 22px;background:#fafbfc;font-size:10.5px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">
+          <div class="table-header-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 80px 80px 116px 116px 120px 116px;gap:8px;padding:11px 24px;background:#fafbfc;font-size:10.5px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">
             <span>#</span><span>Deskripsi</span><span>Tipe</span><span>Qty</span><span>Beli (HPP)</span><span>Markup Beli</span><span>Jual</span><span>Markup Jual</span><span style="text-align:right;">Subtotal</span><span style="text-align:right;">Profit</span>
           </div>
-          <div v-for="(it, idx) in detailItems" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 80px 80px 116px 116px 120px 116px;gap:8px;padding:13px 22px;border-top:1px solid #f1f2f5;align-items:flex-start;">
+          <div v-for="(it, idx) in detailItems" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 80px 80px 116px 116px 120px 116px;gap:8px;padding:13px 24px;border-top:1px solid #f1f2f5;align-items:flex-start;">
             <span class="hide-mobile" style="font-size:13px;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;">{{ it.no }}</span>
             <div class="col-full-mobile"><div style="font-size:13.5px;font-weight:600;color:#13233f;">{{ it.desc }}</div><div style="font-size:11.5px;color:#9aa0ad;margin-top:2px;">{{ it.cat }}<span v-if="it.dest"> · {{ it.dest }}</span></div></div>
             <span class="col-half-mobile" style="font-size:11.5px;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ it.tripType || '-' }}</span>
@@ -139,7 +139,7 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
           </div>
         </div>
       </div>
-      <div style="display:flex;justify-content:flex-end;padding:16px 22px;border-top:2px solid #eef0f3;background:#fafbfc;">
+      <div style="display:flex;justify-content:flex-end;padding:24px;border-top:2px solid #eef0f3;background:#fafbfc;">
         <div style="width:320px;">
           <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:13px;color:#5d6a82;">Subtotal penjualan</span><span style="font-size:13px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ detail.subtotalF }}</span></div>
           <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:13px;color:#5d6a82;">Total modal (HPP)</span><span style="font-size:13px;font-weight:600;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.costF }}</span></div>
@@ -148,12 +148,12 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
     </div>
 
     <!-- pengeluaran lainnya -->
-    <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;margin-bottom:18px;">
-      <div style="padding:16px 22px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;">
+      <div style="padding:24px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><i class="ph ph-coins" style="color:#c39a4d;font-size:19px;"></i><h3 style="font-size:15px;font-weight:700;color:#13233f;margin:0;">Pengeluaran Lainnya</h3><span style="font-size:11px;color:#9aa0ad;background:#f4f5f8;padding:4px 10px;border-radius:6px;">Biaya operasional di luar HPP</span></div>
         <button @click="addExpense" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Pengeluaran</button>
       </div>
-      <div style="padding:14px 22px 8px;">
+      <div style="padding:14px 24px 8px;">
         <div class="table-scroll">
           <div style="min-width: 500px;">
             <div class="table-header-mobile" style="display:grid;grid-template-columns:1fr 34px 180px;gap:10px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">
@@ -168,7 +168,7 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 2px 6px;margin-top:4px;border-top:1px solid #f1f2f5;"><span style="font-size:13px;color:#5d6a82;font-weight:600;">Total pengeluaran lainnya</span><span style="font-size:14px;font-weight:800;color:#c2603a;font-family:'IBM Plex Mono',monospace;">{{ detail.totalExpensesF }}</span></div>
       </div>
-      <div style="display:flex;justify-content:flex-end;padding:18px 22px;border-top:2px solid #eef0f3;background:#fafbfc;">
+      <div style="display:flex;justify-content:flex-end;padding:18px 24px;border-top:2px solid #eef0f3;background:#fafbfc;">
         <div style="width:340px;">
           <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:13px;color:#5d6a82;">Subtotal penjualan</span><span style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ detail.subtotalF }}</span></div>
           <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:13px;color:#5d6a82;">{{ detail.discountLabel }}</span><span style="font-size:13px;font-weight:600;color:#c2603a;font-family:'IBM Plex Mono',monospace;">- {{ detail.discountF }}</span></div>
@@ -187,12 +187,12 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
     </div>
 
     <!-- termin pembayaran / split invoice -->
-    <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;margin-top:18px;">
-      <div style="padding:16px 22px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+    <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;">
+      <div style="padding:24px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><i class="ph ph-list-numbers" style="color:#c39a4d;font-size:19px;"></i><h3 style="font-size:15px;font-weight:700;color:#13233f;margin:0;">Termin Pembayaran</h3><span style="font-size:11px;color:#9aa0ad;background:#f4f5f8;padding:4px 10px;border-radius:6px;">Split invoice — nominal dihitung dari grand total</span></div>
         <button @click="addTerm" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Termin</button>
       </div>
-      <div style="padding:14px 22px 10px;">
+      <div style="padding:14px 24px 10px;">
         <div class="table-scroll">
           <div style="min-width: 550px;">
             <div class="table-header-mobile" style="display:grid;grid-template-columns:1fr 150px 86px 140px 32px;gap:10px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">

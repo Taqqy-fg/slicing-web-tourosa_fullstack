@@ -62,15 +62,15 @@ const backFromInvoice = () => router.push('/orders/detail/' + encodeURIComponent
 const doPrint = () => window.print()
 </script>
 <template>
-  <div class="p-mobile" style="padding:30px 32px;max-width:1060px;margin:0 auto;">
-    <nav data-print="hide" style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:20px;flex-wrap:wrap;">
+  <div class="p-mobile grid-cols-1-mobile" style="padding:30px 32px;display:flex;flex-direction:column;gap:18px;">
+    <nav data-print="hide" style="display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap;">
       <a @click.prevent="goOrderList" href="#" style="color:#5d6a82;text-decoration:none;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="ph ph-list-checks" style="font-size:15px;"></i>Daftar Pesanan</a>
       <i class="ph ph-caret-right" style="color:#c2c8d4;font-size:13px;"></i>
       <a @click.prevent="goOrderDetail" href="#" style="color:#5d6a82;text-decoration:none;font-weight:600;cursor:pointer;">Detail Pesanan</a>
       <i class="ph ph-caret-right" style="color:#c2c8d4;font-size:13px;"></i>
       <span style="color:#13233f;font-weight:700;">Invoice</span>
     </nav>
-    <div data-print="hide" style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:20px;gap:12px;">
+    <div data-print="hide" style="display:flex;justify-content:flex-end;align-items:center;gap:12px;">
       <button @click="goEditOrder" class="tr-btn" style="background:#fff;color:#15294f;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:10px;border:1px solid #d6e1f2;cursor:pointer;display:flex;align-items:center;gap:8px;"><i class="ph ph-pencil-simple" style="font-size:17px;color:#15294f;"></i>Edit Invoice</button>
       <button @click="doPrint" class="tr-btn" style="background:#15294f;color:#fff;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;"><i class="ph ph-printer" style="font-size:17px;color:#c39a4d;"></i>Cetak / Simpan PDF</button>
     </div>
