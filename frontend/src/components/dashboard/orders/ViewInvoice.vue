@@ -125,7 +125,7 @@ const doPrint = () => window.print()
               <span class="hide-mobile" style="font-size:13px;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;">{{
                 it.no }}</span>
               <div class="col-full-mobile">
-                <div style="font-size:13.5px;font-weight:600;color:#13233f;">{{ it.desc }}</div>
+                <div style="font-size:13.5px;font-weight:600;color:#13233f;white-space:pre-line;">{{ it.desc }}</div>
                 <div style="font-size:11.5px;color:#9aa0ad;margin-top:2px;">{{ it.cat }}<span v-if="it.tripType"> · {{ it.tripType }}</span></div>
               </div>
               <span class="col-third-mobile"

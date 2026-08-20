@@ -133,7 +133,7 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
           </div>
           <div v-for="(it, idx) in detailItems" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 80px 80px 116px 116px 120px 116px;gap:8px;padding:13px 24px;border-top:1px solid #f1f2f5;align-items:flex-start;">
             <span class="hide-mobile" style="font-size:13px;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;">{{ it.no }}</span>
-            <div class="col-full-mobile"><div style="font-size:13.5px;font-weight:600;color:#13233f;">{{ it.desc }}</div><div style="font-size:11.5px;color:#9aa0ad;margin-top:2px;">{{ it.cat }}<span v-if="it.dest"> · {{ it.dest }}</span></div></div>
+            <div class="col-full-mobile"><div style="font-size:13.5px;font-weight:600;color:#13233f;white-space:pre-line;">{{ it.desc }}</div><div style="font-size:11.5px;color:#9aa0ad;margin-top:2px;">{{ it.cat }}<span v-if="it.dest"> · {{ it.dest }}</span></div></div>
             <span class="col-half-mobile" style="font-size:11.5px;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ it.tripType || '-' }}</span>
             <span class="col-third-mobile text-right-mobile" style="font-size:13px;color:#5d6a82;text-align:center;font-family:'IBM Plex Mono',monospace;">{{ it.qtyF }}</span>
             <span class="col-third-mobile text-right-mobile" style="font-size:12px;color:#9aa0ad;text-align:right;font-family:'IBM Plex Mono',monospace;">{{ it.costF }}</span>
