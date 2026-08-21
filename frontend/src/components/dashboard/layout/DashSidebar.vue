@@ -1,5 +1,4 @@
 <script setup>
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../../stores/authStore'
 
 defineProps({
@@ -9,12 +8,7 @@ defineProps({
 
 const emit = defineEmits(['close'])
 
-const router = useRouter()
 const auth = useAuthStore()
-
-const goSite = () => {
-  router.push('/')
-}
 
 const userInitial = (name) => {
   if (!name) return 'A'
@@ -34,12 +28,12 @@ const userInitial = (name) => {
       </button>
     </div>
     <nav style="padding:16px 14px;display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;">
-      <button v-for="(n, idx) in navItems" :key="idx" @click="n.onClick(); emit('close')" class="tr-nav" :style="{ background: n.bg, color: n.color, display:'flex', alignItems:'center', gap:'12px', padding:'11px 14px', border:'none', borderRadius:'10px', cursor:'pointer', textAlign:'left', width:'100%', fontSize:'14px', fontWeight:'600' }">
+      <router-link v-for="(n, idx) in navItems" :key="idx" :to="n.route" @click="emit('close')" class="tr-nav" :style="{ background: n.bg, color: n.color, display:'flex', alignItems:'center', gap:'12px', padding:'11px 14px', border:'none', borderRadius:'10px', cursor:'pointer', textAlign:'left', width:'100%', fontSize:'14px', fontWeight:'600', textDecoration:'none' }">
         <i :class="['ph', n.icon]" style="font-size:19px;"></i>{{ n.label }}
-      </button>
+      </router-link>
     </nav>
     <div style="padding:14px;border-top:1px solid #1b2942;">
-      <button @click="goSite" class="tr-nav" style="display:flex;align-items:center;gap:11px;padding:11px 14px;border:none;border-radius:10px;cursor:pointer;text-align:left;width:100%;background:transparent;color:#9aa6bd;font-size:13.5px;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;"><i class="ph ph-globe-hemisphere-west" style="font-size:18px;flex-shrink:0;"></i>Lihat Website</button>
+      <router-link to="/" class="tr-nav" style="display:flex;align-items:center;gap:11px;padding:11px 14px;border:none;border-radius:10px;cursor:pointer;text-align:left;width:100%;background:transparent;color:#9aa6bd;font-size:13.5px;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-decoration:none;"><i class="ph ph-globe-hemisphere-west" style="font-size:18px;flex-shrink:0;"></i>Lihat Website</router-link>
       <div v-if="auth.user" style="display:flex;align-items:center;gap:11px;padding:10px 12px;background:#142340;border-radius:11px;">
         <div style="width:34px;height:34px;border-radius:9px;background:#c39a4d;display:flex;align-items:center;justify-content:center;font-weight:800;color:#13233f;font-size:14px;flex-shrink:0;">{{ userInitial(auth.user.name) }}</div>
         <div style="line-height:1.3;min-width:0;">
