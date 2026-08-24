@@ -36,6 +36,17 @@ export const dashboardService = {
     },
 
     /**
+     * Record a payment for an order (multipart for proof file upload).
+     * Status becomes "Lunas" automatically when total paid >= grand total.
+     * @param {{ invoiceNo: string, formData: FormData }} payload
+     */
+    async createOrderPayment({ invoiceNo, formData }) {
+        return await apiClient.post(`/orders/${encodeURIComponent(invoiceNo)}/payments`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+
+    /**
      * Save site settings (waNumber, email, address, tagline, stats, clients)
      * @param {Object} settingsData
      */

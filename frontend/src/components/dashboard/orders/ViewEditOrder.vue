@@ -48,7 +48,7 @@ function parseNum(v) {
   return raw ? Number(raw) : ''
 }
 
-const tripTypeOpts = ['Pergi-Pulang', 'Satuan']
+const tripTypeOpts = ['Round Trip', 'One Way']
 
 const itemRows = computed(() => {
   if (!ef.value) return []
@@ -57,13 +57,23 @@ const itemRows = computed(() => {
     const markupCost = Number(it.markupCost) || 0
     const price = Number(it.price) || 0
     const markupCompany = cost + markupCost + price
-    return {
-      idx, cat: it.cat, vendor: it.vendor || '', tripType: it.tripType || 'Pergi-Pulang',
-      dest: it.dest || '', depart: it.depart || '', ret: it.ret || '',
-      desc: it.desc, qty: it.qty,
-      costFmt: fmtNum(it.cost), markupCostFmt: fmtNum(it.markupCost),
-      priceFmt: fmtNum(it.price), markupCompanyFmt: fmtNum(markupCompany),
-      vendorOptions: vendorsFor(it.cat),
+  const isHotel = it.cat === 'Hotel'
+  const showTripType = !isHotel
+  const showDest = !isHotel
+  const showRet = isHotel ? true : (it.tripType || 'Round Trip') !== 'One Way'
+  const departLabel = isHotel ? 'Tgl Check In' : 'Tanggal Berangkat'
+  const retLabel = isHotel ? 'Tgl Check Out' : 'Tanggal Kembali'
+  const qtyLabel = isHotel ? 'Room' : 'Qty'
+  const dateCols = 'repeat(' + (showDest ? (showRet ? 3 : 2) : (showRet ? 2 : 1)) + ', minmax(0,1fr))'
+  const headCols = showTripType ? '1fr 1fr 140px' : '1fr 1fr'
+  return {
+       idx, cat: it.cat, vendor: it.vendor || '', tripType: it.tripType || 'Round Trip',
+    dest: it.dest || '', depart: it.depart || '', ret: it.ret || '',
+    desc: it.desc, qty: it.qty,
+    costFmt: fmtNum(it.cost), markupCostFmt: fmtNum(it.markupCost),
+    priceFmt: fmtNum(it.price), markupCompanyFmt: fmtNum(markupCompany),
+    vendorOptions: vendorsFor(it.cat),
+    isHotel, showTripType, showDest, showRet, departLabel, retLabel, qtyLabel, dateCols, headCols,
       lineF: fmt((Number(it.qty) || 0) * markupCompany),
       onCat: e => { store.updateEditFormItem(idx, 'cat', e.target.value); store.updateEditFormItem(idx, 'vendor', '') },
       onVendor: e => { store.updateEditFormItem(idx, 'vendor', e.target.value); if (!it.desc) store.updateEditFormItem(idx, 'desc', e.target.value) },
@@ -118,6 +128,10 @@ const updateOrderMut = useMutation({
 const saveOrder = () => {
   if (!ef.value || !invoiceNo.value) return
   const f = ef.value
+  if (!f.tenggatDate) {
+    toast.error('Tanggal Tenggat wajib diisi.')
+    return
+  }
   const items = f.items.filter(it => (Number(it.qty) || 0) > 0 || (Number(it.price) || 0) > 0 || (it.desc || '').trim())
 
   const payload = {
@@ -125,14 +139,16 @@ const saveOrder = () => {
     pic: f.pic, contact: f.contact, dest: f.dest || '-', depart: f.depart, ret: f.ret, pax: f.pax,
     items: items.length ? items : [{ cat: 'Lainnya', desc: '(belum ada item)', qty: 0, cost: 0, price: 0 }],
     discount: f.discount, discountType: f.discountType, serviceFee: f.serviceFee, serviceFeeType: f.serviceFeeType,
-    taxPercent: f.taxPercent, dpPercent: f.dpPercent, dpDueDate: f.dpDueDate, notes: f.notes,
-    status: (Number(f.dpPercent) >= 100 ? 'Lunas' : 'DP'),
+    taxPercent: f.taxPercent, dpPercent: f.dpPercent, dpDueDate: f.dpDueDate, tenggatDate: f.tenggatDate, notes: f.notes,
+    status: (Number(f.dpPercent) >= 100 ? 'Lunas' : (Number(f.dpPercent) > 0 ? 'Down Payment' : 'Belum Lunas')),
   }
 
   updateOrderMut.mutate({ invoiceNo: invoiceNo.value, orderData: payload }, {
     onSuccess: () => {
+      const invoiceObj = { no: invoiceNo.value, date: f.invoiceDate, ...payload }
+      store.setActiveInvoice(invoiceObj)
       store.resetEditForm()
-      router.push('/orders')
+      router.push('/orders/invoice/' + encodeURIComponent(invoiceNo.value))
       toast.success('Pesanan berhasil diperbarui.')
     }
   })
@@ -169,13 +185,15 @@ const addItem = () => store.addItemToEditForm()
       <div style="display:flex;flex-direction:column;gap:18px;">
         <!-- group info -->
         <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
-          <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 4px;display:flex;align-items:center;gap:9px;"><i class="ph ph-users-three" style="color:#c39a4d;font-size:20px;"></i>Informasi Grup</h3>
+          <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 4px;display:flex;align-items:center;gap:9px;"><i class="ph ph-users-three" style="color:#c39a4d;font-size:20px;"></i>Informasi Pemesanan</h3>
           <p style="font-size:13px;color:#8a93a5;margin:0 0 20px;">Edit data pemesan.</p>
           <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div style="grid-column:span 2;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nama Grup / Instansi</label><input v-model="f.group" placeholder="cth. PT Sinar Abadi — Annual Gathering" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">PIC / Penanggung Jawab</label><input v-model="f.pic" placeholder="cth. Bpk. Rendra (HRD)" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label><input v-model="f.contact" placeholder="cth. 0812-3344-5566" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Invoice</label><DatePicker v-model="f.invoiceDate" /></div>
+            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Tenggat <span style="color:#c2603a;">*</span></label><div :class="['tenggat-wrap', !f.tenggatDate ? 'is-invalid' : '']"><DatePicker v-model="f.tenggatDate" placeholder="Pilih tanggal..." /></div></div>
+            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Jatuh Tempo</label><DatePicker v-model="f.dpDueDate" placeholder="Pilih tanggal..." /></div>
           </div>
         </div>
 
@@ -191,7 +209,7 @@ const addItem = () => store.addItemToEditForm()
                 <button @click="r.onDuplicate" style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #d6e1f2;border-radius:8px;padding:6px 10px;cursor:pointer;color:#15294f;font-size:12px;font-weight:600;transition:all .15s;"><i class="ph ph-copy" style="font-size:14px;"></i>Duplikat Item</button>
                 <button @click="r.onRemove" style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #f5d6d0;border-radius:8px;padding:6px 10px;cursor:pointer;color:#c2603a;font-size:12px;font-weight:600;transition:all .15s;"><i class="ph ph-trash" style="font-size:14px;"></i>Hapus Item</button>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 140px;gap:12px;align-items:end;margin-bottom:14px;">
+              <div :style="{ display:'grid', gridTemplateColumns: r.headCols, gap:'12px', alignItems:'end', marginBottom:'14px' }">
                 <div>
                   <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Kategori</label>
                   <select @change="r.onCat" :value="r.cat" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
@@ -205,7 +223,7 @@ const addItem = () => store.addItemToEditForm()
                     <option v-for="(vo, vi) in r.vendorOptions" :key="vi" :value="vo">{{ vo }}</option>
                   </select>
                 </div>
-                <div>
+                <div v-if="r.showTripType">
                   <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Tipe</label>
                   <select @change="r.onTripType" :value="r.tripType" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
                     <option v-for="tt in tripTypeOpts" :key="tt" :value="tt">{{ tt }}</option>
@@ -216,23 +234,23 @@ const addItem = () => store.addItemToEditForm()
                 <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Deskripsi</label>
                 <textarea :value="r.desc" @input="r.onDesc" rows="4" placeholder="cth. Tiket Garuda CGK - DPS, 3 malam, Ocean View" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;resize:vertical;"></textarea>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
-                <div>
+              <div :style="{ display:'grid', gridTemplateColumns: r.dateCols, gap:'12px', marginBottom:'14px' }">
+                <div v-if="r.showDest">
                   <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Destinasi</label>
                   <input :value="r.dest" @input="r.onDest" placeholder="cth. Bali" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Tanggal Berangkat</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">{{ r.departLabel }}</label>
                   <div class="item-datepicker"><DatePicker :modelValue="r.depart" @update:modelValue="r.onDepart" placeholder="Pilih tanggal..." /></div>
                 </div>
-                <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Tanggal Kembali</label>
+                <div v-if="r.showRet">
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">{{ r.retLabel }}</label>
                   <div class="item-datepicker"><DatePicker :modelValue="r.ret" @update:modelValue="r.onRet" placeholder="Pilih tanggal..." /></div>
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:70px 1fr 1fr 1fr 1fr;gap:12px;align-items:end;padding-top:14px;border-top:1px solid #dfe2e9;">
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Qty</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">{{ r.qtyLabel }}</label>
                   <input :value="r.qty" @input="r.onQty" type="number" placeholder="0" style="width:100%;padding:10px 8px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;text-align:center;font-weight:700;font-family:'IBM Plex Mono',monospace;">
                 </div>
                 <div>
@@ -263,7 +281,7 @@ const addItem = () => store.addItemToEditForm()
         <!-- diskon, pajak & pembayaran -->
         <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
           <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 18px;display:flex;align-items:center;gap:9px;"><i class="ph ph-sliders-horizontal" style="color:#c39a4d;font-size:20px;"></i>Diskon, Pajak &amp; Pembayaran</h3>
-          <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+          <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;">
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Diskon</label>
               <div style="display:flex;gap:0;">
@@ -280,8 +298,7 @@ const addItem = () => store.addItemToEditForm()
             </div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="11" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">DP (%)</label><input v-model="f.dpPercent" type="number" placeholder="50" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
-            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Jatuh Tempo DP</label><DatePicker v-model="f.dpDueDate" placeholder="Pilih tanggal..." /></div>
-            <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat Pembayaran</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
+            <div style="grid-column:span 4;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat Pembayaran</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
           </div>
         </div>
       </div>
@@ -309,9 +326,9 @@ const addItem = () => store.addItemToEditForm()
               <div style="display:flex;justify-content:space-between;"><span style="font-size:13px;color:#5d6a82;">Sisa pelunasan</span><span style="font-size:13px;font-weight:700;color:#c2603a;font-family:'IBM Plex Mono',monospace;">{{ t.tSisa }}</span></div>
             </div>
             <button @click="saveOrder" :disabled="updateOrderMut.isPending.value" class="tr-btn" style="width:100%;margin-top:18px;background:#15294f;color:#fff;font-size:14.5px;font-weight:700;padding:14px;border-radius:11px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;">
-              <span v-if="updateOrderMut.isPending.value" style="width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;"></span>
+              <i v-if="updateOrderMut.isPending.value" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
               <i v-else class="ph ph-floppy-disk" style="font-size:18px;color:#c39a4d;"></i>
-              {{ updateOrderMut.isPending.value ? 'Menyimpan...' : 'Simpan Perubahan' }}
+              {{ updateOrderMut.isPending.value ? 'Mengupdate...' : 'Update Invoice' }}
             </button>
             <button @click="cancelEdit" class="tr-btn" style="width:100%;margin-top:9px;background:#fff;color:#7a8499;font-size:13.5px;font-weight:600;padding:11px;border-radius:11px;border:1px solid #e2e4ea;cursor:pointer;">Batal</button>
           </div>

@@ -37,6 +37,7 @@
  * @property {number|string} taxPercent
  * @property {number|string} dpPercent
  * @property {string} notes
+ * @property {string|null} tenggatDate
  * @property {OrderItem[]} items
  * @property {OrderExpense[]} expenses
  * @property {OrderTerm[]} terms

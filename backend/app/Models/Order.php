@@ -31,4 +31,9 @@ class Order extends Model
     {
         return $this->hasMany(OrderTerm::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(OrderPayment::class);
+    }
 }

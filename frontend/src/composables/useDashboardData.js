@@ -1,6 +1,10 @@
 export function useDashboardData() {
   const fmt = (n) => 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(Number(n) || 0))
   const fmtNum = (n) => new Intl.NumberFormat('id-ID').format(Math.round(Number(n) || 0))
+  const parseNum = (v) => {
+    const raw = String(v ?? '').replace(/[^0-9]/g, '')
+    return raw ? Number(raw) : ''
+  }
   const fmtDate = (iso) => {
     if (!iso) return '-'
     const p = String(iso).split('-'); if (p.length < 3) return iso;
@@ -73,13 +77,15 @@ export function useDashboardData() {
 
   const statusMeta = (st) => {
     if (st === 'Lunas') return { bg: '#e6f4ec', color: '#1f7a5c' };
-    if (st === 'DP') return { bg: '#fbf1dc', color: '#9a7320' };
+    if (st === 'Down Payment') return { bg: '#fbf1dc', color: '#9a7320' };
+    if (st === 'Belum Lunas') return { bg: '#fdf0ed', color: '#c2603a' };
     return { bg: '#eef0f3', color: '#5f6b80' };
   }
 
   return {
     fmt,
     fmtNum,
+    parseNum,
     fmtDate,
     fmtShort,
     calc,
