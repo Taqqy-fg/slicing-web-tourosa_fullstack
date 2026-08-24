@@ -15,9 +15,10 @@ const { fmt, fmtNum, calc, statusMeta } = useDashboardData()
 const orders = computed(() => props.orders ?? store.orders)
 
 const sOrders = computed(() => orders.value.length)
-const sPax = computed(() => { const n = orders.value.reduce((a, o) => a + (Number(o.pax) || 0), 0); return n.toLocaleString('id-ID') })
+const orderPax = (o) => (o.items || []).reduce((s, it) => s + (Number(it.qty) || 0), 0) || Number(o.pax) || 0
+const sPax = computed(() => orders.value.reduce((a, o) => a + orderPax(o), 0).toLocaleString('id-ID'))
 const calcs = computed(() => orders.value.map(o => calc(o)))
-const sRevenue = computed(() => fmt(calcs.value.reduce((a, c) => a + c.total, 0)))
+const sRevenue = computed(() => fmt(calcs.value.reduce((a, c) => a + c.grandTotal, 0)))
 const sActive = computed(() => orders.value.filter(o => o.status !== 'Lunas').length)
 
 const openDetail = (o) => { store.setActiveInvoice(o); router.push('/orders/detail/' + encodeURIComponent(o.no)) }
@@ -25,7 +26,7 @@ const openDetail = (o) => { store.setActiveInvoice(o); router.push('/orders/deta
 const toRow = (o) => {
   const c = calc(o); const m = statusMeta(o.status);
   return {
-    no: o.no, group: o.group, dest: o.dest, pax: (o.pax || '-'), total: fmt(c.total),
+    no: o.no, group: o.group, dest: o.dest, pax: orderPax(o) || '-', total: fmt(c.grandTotal),
     status: o.status, statusBg: m.bg, statusColor: m.color,
     onDetail: () => openDetail(o)
   }

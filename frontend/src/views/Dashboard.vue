@@ -102,7 +102,7 @@ const navItems = computed(() => {
       : route.name === routeNameMap[n.key]
     return {
       key: n.key, label: n.label, icon: n.icon,
-      onClick: () => { router.push(n.route); isSidebarOpen.value = false },
+      route: n.route,
       bg: active ? 'rgba(195,154,77,.15)' : 'transparent',
       color: active ? '#f0d79a' : '#aab3c4'
     }
