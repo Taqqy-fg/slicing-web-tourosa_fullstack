@@ -1,9 +1,14 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import CountUp from '../../CountUp.vue'
 import { useDashboardStore } from '../../../stores/dashboardStore'
 import { useDashboardData } from '../../../composables/useDashboardData'
+import VueApexCharts from 'vue3-apexcharts'
+import moment from 'moment'
+import 'daterangepicker/daterangepicker.css'
+
+const drpInput = ref(null)
 
 const props = defineProps({
   orders: Array
@@ -12,7 +17,20 @@ const store = useDashboardStore()
 const router = useRouter()
 const { fmt, fmtNum, fmtDate, calc, statusMeta } = useDashboardData()
 
-const orders = computed(() => props.orders ?? store.orders)
+const dateRange = ref({ start: null, end: null })
+
+const orders = computed(() => {
+  let list = props.orders ?? store.orders
+  if (dateRange.value.start && dateRange.value.end) {
+    const start = moment(dateRange.value.start).startOf('day')
+    const end = moment(dateRange.value.end).endOf('day')
+    list = list.filter(o => {
+      const d = moment(o.date)
+      return d.isSameOrAfter(start) && d.isSameOrBefore(end)
+    })
+  }
+  return list
+})
 
 const sOrders = computed(() => orders.value.length)
 const orderPax = (o) => (o.items || []).reduce((s, it) => s + (Number(it.qty) || 0), 0) || Number(o.pax) || 0
@@ -44,11 +62,124 @@ const statusBars = computed(() => [
 ])
 
 const goList = () => router.push('/orders')
-const goNew = () => router.push('/orders/new')
+
+// Chart specific filters
+const chartYear = ref('All')
+const availableYears = computed(() => {
+  const years = new Set(orders.value.map(o => moment(o.date).year()))
+  return Array.from(years).sort((a,b) => b - a)
+})
+
+// Area Chart Options
+const areaChartSeries = computed(() => {
+  const grouped = {}
+  orders.value.forEach(o => {
+    const d = o.date
+    if (chartYear.value === 'All' || moment(d).year().toString() === chartYear.value) {
+      grouped[d] = (grouped[d] || 0) + calc(o).grandTotal
+    }
+  })
+  const sortedDates = Object.keys(grouped).sort()
+  return [{
+    name: 'Pendapatan',
+    data: sortedDates.map(d => ({ x: d, y: grouped[d] }))
+  }]
+})
+
+const areaChartOptions = {
+  chart: { type: 'area', toolbar: { show: true }, height: 300, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+  dataLabels: { enabled: false },
+  stroke: { curve: 'smooth', width: 2, colors: ['#c39a4d'] },
+  fill: {
+    type: 'gradient',
+    gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.0, stops: [0, 100], colorStops: [[{ offset: 0, color: '#c39a4d', opacity: 0.3 }, { offset: 100, color: '#c39a4d', opacity: 0.0 }]] }
+  },
+  xaxis: { type: 'datetime', labels: { style: { colors: '#8a93a5' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+  yaxis: { 
+    labels: { 
+      style: { colors: '#8a93a5' },
+      formatter: (val) => 'Rp' + new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(val)
+    } 
+  },
+  grid: { borderColor: '#f1f2f5', strokeDashArray: 4 },
+  colors: ['#c39a4d']
+}
+
+const catColors = ['#15294f', '#c39a4d', '#1f7a5c', '#c2603a', '#5b6b8c', '#9a7320', '#7c89a3', '#a8a08c'];
+
+const catBreakdown = computed(() => {
+  const catMap = {};
+  orders.value.forEach((o, i) => {
+    if (chartYear.value === 'All' || moment(o.date).year().toString() === chartYear.value) {
+      calcs.value[i].items.forEach(it => { catMap[it.cat] = (catMap[it.cat] || 0) + it.line; })
+    }
+  });
+  const catTotal = Object.values(catMap).reduce((a, b) => a + b, 0) || 1;
+  return Object.entries(catMap).sort((a, b) => b[1] - a[1]).map(([cat, amt], i) => ({
+    cat, amountF: fmt(amt), pct: Math.round(amt / catTotal * 100) + '%', width: Math.round(amt / catTotal * 100) + '%',
+    color: catColors[i % catColors.length],
+    amt
+  }))
+})
+
+// Donut chart for category breakdown
+const donutChartSeries = computed(() => catBreakdown.value.map(c => c.amt))
+const donutChartOptions = computed(() => ({
+  chart: { type: 'donut', toolbar: { show: true }, fontFamily: 'Plus Jakarta Sans, sans-serif' },
+  labels: catBreakdown.value.map(c => c.cat),
+  colors: catColors,
+  dataLabels: { enabled: false },
+  stroke: { show: false },
+  legend: { show: true, position: 'bottom' },
+  tooltip: {
+    y: { formatter: (val) => 'Rp' + new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(val) }
+  }
+}))
+
+onMounted(async () => {
+  // Dynamic import ensures jQuery is on window BEFORE daterangepicker loads
+  await import('daterangepicker')
+  await nextTick()
+
+  const el = drpInput.value
+  if (!el) return
+
+  window.$(el).daterangepicker({
+    autoUpdateInput: false,
+    locale: { cancelLabel: 'Clear', applyLabel: 'Terapkan', format: 'DD/MM/YYYY', customRangeLabel: 'Custom Range' },
+    opens: 'left',
+    ranges: {
+      'Today': [moment(), moment()],
+      'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+      'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+      'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+      'This Month': [moment().startOf('month'), moment().endOf('month')],
+      'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+    }
+  })
+
+  window.$(el).on('apply.daterangepicker', function(ev, picker) {
+    dateRange.value = { start: picker.startDate.toDate(), end: picker.endDate.toDate() }
+    el.value = picker.startDate.format('DD/MM/YYYY') + ' - ' + picker.endDate.format('DD/MM/YYYY')
+  })
+
+  window.$(el).on('cancel.daterangepicker', function() {
+    el.value = ''
+    dateRange.value = { start: null, end: null }
+  })
+})
+
 </script>
 
 <template>
   <div class="p-mobile" style="padding:30px 32px;">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+      <div style="position:relative;">
+        <input ref="drpInput" type="text" placeholder="Filter Rentang Tanggal..." style="padding:9px 36px 9px 14px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;outline:none;width:240px;background:#fff;cursor:pointer;" readonly />
+        <i class="ph ph-calendar-blank" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#8a93a5;font-size:16px;pointer-events:none;"></i>
+      </div>
+    </div>
+
     <div class="stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:26px;">
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="width:38px;height:38px;border-radius:11px;background:#eef3fb;display:flex;align-items:center;justify-content:center;"><i class="ph-fill ph-shopping-bag-open" style="font-size:19px;color:#15294f;"></i></div></div>
@@ -69,6 +200,31 @@ const goNew = () => router.push('/orders/new')
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="width:38px;height:38px;border-radius:11px;background:#fbeee4;display:flex;align-items:center;justify-content:center;"><i class="ph-fill ph-clock-countdown" style="font-size:19px;color:#c2603a;"></i></div></div>
         <div class="stat-number" style="font-size:30px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1;"><CountUp :value="sActive" /></div>
         <div class="stat-label" style="font-size:12px;color:#7a8499;font-weight:500;margin-top:6px;">Pesanan berjalan</div>
+      </div>
+    </div>
+
+    <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;margin-bottom:18px;">
+      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0;">Statistik Pendapatan</h3>
+          <select v-model="chartYear" style="padding:4px 8px;border:1px solid #d8dce4;border-radius:6px;font-size:12px;outline:none;background:#fff;cursor:pointer;color:#5d6a82;font-family:inherit;">
+            <option value="All">Semua Tahun</option>
+            <option v-for="y in availableYears" :key="y" :value="y.toString()">{{ y }}</option>
+          </select>
+        </div>
+        <VueApexCharts :options="areaChartOptions" :series="areaChartSeries" type="area" height="300" />
+      </div>
+      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0;">Pendapatan per Kategori</h3>
+          <select v-model="chartYear" style="padding:4px 8px;border:1px solid #d8dce4;border-radius:6px;font-size:12px;outline:none;background:#fff;cursor:pointer;color:#5d6a82;font-family:inherit;">
+            <option value="All">Semua Tahun</option>
+            <option v-for="y in availableYears" :key="y" :value="y.toString()">{{ y }}</option>
+          </select>
+        </div>
+        <div style="display:flex; justify-content:center; align-items:center; height:300px;">
+          <VueApexCharts :options="donutChartOptions" :series="donutChartSeries" type="donut" width="300" />
+        </div>
       </div>
     </div>
 

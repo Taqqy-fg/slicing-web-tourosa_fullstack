@@ -13,9 +13,24 @@ use Carbon\Carbon;
 
 class OrderExport implements FromCollection, WithHeadings, WithMapping, WithColumnWidths, WithStyles
 {
+    protected $startDate;
+    protected $endDate;
+
+    public function __construct($startDate = null, $endDate = null)
+    {
+        $this->startDate = $startDate;
+        $this->endDate = $endDate;
+    }
+
     public function collection()
     {
-        return Order::with(['items', 'expenses'])->orderBy('id', 'desc')->get();
+        $query = Order::with(['items', 'expenses'])->orderBy('id', 'desc');
+        
+        if ($this->startDate && $this->endDate) {
+            $query->whereBetween('invoice_date', [$this->startDate, $this->endDate]);
+        }
+
+        return $query->get();
     }
 
     public function headings(): array

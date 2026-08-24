@@ -9,7 +9,7 @@ const createBlankForm = (tax = 11) => ({
       { cat: 'Hotel', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
     ],
     discount: '', discountType: 'Rp', serviceFee: '', serviceFeeType: 'Rp',
-    taxPercent: tax, dpPercent: '50', dpDueDate: '', tenggatDate: '',
+    taxPercent: tax, dpPercent: '', dpDueDate: '', tenggatDate: '',
     notes: '',
 })
 

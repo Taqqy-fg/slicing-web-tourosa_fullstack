@@ -64,17 +64,19 @@ export const dashboardService = {
 
     /**
      * Download Excel Report
+     * @param {Object} params - Query params like start_date, end_date
      */
-    async exportExcel() {
-        const response = await apiClient.get('/reports/excel', { responseType: 'blob' });
+    async exportExcel(params = {}) {
+        const response = await apiClient.get('/reports/excel', { params, responseType: 'blob' });
         return response;
     },
 
     /**
      * Download PDF Report
+     * @param {Object} params - Query params like start_date, end_date
      */
-    async exportPdf() {
-        const response = await apiClient.get('/reports/pdf', { responseType: 'blob' });
+    async exportPdf(params = {}) {
+        const response = await apiClient.get('/reports/pdf', { params, responseType: 'blob' });
         return response;
     },
 

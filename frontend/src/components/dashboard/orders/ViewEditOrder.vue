@@ -128,10 +128,7 @@ const updateOrderMut = useMutation({
 const saveOrder = () => {
   if (!ef.value || !invoiceNo.value) return
   const f = ef.value
-  if (!f.tenggatDate) {
-    toast.error('Tanggal Tenggat wajib diisi.')
-    return
-  }
+
   const items = f.items.filter(it => (Number(it.qty) || 0) > 0 || (Number(it.price) || 0) > 0 || (it.desc || '').trim())
 
   const payload = {
@@ -192,7 +189,7 @@ const addItem = () => store.addItemToEditForm()
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">PIC / Penanggung Jawab</label><input v-model="f.pic" placeholder="cth. Bpk. Rendra (HRD)" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label><input v-model="f.contact" placeholder="cth. 0812-3344-5566" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Invoice</label><DatePicker v-model="f.invoiceDate" /></div>
-            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Tenggat <span style="color:#c2603a;">*</span></label><div :class="['tenggat-wrap', !f.tenggatDate ? 'is-invalid' : '']"><DatePicker v-model="f.tenggatDate" placeholder="Pilih tanggal..." /></div></div>
+
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Jatuh Tempo</label><DatePicker v-model="f.dpDueDate" placeholder="Pilih tanggal..." /></div>
           </div>
         </div>
@@ -288,6 +285,7 @@ const addItem = () => store.addItemToEditForm()
                 <input :value="discountFmt" @input="onDiscount" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px 0 0 9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
                 <button @click="toggleDiscountType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-left:none;border-radius:0 9px 9px 0;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.discountType }}</button>
               </div>
+              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;">*Klik Rp/% untuk ubah tipe</div>
             </div>
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Service Fee</label>
@@ -295,6 +293,7 @@ const addItem = () => store.addItemToEditForm()
                 <input :value="serviceFeeFmt" @input="onServiceFee" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px 0 0 9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
                 <button @click="toggleServiceFeeType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-left:none;border-radius:0 9px 9px 0;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.serviceFeeType }}</button>
               </div>
+              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;">*Klik Rp/% untuk ubah tipe</div>
             </div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="11" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">DP (%)</label><input v-model="f.dpPercent" type="number" placeholder="50" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>

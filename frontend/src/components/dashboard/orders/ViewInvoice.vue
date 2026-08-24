@@ -110,10 +110,7 @@ const doPrint = () => window.print()
                 style="font-size:12.5px;color:#8a93a5;min-width:118px;">Tanggal Invoice</span><span
                 style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
                 inv.dateF }}</span></div>
-            <div style="display:flex;justify-content:flex-start;gap:24px;margin-bottom:10px;"><span
-                style="font-size:12.5px;color:#8a93a5;min-width:118px;">Tanggal Tenggat</span><span
-                style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
-                inv.tenggatF }}</span></div>
+
             <div style="display:flex;justify-content:flex-start;gap:24px;margin-bottom:10px;"><span
                 style="font-size:12.5px;color:#8a93a5;min-width:118px;">Jatuh Tempo</span><span
                 style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
@@ -197,9 +194,7 @@ const doPrint = () => window.print()
                 style="font-size:12px;color:#9fabc4;">DP ({{ inv.dpPercentF }}%)</span><span
                 style="font-size:12.5px;font-weight:700;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;">{{ inv.dpF
                 }}</span></div>
-            <div v-if="inv.hasDpDueDate" style="display:flex;justify-content:space-between;margin-bottom:9px;"><span
-                style="font-size:12px;color:#9fabc4;">Jatuh Tempo</span><span
-                style="font-size:12px;font-weight:600;color:#f0c98a;font-family:'IBM Plex Mono',monospace;">{{ inv.dpDueDateF }}</span></div>
+
             <div style="display:flex;justify-content:space-between;padding-top:9px;border-top:1px solid #24365a;"><span
                 style="font-size:12px;color:#9fabc4;">Sisa pelunasan</span><span
                 style="font-size:12.5px;font-weight:700;color:#f0c98a;font-family:'IBM Plex Mono',monospace;">{{

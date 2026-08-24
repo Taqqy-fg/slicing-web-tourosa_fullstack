@@ -17,7 +17,9 @@ class ReportController extends Controller
     public function exportExcel(Request $request)
     {
         $timestamp = now()->format('d-m-Y');
-        return Excel::download(new OrderExport, "Laporan_Tourosa_{$timestamp}.xlsx");
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        return Excel::download(new OrderExport($startDate, $endDate), "Laporan_Tourosa_{$timestamp}.xlsx");
     }
 
     /**
@@ -25,7 +27,13 @@ class ReportController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        $orders = Order::with(['items', 'expenses', 'terms'])->orderBy('id', 'desc')->get();
+        $query = Order::with(['items', 'expenses', 'terms'])->orderBy('id', 'desc');
+
+        if ($request->has('start_date') && $request->has('end_date')) {
+            $query->whereBetween('invoice_date', [$request->start_date, $request->end_date]);
+        }
+
+        $orders = $query->get();
 
         // Calculate totals for PDF summary
         $totalRevenue = 0;

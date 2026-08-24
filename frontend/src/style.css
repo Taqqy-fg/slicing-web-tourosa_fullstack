@@ -154,7 +154,7 @@ a {
     display: none !important;
   }
 
-  /* ROOT CAUSE FIX — Dashboard.vue pakai position:fixed + overflow:hidden
+  /* ROOT CAUSE FIX â€” Dashboard.vue pakai position:fixed + overflow:hidden
      di shell utama, dan mainScroll pakai overflow-y:auto, untuk bikin
      sidebar diam sementara konten di-scroll SAAT DI LAYAR. Tapi elemen
      position:fixed itu lepas dari alur dokumen, jadi saat print, browser
@@ -196,7 +196,7 @@ a {
     break-inside: avoid;
   }
 
-  /* FOOTER — sekarang setelah root cause (dash-shell fixed positioning)
+  /* FOOTER â€” sekarang setelah root cause (dash-shell fixed positioning)
      sudah diperbaiki di atas, footer nggak lagi butuh dipaksa jadi block.
      Cukup samakan perlakuannya dengan blok "keep" lain: dijaga supaya
      tidak terpotong di tengah halaman, tapi tetap flex row (sejajar
@@ -256,7 +256,7 @@ a {
     left: 0;
     height: 100vh;
     height: 100dvh;
-    /* Dynamic viewport — accounts for browser address bar on mobile */
+    /* Dynamic viewport â€” accounts for browser address bar on mobile */
     overflow-y: auto;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -448,7 +448,7 @@ a {
   }
 }
 
-/* ── Flatpickr Tourosa Theme ────────────────────────── */
+/* â”€â”€ Flatpickr Tourosa Theme â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .flatpickr-calendar {
   border: 1px solid #e8e9ee !important;
   border-radius: 12px !important;
@@ -483,7 +483,7 @@ a {
   color: #fff !important;
 }
 
-/* prev / next arrows (month + year) — gold */
+/* prev / next arrows (month + year) â€” gold */
 span.flatpickr-prev-month,
 span.flatpickr-next-month {
   display: flex !important;
@@ -527,7 +527,7 @@ span.flatpickr-next-month svg path {
   stroke: none !important;
 }
 
-/* inner nav for year skip: «  » */
+/* inner nav for year skip: Â«  Â» */
 .flatpickr-months .flatpickr-prev-month i,
 .flatpickr-months .flatpickr-next-month i {
   color: #c39a4d !important;
@@ -713,4 +713,12 @@ input.tr-datepicker[readonly] {
 .tenggat-wrap.is-invalid .tr-datepicker {
   border: 1px solid #c2603a !important;
   background-color: #fdf5f3;
+}
+
+/* DateRangePicker overrides */
+.daterangepicker {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+}
+.daterangepicker .ranges li {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
 }
