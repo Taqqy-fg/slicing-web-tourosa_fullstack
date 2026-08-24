@@ -718,7 +718,83 @@ input.tr-datepicker[readonly] {
 /* DateRangePicker overrides */
 .daterangepicker {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  border-radius: 14px !important;
+  border: 1px solid #e8e9ee !important;
+  box-shadow: 0 18px 50px rgba(13, 27, 48, .16) !important;
 }
 .daterangepicker .ranges li {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+}
+
+/* Footer buttons (Terapkan / Clear) */
+.daterangepicker .drp-buttons {
+  border-top: 1px solid #eef0f3;
+  padding: 12px 16px;
+  text-align: right;
+}
+.daterangepicker .drp-selected {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: #5d6a82;
+  padding-right: 10px;
+}
+.daterangepicker .btn {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 9px;
+  padding: 8px 20px;
+  transition: all .15s ease;
+  box-shadow: none !important;
+  text-transform: none !important;
+}
+.daterangepicker .cancelBtn {
+  background: #fff !important;
+  color: #5f6b80 !important;
+  border: 1px solid #e2e4ea !important;
+  margin-right: 8px;
+}
+.daterangepicker .cancelBtn:hover,
+.daterangepicker .cancelBtn:focus {
+  background: #fafbfc !important;
+  color: #13233f !important;
+  border-color: #c2c8d4 !important;
+}
+.daterangepicker .applyBtn {
+  background: #15294f !important;
+  color: #fff !important;
+  border: 1px solid #15294f !important;
+}
+.daterangepicker .applyBtn:hover,
+.daterangepicker .applyBtn:focus,
+.daterangepicker .applyBtn:active {
+  background: #0d1b30 !important;
+  border-color: #0d1b30 !important;
+}
+
+/* Preset list & selected dates */
+.daterangepicker .ranges li:hover {
+  background: #eef3fb;
+  color: #15294f;
+}
+.daterangepicker .ranges li.active {
+  background: #15294f;
+  color: #fff;
+}
+.daterangepicker td.available:hover {
+  background: #eef3fb;
+}
+.daterangepicker td.active,
+.daterangepicker td.active:hover {
+  background: #15294f !important;
+  border-color: #15294f !important;
+  color: #fff !important;
+}
+.daterangepicker td.in-range {
+  background: #fbf6ea;
+  color: #13233f;
+}
+.daterangepicker .calendar-table th,
+.daterangepicker .calendar-table td {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
 }
