@@ -76,33 +76,39 @@ const areaChartSeries = computed(() => {
   orders.value.forEach(o => {
     const d = o.date
     if (chartYear.value === 'All' || moment(d).year().toString() === chartYear.value) {
-      grouped[d] = (grouped[d] || 0) + calc(o).grandTotal
+      if (!grouped[d]) grouped[d] = { revenue: 0, cost: 0 }
+      const c = calc(o)
+      grouped[d].revenue += c.grandTotal
+      grouped[d].cost += c.totalCost
     }
   })
   const sortedDates = Object.keys(grouped).sort()
-  return [{
-    name: 'Pendapatan',
-    data: sortedDates.map(d => ({ x: d, y: grouped[d] }))
-  }]
+  return [
+    {
+      name: 'Pendapatan',
+      data: sortedDates.map(d => ({ x: d, y: Math.round(grouped[d].revenue) }))
+    },
+    {
+      name: 'Total Modal (HPP)',
+      data: sortedDates.map(d => ({ x: d, y: Math.round(grouped[d].cost) }))
+    }
+  ]
 })
 
 const areaChartOptions = {
   chart: { type: 'area', toolbar: { show: true }, height: 300, fontFamily: 'Plus Jakarta Sans, sans-serif' },
   dataLabels: { enabled: false },
-  stroke: { curve: 'smooth', width: 2, colors: ['#c39a4d'] },
-  fill: {
-    type: 'gradient',
-    gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.0, stops: [0, 100], colorStops: [[{ offset: 0, color: '#c39a4d', opacity: 0.3 }, { offset: 100, color: '#c39a4d', opacity: 0.0 }]] }
-  },
+  stroke: { curve: 'smooth', width: 4 },
   xaxis: { type: 'datetime', labels: { style: { colors: '#8a93a5' } }, axisBorder: { show: false }, axisTicks: { show: false } },
-  yaxis: { 
-    labels: { 
+  yaxis: {
+    labels: {
       style: { colors: '#8a93a5' },
       formatter: (val) => 'Rp' + new Intl.NumberFormat('id-ID', { notation: 'compact' }).format(val)
-    } 
+    }
   },
   grid: { borderColor: '#f1f2f5', strokeDashArray: 4 },
-  colors: ['#c39a4d']
+  tooltip: { x: { format: 'dd MMM yyyy' } },
+  colors: ['rgb(195, 154, 77)', 'rgb(21, 41, 79)']
 }
 
 const catColors = ['#15294f', '#c39a4d', '#1f7a5c', '#c2603a', '#5b6b8c', '#9a7320', '#7c89a3', '#a8a08c'];
