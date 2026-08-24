@@ -5,12 +5,12 @@ const createBlankForm = (tax = 11) => ({
     group: '', pic: '', contact: '',
     invoiceDate: new Date().toISOString().slice(0, 10),
     items: [
-      { cat: 'Tiket Pesawat', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
-      { cat: 'Hotel', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
+      { cat: 'Tiket Pesawat', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
+      { cat: 'Hotel', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
     ],
     discount: '', discountType: 'Rp', serviceFee: '', serviceFeeType: 'Rp',
-    taxPercent: tax, dpPercent: '50', dpDueDate: '',
-    notes: 'Pembayaran DP 50% saat konfirmasi booking. Pelunasan paling lambat H-14 sebelum keberangkatan.',
+    taxPercent: tax, dpPercent: '50', dpDueDate: '', tenggatDate: '',
+    notes: '',
 })
 
 export const useDashboardStore = defineStore('dashboard', {
@@ -58,7 +58,7 @@ export const useDashboardStore = defineStore('dashboard', {
             this.form = createBlankForm(this.form.taxPercent);
         },
         addItemToForm() {
-            this.form.items.push({ cat: 'Lainnya', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
+            this.form.items.push({ cat: 'Lainnya', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
         },
         removeItemFromForm(idx) {
             if (this.form.items.length > 1) {
@@ -120,7 +120,7 @@ export const useDashboardStore = defineStore('dashboard', {
                 items: (o.items && o.items.length) ? o.items.map(it => ({
                     cat: it.cat || 'Lainnya',
                     vendor: it.vendor || '',
-                    tripType: it.tripType || 'Pergi-Pulang',
+                    tripType: (it.tripType === 'Pergi-Pulang' ? 'Round Trip' : it.tripType === 'Satuan' ? 'One Way' : it.tripType) || 'Round Trip',
                     dest: it.dest || '',
                     depart: it.depart || '',
                     ret: it.ret || '',
@@ -130,14 +130,15 @@ export const useDashboardStore = defineStore('dashboard', {
                     markupCost: it.markupCost ?? '',
                     price: it.price ?? '',
                     markupPrice: it.markupPrice ?? '',
-                })) : [{ cat: 'Lainnya', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' }],
+                })) : [{ cat: 'Lainnya', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' }],
                 discount: o.discount ?? '',
                 discountType: o.discountType ?? 'Rp',
                 serviceFee: o.serviceFee ?? '',
                 serviceFeeType: o.serviceFeeType ?? 'Rp',
                 taxPercent: o.taxPercent ?? 11,
-                dpPercent: o.dpPercent ?? '50',
+                dpPercent: o.dpPercent ?? 0,
                 dpDueDate: o.dpDueDate ?? '',
+                tenggatDate: o.tenggatDate ?? '',
                 notes: o.notes || '',
                 status: o.status || 'DP',
             }
@@ -148,7 +149,7 @@ export const useDashboardStore = defineStore('dashboard', {
         },
         addItemToEditForm() {
             if (this.editForm) {
-                this.editForm.items.push({ cat: 'Lainnya', vendor: '', tripType: 'Pergi-Pulang', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
+                this.editForm.items.push({ cat: 'Lainnya', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
             }
         },
         removeItemFromEditForm(idx) {

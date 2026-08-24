@@ -338,7 +338,8 @@ function cancelDelete() {
         <div style="display:flex;gap:10px;justify-content:flex-end;">
           <button @click="cancelDelete" class="tr-btn" style="background:#fff;color:#5f6b80;border:1px solid #e2e4ea;font-size:13.5px;font-weight:600;padding:10px 20px;border-radius:9px;cursor:pointer;">Batal</button>
           <button @click="doDelete" :disabled="deleteMut.isPending.value" class="tr-btn" style="background:#c2603a;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:10px 20px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;">
-            <i class="ph ph-trash" style="font-size:15px;"></i>
+            <i v-if="deleteMut.isPending.value" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+            <i v-else class="ph ph-trash" style="font-size:15px;"></i>
             {{ deleteMut.isPending.value ? 'Menghapus...' : 'Hapus' }}
           </button>
         </div>

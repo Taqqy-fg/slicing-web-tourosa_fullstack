@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Catalog;
+use App\Models\OrderPayment;
 use App\Models\Setting;
 use App\Models\Testimonial;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
 {
@@ -33,7 +35,7 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        $orders = Order::with(['items', 'expenses', 'terms'])->orderBy('id', 'desc')->get();
+        $orders = Order::with(['items', 'expenses', 'terms', 'payments'])->orderBy('id', 'desc')->get();
         $catalogs = Catalog::with('items')->get();
         $settings = Setting::all();
         $testimonials = Testimonial::orderBy('sort_order')->orderBy('id')->get();
@@ -57,6 +59,7 @@ class DashboardController extends Controller
                 'taxPercent' => (float) $order->tax_percent,
                 'dpPercent' => (float) $order->dp_percent,
                 'dpDueDate' => $order->dp_due_date,
+                'tenggatDate' => $order->tenggat_date,
                 'notes' => $order->notes,
                 'items' => $order->items->map(function ($item) {
                     return [
@@ -85,6 +88,15 @@ class DashboardController extends Controller
                         'label' => $term->label,
                         'percent' => (float) $term->percent,
                         'due' => $term->due_date,
+                    ];
+                }),
+                'payments' => $order->payments->map(function ($pay) {
+                    return [
+                        'id' => $pay->id,
+                        'payment_date' => $pay->payment_date,
+                        'amount' => (float) $pay->amount,
+                        'proof_file' => $pay->proof_file ? Storage::url($pay->proof_file) : null,
+                        'comment' => $pay->comment,
                     ];
                 })
             ];
@@ -139,6 +151,7 @@ class DashboardController extends Controller
             'taxPercent' => 'nullable|numeric',
             'dpPercent' => 'nullable|numeric',
             'dpDueDate' => 'nullable|date',
+            'tenggatDate' => 'nullable|date',
             'notes' => 'nullable|string',
             'items' => 'nullable|array',
             'expenses' => 'nullable|array',
@@ -163,6 +176,7 @@ class DashboardController extends Controller
             'tax_percent' => $data['taxPercent'] ?? 0,
             'dp_percent' => $data['dpPercent'] ?? 0,
             'dp_due_date' => $data['dpDueDate'] ?? null,
+            'tenggat_date' => $data['tenggatDate'] ?? null,
             'notes' => $data['notes'] ?? '',
             'created_by' => $userId,
             'updated_by' => $userId,
@@ -235,9 +249,11 @@ class DashboardController extends Controller
             'discount'         => 'nullable|numeric',
             'discountType'     => 'nullable|string',
             'serviceFee'       => 'nullable|numeric',
+            'serviceFeeType'   => 'nullable|string',
             'taxPercent'       => 'nullable|numeric',
             'dpPercent'        => 'nullable|numeric',
             'dpDueDate'        => 'nullable|date',
+            'tenggatDate'      => 'nullable|date',
             'notes'            => 'nullable|string',
             'items'            => 'nullable|array',
             'items.*.cat'      => 'nullable|string',
@@ -277,6 +293,7 @@ class DashboardController extends Controller
             'tax_percent' => $data['taxPercent'] ?? $order->tax_percent,
             'dp_percent'  => $data['dpPercent'] ?? $order->dp_percent,
             'dp_due_date' => $data['dpDueDate'] ?? $order->dp_due_date,
+            'tenggat_date' => $data['tenggatDate'] ?? $order->tenggat_date,
             'notes'       => $data['notes'] ?? $order->notes,
             'updated_by'  => $userId,
         ]);
@@ -338,6 +355,79 @@ class DashboardController extends Controller
         }
 
         return response()->json(['message' => 'Order updated successfully']);
+    }
+
+    /**
+     * Catat pembayaran untuk order tertentu.
+     * Status otomatis: lunas bila total bayar >= grand total,
+     * down payment bila sebagian, belum lunas bila 0.
+     */
+    public function storePayment(Request $request, $invoice_no)
+    {
+        $userId = $request->user()->id;
+        $order = Order::with(['items', 'payments'])->where('invoice_no', $invoice_no)->firstOrFail();
+
+        $data = $request->validate([
+            'payment_date' => 'required|date',
+            'amount' => 'required|numeric|min:0',
+            'proof_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'comment' => 'nullable|string',
+        ]);
+
+        $proofPath = null;
+        if ($request->hasFile('proof_file')) {
+            $proofPath = $request->file('proof_file')->store('payments', 'public');
+        }
+
+        $order->payments()->create([
+            'payment_date' => $data['payment_date'],
+            'amount' => $data['amount'],
+            'proof_file' => $proofPath,
+            'comment' => $data['comment'] ?? null,
+            'created_by' => $userId,
+            'updated_by' => $userId,
+        ]);
+
+        $grandTotal = $this->computeGrandTotal($order);
+        $totalPaid = $order->payments()->sum('amount');
+        $status = $totalPaid >= $grandTotal
+            ? 'Lunas'
+            : ($totalPaid > 0 ? 'Down Payment' : 'Belum Lunas');
+
+        $order->update(['status' => $status, 'updated_by' => $userId]);
+
+        return response()->json([
+            'message' => 'Payment recorded successfully',
+            'status' => $status,
+            'totalPaid' => $totalPaid,
+            'grandTotal' => $grandTotal,
+        ]);
+    }
+
+    /**
+     * Hitung grand total order dari item (mirip frontend calc).
+     */
+    private function computeGrandTotal($order)
+    {
+        $subtotal = 0;
+        foreach ($order->items as $it) {
+            $qty = (float) ($it->qty ?? 0);
+            $markupPrice = (float) ($it->markup_price ?? 0);
+            $subtotal += $qty * $markupPrice;
+        }
+        $discount = (float) ($order->discount ?? 0);
+        $discountType = $order->discount_type ?? 'Rp';
+        $discountAmount = $discountType === '%' ? round($subtotal * $discount / 100) : $discount;
+        $afterDisc = max(0, $subtotal - $discountAmount);
+
+        $serviceFee = (float) ($order->service_fee ?? 0);
+        $serviceFeeType = $order->service_fee_type ?? 'Rp';
+        $serviceFeeAmount = $serviceFeeType === '%' ? round($afterDisc * $serviceFee / 100) : $serviceFee;
+
+        $taxPercent = (float) ($order->tax_percent ?? 0);
+        $tax = round($afterDisc * $taxPercent / 100);
+
+        return $afterDisc + $serviceFeeAmount + $tax;
     }
 
     /**

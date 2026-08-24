@@ -105,11 +105,13 @@ const doExportExcel = async () => {
       <h2 style="font-size:20px; font-weight:800; color:#13233f; margin:0;">Laporan Keuangan & Penjualan</h2>
       <div style="display:flex; gap: 10px;">
         <button @click="doExportExcel" :disabled="isExportingExcel" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13.5px;font-weight:700;padding:9px 16px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:8px;">
-          <i class="ph ph-file-xls" style="font-size:18px;color:#217346;"></i> 
+          <i v-if="isExportingExcel" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+          <i v-else class="ph ph-file-xls" style="font-size:18px;color:#217346;"></i>
           {{ isExportingExcel ? 'Proses...' : 'Export Excel' }}
         </button>
         <button @click="doExportPdf" :disabled="isExportingPdf" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:9px 16px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:8px;">
-          <i class="ph ph-file-pdf" style="font-size:18px;color:#ff4d4f;"></i> 
+          <i v-if="isExportingPdf" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+          <i v-else class="ph ph-file-pdf" style="font-size:18px;color:#ff4d4f;"></i>
           {{ isExportingPdf ? 'Proses...' : 'Export PDF' }}
         </button>
       </div>

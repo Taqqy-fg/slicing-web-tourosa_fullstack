@@ -34,6 +34,7 @@ const invData = computed(() => {
     taxPercentF: String(c.taxPercent), taxF: fmt(c.tax),
     grandTotalF: fmt(c.grandTotal), perPaxF: fmt(c.perPax),
     dpPercentF: String(c.dpPercent), dpF: fmt(c.dp), dpDueDateF: fmtDate(o.dpDueDate), hasDpDueDate: !!o.dpDueDate,
+    tenggatF: fmtDate(o.tenggatDate), hasTenggat: !!o.tenggatDate,
     sisaF: fmt(c.sisa),
     notes: o.notes || '-', invTerms, hasTerms: invTerms.length > 0
   }
@@ -104,12 +105,20 @@ const doPrint = () => window.print()
           <div style="font-size:16px;font-weight:800;color:#13233f;margin-bottom:4px;">{{ inv.group }}</div>
           <div style="font-size:13px;color:#5d6a82;line-height:1.6;">PIC: {{ inv.pic }}<br>{{ inv.contact }}</div>
         </div>
-        <div style="text-align:left;">
-          <div style="display:flex;justify-content:flex-start;gap:30px;margin-bottom:10px;"><span
-              style="font-size:12.5px;color:#8a93a5;">Tanggal Invoice</span><span
-              style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;min-width:120px;">{{
+          <div style="text-align:left;">
+            <div style="display:flex;justify-content:flex-start;gap:24px;margin-bottom:10px;"><span
+                style="font-size:12.5px;color:#8a93a5;min-width:118px;">Tanggal Invoice</span><span
+                style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
                 inv.dateF }}</span></div>
-        </div>
+            <div style="display:flex;justify-content:flex-start;gap:24px;margin-bottom:10px;"><span
+                style="font-size:12.5px;color:#8a93a5;min-width:118px;">Tanggal Tenggat</span><span
+                style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
+                inv.tenggatF }}</span></div>
+            <div style="display:flex;justify-content:flex-start;gap:24px;margin-bottom:10px;"><span
+                style="font-size:12.5px;color:#8a93a5;min-width:118px;">Jatuh Tempo</span><span
+                style="font-size:12.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
+                inv.dpDueDateF }}</span></div>
+          </div>
       </div>
       <!-- items table -->
       <div style="padding-top:22px;">
@@ -176,8 +185,8 @@ const doPrint = () => window.print()
               style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ inv.taxF
               }}</span></div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;"><span
-              style="font-size:15px;font-weight:800;color:#13233f;">GRAND TOTAL</span><span
-              style="font-size:20px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ inv.grandTotalF
+              style="font-size:13px;font-weight:800;color:#13233f;">GRAND TOTAL</span><span
+              style="font-size:13px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ inv.grandTotalF
               }}</span></div>
           <div style="background:#13233f;border-radius:11px;padding:14px 16px;">
             <div style="display:flex;justify-content:space-between;margin-bottom:9px;"><span

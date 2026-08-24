@@ -707,3 +707,10 @@ input.tr-datepicker[readonly] {
 .item-datepicker .tr-datepicker::placeholder {
   font-size: 11.5px;
 }
+
+/* Required date field invalid state */
+.tenggat-wrap.is-invalid .flatpickr-input,
+.tenggat-wrap.is-invalid .tr-datepicker {
+  border: 1px solid #c2603a !important;
+  background-color: #fdf5f3;
+}
