@@ -13,11 +13,9 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('order_info_id')->constrained('order_infos')->onDelete('cascade');
             $table->string('invoice_no')->unique();
             $table->date('invoice_date');
-            $table->string('group_name');
-            $table->string('pic_name')->nullable();
-            $table->string('contact_info')->nullable();
             $table->string('destination')->nullable();
             $table->date('depart_date')->nullable();
             $table->date('return_date')->nullable();

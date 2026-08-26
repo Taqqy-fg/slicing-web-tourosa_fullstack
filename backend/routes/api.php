@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\TestimonialController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\OrderInfoController;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
@@ -39,6 +40,22 @@ Route::middleware('auth:sanctum')->group(function () {
     // Settings — permission: settings.update
     Route::put('/settings', [DashboardController::class, 'updateSettings'])
         ->middleware('permission:settings.update');
+
+    // Customers
+    Route::post('/customers', [DashboardController::class, 'storeCustomer'])
+        ->middleware('permission:orders.create');
+
+    // Order Infos CRUD — permission: orders.*
+    Route::get('/order-infos', [OrderInfoController::class, 'index'])
+        ->middleware('permission:orders.view');
+    Route::post('/order-infos', [OrderInfoController::class, 'store'])
+        ->middleware('permission:orders.create');
+    Route::get('/order-infos/{id}', [OrderInfoController::class, 'show'])
+        ->middleware('permission:orders.view');
+    Route::put('/order-infos/{id}', [OrderInfoController::class, 'update'])
+        ->middleware('permission:orders.update');
+    Route::delete('/order-infos/{id}', [OrderInfoController::class, 'destroy'])
+        ->middleware('permission:orders.delete');
 
     // Catalog — permission: catalog.update
     Route::put('/catalog', [DashboardController::class, 'updateCatalog'])

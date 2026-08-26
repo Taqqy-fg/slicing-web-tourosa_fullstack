@@ -24,7 +24,7 @@ class OrderExport implements FromCollection, WithHeadings, WithMapping, WithColu
 
     public function collection()
     {
-        $query = Order::with(['items', 'expenses'])->orderBy('id', 'desc');
+        $query = Order::with(['orderInfo', 'items', 'expenses'])->orderBy('id', 'desc');
         
         if ($this->startDate && $this->endDate) {
             $query->whereBetween('invoice_date', [$this->startDate, $this->endDate]);
@@ -102,7 +102,7 @@ class OrderExport implements FromCollection, WithHeadings, WithMapping, WithColu
         return [
             $order->invoice_no,
             $dateFormatted,
-            $order->group_name,
+            $order->orderInfo?->group_name,
             $subtotal,
             $totalCost + $totalExpenses,
             $discountAmount,

@@ -27,7 +27,7 @@ class ReportController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        $query = Order::with(['items', 'expenses', 'terms'])->orderBy('id', 'desc');
+        $query = Order::with(['orderInfo', 'items', 'expenses', 'terms'])->orderBy('id', 'desc');
 
         if ($request->has('start_date') && $request->has('end_date')) {
             $query->whereBetween('invoice_date', [$request->start_date, $request->end_date]);
@@ -62,7 +62,7 @@ class ReportController extends Controller
 
             return [
                 'no' => $o->invoice_no,
-                'group' => $o->group_name,
+                'group' => $o->orderInfo?->group_name,
                 'date' => $o->invoice_date,
                 'revenue' => $grandTotal,
                 'cost' => $totalCostOrder,

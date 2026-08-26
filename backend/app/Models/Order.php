@@ -17,6 +17,15 @@ class Order extends Model
         'deleted_by' => 'integer',
     ];
 
+    /**
+     * Relasi ke OrderInfo (parent/primary table).
+     * orders.order_info_id → order_infos.id
+     */
+    public function orderInfo()
+    {
+        return $this->belongsTo(OrderInfo::class, 'order_info_id');
+    }
+
     public function items()
     {
         return $this->hasMany(OrderItem::class);

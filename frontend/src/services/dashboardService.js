@@ -20,6 +20,13 @@ export const dashboardService = {
     },
 
     /**
+     * Create a new customer
+     */
+    async createCustomer(customerData) {
+        return await apiClient.post('/customers', customerData);
+    },
+
+    /**
      * Update an existing order (full: header fields, items, expenses, terms)
      * @param {{ invoiceNo: string, orderData: Object }} payload
      */
@@ -183,5 +190,35 @@ export const dashboardService = {
      */
     async getAllPermissions() {
         return await apiClient.get('/permissions/all');
+    },
+
+    // ──── Order Infos ────
+
+    /**
+     * Ambil semua informasi pesanan
+     */
+    async getOrderInfos() {
+        return await apiClient.get('/order-infos');
+    },
+
+    /**
+     * Buat informasi pesanan baru
+     */
+    async createOrderInfo(infoData) {
+        return await apiClient.post('/order-infos', infoData);
+    },
+
+    /**
+     * Update informasi pesanan berdasarkan ID
+     */
+    async updateOrderInfo({ id, infoData }) {
+        return await apiClient.put(`/order-infos/${id}`, infoData);
+    },
+
+    /**
+     * Hapus informasi pesanan berdasarkan ID
+     */
+    async deleteOrderInfo(id) {
+        return await apiClient.delete(`/order-infos/${id}`);
     },
 };

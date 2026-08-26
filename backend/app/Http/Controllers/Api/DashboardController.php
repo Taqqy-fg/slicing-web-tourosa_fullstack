@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Catalog;
+use App\Models\OrderInfo;
 use App\Models\OrderPayment;
 use App\Models\Setting;
 use App\Models\Testimonial;
@@ -35,18 +36,20 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        $orders = Order::with(['items', 'expenses', 'terms', 'payments'])->orderBy('id', 'desc')->get();
+        $orders = Order::with(['orderInfo', 'items', 'expenses', 'terms', 'payments'])->orderBy('id', 'desc')->get();
         $catalogs = Catalog::with('items')->get();
         $settings = Setting::all();
         $testimonials = Testimonial::orderBy('sort_order')->orderBy('id')->get();
+        $customers = \App\Models\Customer::orderBy('name')->get();
+        $orderInfos = OrderInfo::orderBy('id', 'desc')->get();
 
         $formattedOrders = $orders->map(function ($order) {
             return [
                 'no' => $order->invoice_no,
                 'date' => $order->invoice_date,
-                'group' => $order->group_name,
-                'pic' => $order->pic_name,
-                'contact' => $order->contact_info,
+                'group' => $order->orderInfo?->group_name,
+                'pic' => $order->orderInfo?->pic_name,
+                'contact' => $order->orderInfo?->contact_info,
                 'dest' => $order->destination,
                 'depart' => $order->depart_date,
                 'ret' => $order->return_date,
@@ -115,10 +118,21 @@ class DashboardController extends Controller
         }
 
         return response()->json([
-            'orders' => $formattedOrders,
-            'catalog' => $formattedCatalogs,
-            'site' => $formattedSettings,
-            'testimonials' => $testimonials
+            'orders'      => $formattedOrders,
+            'catalog'     => $formattedCatalogs,
+            'site'        => $formattedSettings,
+            'testimonials'=> $testimonials,
+            'customers'   => $customers,
+            'order_infos' => $orderInfos->map(fn ($i) => [
+                'id'           => $i->id,
+                'group_name'   => $i->group_name,
+                'pic_name'     => $i->pic_name,
+                'contact_info' => $i->contact_info,
+                'email'        => $i->email,
+                'address'      => $i->address,
+                'notes'        => $i->notes,
+                'created_at'   => $i->created_at?->toDateString(),
+            ]),
         ]);
     }
 
@@ -136,6 +150,7 @@ class DashboardController extends Controller
         $data = $request->validate([
             'no' => 'required|string|unique:orders,invoice_no',
             'date' => 'required|date',
+            'order_info_id' => 'nullable|exists:order_infos,id',
             'group' => 'nullable|string',
             'pic' => 'nullable|string',
             'contact' => 'nullable|string',
@@ -158,12 +173,35 @@ class DashboardController extends Controller
             'terms' => 'nullable|array'
         ]);
 
+        $orderInfoId = $data['order_info_id'] ?? null;
+        if (!$orderInfoId) {
+            $existingInfo = OrderInfo::where('group_name', $data['group'] ?? 'Tanpa Nama Grup')->orderBy('id', 'desc')->first();
+            if ($existingInfo) {
+                $orderInfoId = $existingInfo->id;
+                // Update pic and contact if they were provided and empty in db
+                if ($data['pic'] || $data['contact']) {
+                    $existingInfo->update([
+                        'pic_name' => $data['pic'] ?? $existingInfo->pic_name,
+                        'contact_info' => $data['contact'] ?? $existingInfo->contact_info,
+                        'updated_by' => $userId,
+                    ]);
+                }
+            } else {
+                $orderInfo = OrderInfo::create([
+                    'group_name' => $data['group'] ?? 'Tanpa Nama Grup',
+                    'pic_name' => $data['pic'] ?? '',
+                    'contact_info' => $data['contact'] ?? '',
+                    'created_by' => $userId,
+                    'updated_by' => $userId,
+                ]);
+                $orderInfoId = $orderInfo->id;
+            }
+        }
+
         $order = Order::create([
+            'order_info_id' => $orderInfoId,
             'invoice_no' => $data['no'],
             'invoice_date' => $data['date'],
-            'group_name' => $data['group'] ?? 'Tanpa Nama Grup',
-            'pic_name' => $data['pic'] ?? '',
-            'contact_info' => $data['contact'] ?? '',
             'destination' => $data['dest'] ?? '-',
             'depart_date' => $data['depart'],
             'return_date' => $data['ret'],
@@ -238,6 +276,7 @@ class DashboardController extends Controller
         $order = Order::with(['items', 'expenses', 'terms'])->where('invoice_no', $invoice_no)->firstOrFail();
 
         $data = $request->validate([
+            'order_info_id'    => 'nullable|exists:order_infos,id',
             'group'            => 'nullable|string',
             'pic'              => 'nullable|string',
             'contact'          => 'nullable|string',
@@ -277,10 +316,22 @@ class DashboardController extends Controller
             'terms.*.due'      => 'nullable|date',
         ]);
 
+        $orderInfoId = $data['order_info_id'] ?? $order->order_info_id;
+        
+        if ($orderInfoId && (isset($data['group']) || isset($data['pic']) || isset($data['contact']))) {
+            $orderInfo = OrderInfo::find($orderInfoId);
+            if ($orderInfo) {
+                $orderInfo->update([
+                    'group_name'  => $data['group'] ?? $orderInfo->group_name,
+                    'pic_name'    => $data['pic'] ?? $orderInfo->pic_name,
+                    'contact_info'=> $data['contact'] ?? $orderInfo->contact_info,
+                    'updated_by'  => $userId,
+                ]);
+            }
+        }
+
         $order->update([
-            'group_name'  => $data['group'] ?? $order->group_name,
-            'pic_name'    => $data['pic'] ?? $order->pic_name,
-            'contact_info'=> $data['contact'] ?? $order->contact_info,
+            'order_info_id' => $orderInfoId,
             'destination' => $data['dest'] ?? $order->destination,
             'depart_date' => $data['depart'] ?? $order->depart_date,
             'return_date' => $data['ret'] ?? $order->return_date,
@@ -353,6 +404,7 @@ class DashboardController extends Controller
                 ]);
             }
         }
+
 
         return response()->json(['message' => 'Order updated successfully']);
     }
@@ -530,5 +582,32 @@ class DashboardController extends Controller
         }
 
         return response()->json(['message' => 'Catalog saved successfully']);
+    }
+
+    /**
+     * Buat customer/grup baru.
+     */
+    public function storeCustomer(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $data = $request->validate([
+            'name' => 'required|string',
+            'pic_name' => 'nullable|string',
+            'contact_info' => 'nullable|string',
+        ]);
+
+        $customer = \App\Models\Customer::create([
+            'name' => $data['name'],
+            'pic_name' => $data['pic_name'] ?? null,
+            'contact_info' => $data['contact_info'] ?? null,
+            'created_by' => $userId,
+            'updated_by' => $userId,
+        ]);
+
+        return response()->json([
+            'message' => 'Customer created successfully',
+            'customer' => $customer
+        ], 201);
     }
 }

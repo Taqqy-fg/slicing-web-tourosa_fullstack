@@ -6,7 +6,6 @@ const createBlankForm = (tax = 11) => ({
     invoiceDate: new Date().toISOString().slice(0, 10),
     items: [
       { cat: 'Tiket Pesawat', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
-      { cat: 'Hotel', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
     ],
     discount: '', discountType: 'Rp', serviceFee: '', serviceFeeType: 'Rp',
     taxPercent: tax, dpPercent: '', dpDueDate: '', tenggatDate: '',
@@ -23,6 +22,7 @@ export const useDashboardStore = defineStore('dashboard', {
         // Shared query data from Dashboard layout
         orders: [],
         catalog: [],
+        customers: [],
         site: {
             waNumber: '6281200000000',
             email: 'halo@tourosa.id',
@@ -34,9 +34,10 @@ export const useDashboardStore = defineStore('dashboard', {
         testimonials: [],
     }),
     actions: {
-        setQueryData({ orders, catalog, site, testimonials }) {
+        setQueryData({ orders, catalog, site, testimonials, customers }) {
             this.orders = orders.value;
             this.catalog = catalog.value;
+            if (customers && customers.value) this.customers = customers.value;
             
             const clonedSite = JSON.parse(JSON.stringify(site.value || {}));
             if (!clonedSite.stats) clonedSite.stats = [];

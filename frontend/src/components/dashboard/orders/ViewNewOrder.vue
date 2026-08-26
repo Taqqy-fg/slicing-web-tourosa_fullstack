@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useDashboardStore } from '../../../stores/dashboardStore'
@@ -7,6 +7,7 @@ import { useDashboardData } from '../../../composables/useDashboardData'
 import { dashboardService } from '../../../services/dashboardService'
 import { useToast } from '../../../composables/useToast'
 import DatePicker from '../../DatePicker.vue'
+import GroupSelect from './GroupSelect.vue'
 
 const props = defineProps({
   orders: Array,
@@ -116,15 +117,32 @@ const createOrderMut = useMutation({
   }
 })
 
-const saveOrder = () => {
+const saveOrder = async () => {
   const f = store.form
 
+  const groupName = (f.group || '').trim()
+  if (groupName && groupName !== 'Tanpa Nama Grup') {
+    const exists = store.customers.find(c => c.name.toLowerCase() === groupName.toLowerCase())
+    if (!exists) {
+      try {
+        const res = await dashboardService.createCustomer({ name: groupName, pic_name: f.pic, contact_info: f.contact })
+        if (res && res.customer) store.customers.push(res.customer)
+      } catch (err) {}
+    }
+  }
+
   const items = f.items.filter(it => (Number(it.qty) || 0) > 0 || (Number(it.price) || 0) > 0 || (it.desc || '').trim())
+  
+  const firstItemWithDest = items.find(it => it.dest) || items[0] || {}
 
   const payload = {
     no: nextInvNo.value, date: f.invoiceDate || new Date().toISOString().slice(0, 10),
-    group: (f.group || '').trim() || 'Tanpa Nama Grup',
-    pic: f.pic, contact: f.contact, dest: '-', depart: null, ret: null, pax: 0,
+    group: groupName || 'Tanpa Nama Grup',
+    pic: f.pic, contact: f.contact, 
+    dest: firstItemWithDest.dest || '-', 
+    depart: firstItemWithDest.depart || null, 
+    ret: firstItemWithDest.ret || null, 
+    pax: Number(items[0]?.qty) || 0,
     items: items.length ? items : [{ cat: 'Lainnya', desc: '(belum ada item)', qty: 0, cost: 0, price: 0 }],
     expenses: [], terms: [],
     discount: f.discount, discountType: f.discountType, serviceFee: f.serviceFee, serviceFeeType: f.serviceFeeType,
@@ -151,6 +169,52 @@ const discountFmt = computed(() => fmtNum(f.value.discount))
 const onDiscount = e => { store.form.discount = parseNum(e.target.value) }
 const serviceFeeFmt = computed(() => fmtNum(f.value.serviceFee))
 const onServiceFee = e => { store.form.serviceFee = parseNum(e.target.value) }
+const showCustModal = ref(false)
+const isSavingCust = ref(false)
+const newCust = ref({ group_name: '', pic_name: '', contact_info: '', email: '', address: '', notes: '' })
+
+const saveNewCustomer = async () => {
+  if (!newCust.value.group_name) {
+    toast.error('Nama grup / instansi harus diisi.')
+    return
+  }
+  isSavingCust.value = true
+  try {
+    const payload = { ...newCust.value }
+    const res = await dashboardService.createOrderInfo(payload)
+    
+    // Asumsikan backend mengembalikan { order_info: ... } atau data
+    const saved = res.order_info || res.data || payload
+    
+    // Tetap masukkan ke store.customers agar dropdown SelectGroup tetap jalan
+    store.customers.push({ 
+      name: saved.group_name, 
+      pic_name: saved.pic_name, 
+      contact_info: saved.contact_info 
+    })
+    
+    f.value.group = saved.group_name
+    f.value.pic = saved.pic_name || ''
+    f.value.contact = saved.contact_info || ''
+    toast.success('Informasi pesanan berhasil ditambahkan.')
+    showCustModal.value = false
+    newCust.value = { group_name: '', pic_name: '', contact_info: '', email: '', address: '', notes: '' }
+  } catch (err) {
+    const msg = err.response?.data?.message || err.message
+    toast.error('Gagal menyimpan: ' + msg)
+  } finally {
+    isSavingCust.value = false
+  }
+}
+
+const onGroupChange = () => {
+  const selected = store.customers.find(c => c.name === f.value.group)
+  if (selected) {
+    f.value.pic = selected.pic_name || ''
+    f.value.contact = selected.contact_info || ''
+  }
+}
+
 const toggleServiceFeeType = () => { store.form.serviceFeeType = store.form.serviceFeeType === 'Rp' ? '%' : 'Rp' }
 const toggleDiscountType = () => { store.form.discountType = store.form.discountType === 'Rp' ? '%' : 'Rp' }
 </script>
@@ -171,12 +235,99 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
           <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 4px;display:flex;align-items:center;gap:9px;"><i class="ph ph-users-three" style="color:#c39a4d;font-size:20px;"></i>Informasi Pemesanan</h3>
           <p style="font-size:13px;color:#8a93a5;margin:0 0 20px;">Data utama pemesan.</p>
           <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div style="grid-column:span 2;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nama Grup / Instansi</label><input v-model="f.group" placeholder="cth. PT Sinar Abadi — Annual Gathering" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
-            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">PIC / Penanggung Jawab</label><input v-model="f.pic" placeholder="cth. Bpk. Rendra (HRD)" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
-            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label><input v-model="f.contact" placeholder="cth. 0812-3344-5566" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;"></div>
+            <div style="grid-column:span 2;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;">Nama Grup / Instansi</label>
+                <button @click="showCustModal = true" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:12px;font-weight:700;padding:6px 11px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:5px;"><i class="ph ph-plus" style="font-size:13px;"></i>Tambah Baru</button>
+              </div>
+              <GroupSelect
+                :model-value="f.group"
+                @update:model-value="store.form.group = $event"
+                @select="opt => { store.form.group = opt.name; if (opt.pic) store.form.pic = opt.pic; if (opt.contact) store.form.contact = opt.contact }"
+              />
+            </div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Invoice</label><DatePicker v-model="f.invoiceDate" /></div>
 
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Jatuh Tempo</label><DatePicker v-model="f.dpDueDate" placeholder="Pilih tanggal..." /></div>
+          </div>
+        </div>
+
+        <!-- modal tambah order_infos -->
+        <div v-if="showCustModal" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
+          <div style="position:absolute;inset:0;background:rgba(13,27,48,.5);backdrop-filter:blur(3px);" @click="showCustModal = false"></div>
+          <div style="position:relative;background:#fff;border-radius:18px;width:100%;max-width:560px;max-height:calc(100vh - 32px);box-shadow:0 24px 70px rgba(13,27,48,.3);display:flex;flex-direction:column;overflow:hidden;">
+            <!-- Header modal -->
+            <div style="background:linear-gradient(135deg,#15294f,#0d1b30);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="width:38px;height:38px;border-radius:11px;background:rgba(195,154,77,.18);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <i class="ph ph-users-three" style="font-size:20px;color:#c39a4d;"></i>
+                </span>
+                <div>
+                  <h4 style="font-size:15.5px;font-weight:800;color:#fff;margin:0;">Tambah Informasi Pesanan</h4>
+                  <p style="font-size:11.5px;color:#aeb8cc;margin:2px 0 0;">Isi data grup, PIC, dan kontak pemesan</p>
+                </div>
+              </div>
+              <button @click="showCustModal = false" class="tr-btn" style="background:rgba(255,255,255,.1);border:none;cursor:pointer;color:#fff;padding:6px;border-radius:8px;">
+                <i class="ph ph-x" style="font-size:17px;"></i>
+              </button>
+            </div>
+
+            <!-- Body modal -->
+            <div style="padding:22px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;flex:1;">
+              <!-- Grup -->
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nama Grup / Instansi <span style="color:#c2603a;">*</span></label>
+                <input v-model="newCust.group_name" placeholder="cth. PT. Maju Bersama" maxlength="255"
+                  style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;">
+              </div>
+
+              <!-- PIC + Kontak -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">PIC / Penanggung Jawab</label>
+                  <input v-model="newCust.pic_name" placeholder="cth. Budi Santoso" maxlength="255"
+                    style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;">
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label>
+                  <input v-model="newCust.contact_info" placeholder="cth. 0812xxxxxxxx" maxlength="100"
+                    style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;">
+                </div>
+              </div>
+
+              <!-- Email -->
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Email</label>
+                <input v-model="newCust.email" type="email" placeholder="cth. budi@email.com" maxlength="255"
+                  style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;">
+              </div>
+
+              <!-- Alamat -->
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Alamat</label>
+                <textarea v-model="newCust.address" rows="2" placeholder="cth. Jl. Sudirman No. 1, Jakarta Pusat"
+                  style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea>
+              </div>
+
+              <!-- Catatan -->
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan</label>
+                <textarea v-model="newCust.notes" rows="2" placeholder="Catatan tambahan mengenai pemesan..."
+                  style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea>
+              </div>
+
+              <!-- Footer -->
+              <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;border-top:1px solid #eef0f3;margin-top:4px;">
+                <button @click="showCustModal = false" class="tr-btn"
+                  style="background:#fff;color:#5f6b80;border:1px solid #e2e4ea;font-size:13px;font-weight:600;padding:9px 18px;border-radius:9px;cursor:pointer;">Batal</button>
+                <button @click="saveNewCustomer" :disabled="isSavingCust" class="tr-btn"
+                  style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;">
+                  <i v-if="isSavingCust" class="ph ph-circle-notch" style="font-size:15px;animation:spin 1s linear infinite;"></i>
+                  <i v-else class="ph ph-check-circle" style="font-size:15px;color:#7ed3a6;"></i>
+                  {{ isSavingCust ? 'Menyimpan...' : 'Simpan' }}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

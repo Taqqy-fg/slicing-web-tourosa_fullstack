@@ -50,6 +50,7 @@ watch(data, (newVal) => {
 
 const orders = computed(() => data.value?.orders || [])
 const catalog = computed(() => data.value?.catalog || [])
+const customers = computed(() => data.value?.customers || [])
 const testimonials = computed(() => data.value?.testimonials || [])
 const site = computed(() => {
   const s = data.value?.site || {}
@@ -63,7 +64,7 @@ const site = computed(() => {
   }
 })
 // Share fetched data to child views via store
-store.setQueryData({ orders, catalog, site, testimonials })
+store.setQueryData({ orders, catalog, site, testimonials, customers })
 // Load user profile if not already loaded
 if (!auth.user) {
   auth.fetchUser()
@@ -74,6 +75,7 @@ const allNavDefs = [
   { key: 'overview', label: 'Dashboard', icon: 'ph-squares-four', route: '/dashboard', permission: 'dashboard.view' },
   { key: 'new-order', label: 'Buat Pesanan', icon: 'ph-note-pencil', route: '/orders/new', permission: 'orders.create' },
   { key: 'order-list', label: 'Daftar Pesanan', icon: 'ph-list-checks', route: '/orders', permission: 'orders.view' },
+  { key: 'order-info', label: 'Informasi Pesanan', icon: 'ph-users-three', route: '/orders/info', permission: 'orders.view' },
   { key: 'report', label: 'Laporan', icon: 'ph-chart-bar', route: '/reports', permission: 'reports.view' },
   { key: 'settings', label: 'Pengaturan', icon: 'ph-gear', route: '/settings', permission: 'settings.view' },
 ]
@@ -82,6 +84,7 @@ const routeNameMap = {
   'overview': 'ViewOverview',
   'new-order': 'ViewNewOrder',
   'order-list': 'ViewOrderList',
+  'order-info': 'ViewOrderInfo',
   'report': 'ViewReport',
   'admin': 'ViewAdmin',
   'roles': 'ViewRoles',
@@ -92,11 +95,11 @@ const navDefs = computed(() => {
 
   // Admin menu — only if user can view admins
   if (auth.hasPermission('admins.view')) {
-    items.splice(4, 0, { key: 'admin', label: 'Admin', icon: 'ph-users-three', route: '/admins' })
+    items.splice(5, 0, { key: 'admin', label: 'Admin', icon: 'ph-users-three', route: '/admins' })
   }
   // Roles menu — only if user can view roles
   if (auth.hasPermission('roles.view')) {
-    const insertIdx = auth.hasPermission('admins.view') ? 5 : 4
+    const insertIdx = auth.hasPermission('admins.view') ? 6 : 5
     items.splice(insertIdx, 0, { key: 'roles', label: 'Roles & Permissions', icon: 'ph-shield-star', route: '/roles' })
   }
 
@@ -120,6 +123,7 @@ const pageMeta = {
   ViewOverview: ['Dashboard', 'Pantau seluruh pesanan grup dalam satu layar.'],
   ViewNewOrder: ['Buat Pesanan', 'Input rincian perjalanan grup dan hasilkan invoice.'],
   ViewOrderList: ['Daftar Pesanan', 'Seluruh pemesanan grup yang tercatat.'],
+  ViewOrderInfo: ['Informasi Pesanan', 'Data informasi pemesan, grup, PIC, dan kontak.'],
   ViewOrderDetail: ['Detail Pesanan', 'Rincian pesanan & estimasi profit (internal).'],
   ViewReport: ['Laporan', 'Ringkasan pendapatan, modal, dan profit.'],
   ViewAdmin: ['Admin', 'Kelola akun admin & peran.'],

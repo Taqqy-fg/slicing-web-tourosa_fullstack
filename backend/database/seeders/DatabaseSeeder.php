@@ -120,12 +120,16 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($ordersData as $data) {
-            $order = Order::create([
-                'invoice_no' => $data['no'],
-                'invoice_date' => $data['date'],
+            $orderInfo = \App\Models\OrderInfo::create([
                 'group_name' => $data['group'],
                 'pic_name' => $data['pic'],
                 'contact_info' => $data['contact'],
+            ]);
+
+            $order = Order::create([
+                'order_info_id' => $orderInfo->id,
+                'invoice_no' => $data['no'],
+                'invoice_date' => $data['date'],
                 'destination' => $data['dest'],
                 'depart_date' => $data['depart'],
                 'return_date' => $data['ret'],

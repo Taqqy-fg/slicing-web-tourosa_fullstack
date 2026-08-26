@@ -5,6 +5,7 @@ import Dashboard from '../views/Dashboard.vue'
 import ViewOverview from '../components/dashboard/overview/ViewOverview.vue'
 import ViewNewOrder from '../components/dashboard/orders/ViewNewOrder.vue'
 import ViewOrderList from '../components/dashboard/orders/ViewOrderList.vue'
+import ViewOrderInfo from '../components/dashboard/orders/ViewOrderInfo.vue'
 import ViewInvoice from '../components/dashboard/orders/ViewInvoice.vue'
 import ViewOrderDetail from '../components/dashboard/orders/ViewOrderDetail.vue'
 import ViewReport from '../components/dashboard/reports/ViewReport.vue'
@@ -67,6 +68,12 @@ const routes = [
         name: 'ViewEditOrder',
         component: ViewEditOrder,
         meta: { permission: 'orders.update' }
+      },
+      {
+        path: 'orders/info',
+        name: 'ViewOrderInfo',
+        component: ViewOrderInfo,
+        meta: { permission: 'orders.view' }
       },
       {
         path: 'reports',
@@ -145,6 +152,7 @@ const routeTitles = {
   ViewOverview: 'Dashboard — Tourosa Travel',
   ViewNewOrder: 'Buat Pesanan — Tourosa Travel',
   ViewOrderList: 'Daftar Pesanan — Tourosa Travel',
+  ViewOrderInfo: 'Informasi Pesanan — Tourosa Travel',
   ViewOrderDetail: 'Detail Pesanan — Tourosa Travel',
   ViewInvoice: 'Invoice — Tourosa Travel',
   ViewEditOrder: 'Edit Pesanan — Tourosa Travel',
