@@ -59,7 +59,7 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        $user = $request->user()->load('roles');
+        $user = $request->user()->load('roles', 'directPermissions');
 
         return response()->json([
             'id' => $user->id,

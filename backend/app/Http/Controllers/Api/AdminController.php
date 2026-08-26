@@ -17,12 +17,11 @@ class AdminController extends Controller
     {
         $user = $request->user();
 
-        // Non-superadmin can only view admins (read-only) if they have admins.view
         if (! $user->is_superadmin && ! $user->hasPermission('admins.view')) {
             abort(403, 'Anda tidak memiliki izin untuk mengakses menu Admin.');
         }
 
-        $admins = User::with('roles')->orderByDesc('is_superadmin')->orderBy('name')->get();
+        $admins = User::with('roles', 'directPermissions')->orderByDesc('is_superadmin')->orderBy('name')->get();
 
         return response()->json(['admins' => $admins]);
     }
@@ -42,25 +41,34 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:6',
-            'is_superadmin' => 'nullable|boolean',
-            'role_ids' => 'nullable|array',
-            'role_ids.*' => 'exists:roles,id',
+            'role_id' => 'nullable|exists:roles,id',
+            'direct_permission_ids' => 'nullable|array',
+            'direct_permission_ids.*' => 'exists:permissions,id',
         ]);
+
+        $isSuperadmin = false;
+        if (! empty($data['role_id'])) {
+            $role = \App\Models\Role::find($data['role_id']);
+            $isSuperadmin = $role && $role->name === 'super_admin';
+        }
 
         $admin = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'is_superadmin' => $request->boolean('is_superadmin', false),
+            'is_superadmin' => $isSuperadmin,
             'created_by' => $user->id,
             'updated_by' => $user->id,
         ]);
 
-        if (! empty($data['role_ids'])) {
-            $admin->roles()->sync($data['role_ids']);
+        if (! empty($data['role_id'])) {
+            $admin->roles()->sync([$data['role_id']]);
+        }
+        if (! empty($data['direct_permission_ids'])) {
+            $admin->directPermissions()->sync($data['direct_permission_ids']);
         }
 
-        return response()->json(['admin' => $admin->load('roles')], 201);
+        return response()->json(['admin' => $admin->load('roles', 'directPermissions')], 201);
     }
 
     /**
@@ -76,21 +84,35 @@ class AdminController extends Controller
 
         $admin = User::findOrFail($id);
 
-        // Prevent a super admin from demoting themselves.
-        if ($admin->id === $user->id && ! $request->boolean('is_superadmin', $admin->is_superadmin)) {
-            throw ValidationException::withMessages([
-                'is_superadmin' => ['Anda tidak dapat menonaktifkan status super admin untuk akun Anda sendiri.'],
-            ]);
-        }
-
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|email|max:255|unique:users,email,' . $admin->id,
             'password' => 'nullable|string|min:6',
-            'is_superadmin' => 'nullable|boolean',
-            'role_ids' => 'nullable|array',
-            'role_ids.*' => 'exists:roles,id',
+            'role_id' => 'nullable|exists:roles,id',
+            'direct_permission_ids' => 'nullable|array',
+            'direct_permission_ids.*' => 'exists:permissions,id',
         ]);
+
+        // Prevent a super admin from demoting themselves
+        if ($admin->id === $user->id && array_key_exists('role_id', $data)) {
+            $targetRole = $data['role_id'] ? \App\Models\Role::find($data['role_id']) : null;
+            if (! $targetRole || $targetRole->name !== 'super_admin') {
+                throw ValidationException::withMessages([
+                    'role_id' => ['Anda tidak dapat mengubah role Anda sendiri dari Super Admin.'],
+                ]);
+            }
+        }
+
+        // Derive is_superadmin from the role
+        $isSuperadmin = $admin->is_superadmin;
+        if (array_key_exists('role_id', $data)) {
+            if (! empty($data['role_id'])) {
+                $role = \App\Models\Role::find($data['role_id']);
+                $isSuperadmin = $role && $role->name === 'super_admin';
+            } else {
+                $isSuperadmin = false;
+            }
+        }
 
         if (isset($data['name'])) {
             $admin->name = $data['name'];
@@ -101,17 +123,18 @@ class AdminController extends Controller
         if ($request->filled('password')) {
             $admin->password = Hash::make($request->password);
         }
-        if ($request->has('is_superadmin')) {
-            $admin->is_superadmin = $request->boolean('is_superadmin');
-        }
+        $admin->is_superadmin = $isSuperadmin;
         $admin->updated_by = $user->id;
         $admin->save();
 
-        if (array_key_exists('role_ids', $data)) {
-            $admin->roles()->sync($data['role_ids'] ?? []);
+        if (array_key_exists('role_id', $data)) {
+            $admin->roles()->sync($data['role_id'] ? [$data['role_id']] : []);
+        }
+        if (array_key_exists('direct_permission_ids', $data)) {
+            $admin->directPermissions()->sync($data['direct_permission_ids'] ?? []);
         }
 
-        return response()->json(['admin' => $admin->load('roles')]);
+        return response()->json(['admin' => $admin->load('roles', 'directPermissions')]);
     }
 
     /**
@@ -135,6 +158,7 @@ class AdminController extends Controller
         }
 
         $admin->roles()->detach();
+        $admin->directPermissions()->detach();
         $admin->deleted_by = $user->id;
         $admin->save();
         $admin->delete();

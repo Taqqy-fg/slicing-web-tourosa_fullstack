@@ -63,22 +63,28 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class, 'user_role');
     }
 
+    public function directPermissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'user_permission');
+    }
+
     /**
-     * Get all permissions from all assigned roles.
+     * Get all permissions: role-based + direct user permissions (merged).
      */
     public function getAllPermissions()
     {
         if ($this->is_superadmin) {
-            return \App\Models\Permission::all();
+            return Permission::all();
         }
 
-        return \App\Models\Permission::whereHas('roles', function ($q) {
-            $q->whereIn('roles.id', $this->roles()->pluck('roles.id'));
-        })->get();
+        $rolePermIds = $this->roles()->with('permissions')->get()->pluck('permissions')->flatten()->pluck('id');
+        $directPermIds = $this->directPermissions()->pluck('permissions.id');
+
+        return Permission::whereIn('id', $rolePermIds->concat($directPermIds)->unique())->get();
     }
 
     /**
-     * Check if user has a specific permission.
+     * Check if user has a specific permission (role + direct merged).
      */
     public function hasPermission(string $permissionName): bool
     {
@@ -86,12 +92,20 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->roles()
+        // Check role permissions
+        $hasViaRole = $this->roles()
             ->with('permissions')
             ->get()
             ->pluck('permissions')
             ->flatten()
             ->contains('name', $permissionName);
+
+        if ($hasViaRole) {
+            return true;
+        }
+
+        // Check direct permissions
+        return $this->directPermissions()->where('name', $permissionName)->exists();
     }
 
     /**
@@ -103,31 +117,18 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->roles()
-            ->with('permissions')
-            ->get()
-            ->pluck('permissions')
-            ->flatten()
-            ->contains(fn ($p) => in_array($p->name, $permissionNames));
+        return $this->getAllPermissions()->contains(fn ($p) => in_array($p->name, $permissionNames));
     }
 
     /**
-     * Get flat array of permission names.
+     * Get flat array of permission names (role + direct merged).
      */
     public function getPermissionNames(): array
     {
         if ($this->is_superadmin) {
-            return \App\Models\Permission::pluck('name')->toArray();
+            return Permission::pluck('name')->toArray();
         }
 
-        return $this->roles()
-            ->with('permissions')
-            ->get()
-            ->pluck('permissions')
-            ->flatten()
-            ->pluck('name')
-            ->unique()
-            ->values()
-            ->toArray();
+        return $this->getAllPermissions()->pluck('name')->unique()->values()->toArray();
     }
 }
