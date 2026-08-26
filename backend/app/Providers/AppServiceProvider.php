@@ -23,5 +23,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('viewApiDocs', function ($user) {
             return $user->is_superadmin;
         });
+
+        Gate::define('manageRoles', function ($user) {
+            return $user->is_superadmin || $user->hasAnyPermission(['roles.view', 'roles.create', 'roles.update', 'roles.delete']);
+        });
     }
 }

@@ -71,11 +71,11 @@ if (!auth.user) {
 const isSidebarOpen = ref(false)
 const mainScroll = ref(null)
 const allNavDefs = [
-  { key: 'overview', label: 'Dashboard', icon: 'ph-squares-four', route: '/dashboard' },
-  { key: 'new-order', label: 'Buat Pesanan', icon: 'ph-note-pencil', route: '/orders/new' },
-  { key: 'order-list', label: 'Daftar Pesanan', icon: 'ph-list-checks', route: '/orders' },
-  { key: 'report', label: 'Laporan', icon: 'ph-chart-bar', route: '/reports' },
-  { key: 'settings', label: 'Pengaturan', icon: 'ph-gear', route: '/settings' },
+  { key: 'overview', label: 'Dashboard', icon: 'ph-squares-four', route: '/dashboard', permission: 'dashboard.view' },
+  { key: 'new-order', label: 'Buat Pesanan', icon: 'ph-note-pencil', route: '/orders/new', permission: 'orders.create' },
+  { key: 'order-list', label: 'Daftar Pesanan', icon: 'ph-list-checks', route: '/orders', permission: 'orders.view' },
+  { key: 'report', label: 'Laporan', icon: 'ph-chart-bar', route: '/reports', permission: 'reports.view' },
+  { key: 'settings', label: 'Pengaturan', icon: 'ph-gear', route: '/settings', permission: 'settings.view' },
 ]
 // Map route key → expected route.name
 const routeNameMap = {
@@ -84,14 +84,22 @@ const routeNameMap = {
   'order-list': 'ViewOrderList',
   'report': 'ViewReport',
   'admin': 'ViewAdmin',
+  'roles': 'ViewRoles',
   'settings': 'ViewSettings',
 }
 const navDefs = computed(() => {
-  const items = [...allNavDefs]
-  if (auth.user?.is_superadmin) {
-    // Insert "Admin" right after "Laporan"
+  const items = allNavDefs.filter(n => !n.permission || auth.hasPermission(n.permission))
+
+  // Admin menu — only if user can view admins
+  if (auth.hasPermission('admins.view')) {
     items.splice(4, 0, { key: 'admin', label: 'Admin', icon: 'ph-users-three', route: '/admins' })
   }
+  // Roles menu — only if user can view roles
+  if (auth.hasPermission('roles.view')) {
+    const insertIdx = auth.hasPermission('admins.view') ? 5 : 4
+    items.splice(insertIdx, 0, { key: 'roles', label: 'Roles & Permissions', icon: 'ph-shield-star', route: '/roles' })
+  }
+
   return items
 })
 const orderSubRoutes = ['ViewOrderDetail', 'ViewInvoice', 'ViewEditOrder']
@@ -114,7 +122,8 @@ const pageMeta = {
   ViewOrderList: ['Daftar Pesanan', 'Seluruh pemesanan grup yang tercatat.'],
   ViewOrderDetail: ['Detail Pesanan', 'Rincian pesanan & estimasi profit (internal).'],
   ViewReport: ['Laporan', 'Ringkasan pendapatan, modal, dan profit.'],
-  ViewAdmin: ['Admin', 'Kelola akun admin & super admin.'],
+  ViewAdmin: ['Admin', 'Kelola akun admin & peran.'],
+  ViewRoles: ['Roles & Permissions', 'Kelola role, hak akses, dan pengaturan peran admin.'],
   ViewSettings: ['Pengaturan', 'Kelola konten website, kategori, dan vendor.'],
   ViewInvoice: ['Invoice', 'Pratinjau dan cetak invoice resmi.'],
   ViewEditOrder: ['Edit Pesanan', 'Ubah rincian perjalanan grup.'],

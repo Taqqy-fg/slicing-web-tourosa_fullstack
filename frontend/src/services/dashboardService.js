@@ -107,30 +107,81 @@ export const dashboardService = {
     },
 
     /**
-     * List all admin accounts (super admin only)
+     * List all admin accounts
      */
     async getAdmins() {
         return await apiClient.get('/admins');
     },
 
     /**
-     * Create a new admin account (super admin only)
+     * Create a new admin account
      */
     async createAdmin(adminData) {
         return await apiClient.post('/admins', adminData);
     },
 
     /**
-     * Update an admin account (super admin only)
+     * Update an admin account
      */
     async updateAdmin({ id, adminData }) {
         return await apiClient.put(`/admins/${id}`, adminData);
     },
 
     /**
-     * Delete an admin account (super admin only)
+     * Delete an admin account
      */
     async deleteAdmin(id) {
         return await apiClient.delete(`/admins/${id}`);
-    }
+    },
+
+    // ──── Roles & Permissions ────
+
+    /**
+     * List all roles with permissions
+     */
+    async getRoles() {
+        return await apiClient.get('/roles');
+    },
+
+    /**
+     * Get single role detail
+     */
+    async getRole(id) {
+        return await apiClient.get(`/roles/${id}`);
+    },
+
+    /**
+     * Create a new role
+     */
+    async createRole(roleData) {
+        return await apiClient.post('/roles', roleData);
+    },
+
+    /**
+     * Update a role
+     */
+    async updateRole({ id, roleData }) {
+        return await apiClient.put(`/roles/${id}`, roleData);
+    },
+
+    /**
+     * Delete a role
+     */
+    async deleteRole(id) {
+        return await apiClient.delete(`/roles/${id}`);
+    },
+
+    /**
+     * List all permissions (grouped)
+     */
+    async getPermissions() {
+        return await apiClient.get('/permissions');
+    },
+
+    /**
+     * List all permissions flat (for forms)
+     */
+    async getAllPermissions() {
+        return await apiClient.get('/permissions/all');
+    },
 };

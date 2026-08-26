@@ -8,6 +8,23 @@ export const useAuthStore = defineStore('auth', () => {
 
     const isAuthenticated = computed(() => !!token.value)
 
+    const permissions = computed(() => user.value?.permissions || [])
+    const roles = computed(() => user.value?.roles || [])
+
+    function hasPermission(name) {
+        if (user.value?.is_superadmin) return true
+        return permissions.value.includes(name)
+    }
+
+    function hasAnyPermission(names) {
+        if (user.value?.is_superadmin) return true
+        return names.some(n => permissions.value.includes(n))
+    }
+
+    function hasRole(name) {
+        return roles.value.some(r => r.name === name)
+    }
+
     async function login(email, password, rememberMe = true) {
         const data = await apiClient.post('/login', { email, password })
         token.value = data.token
@@ -50,5 +67,5 @@ export const useAuthStore = defineStore('auth', () => {
         return data
     }
 
-    return { token, user, isAuthenticated, login, logout, fetchUser, updateProfile }
+    return { token, user, isAuthenticated, permissions, roles, hasPermission, hasAnyPermission, hasRole, login, logout, fetchUser, updateProfile }
 })

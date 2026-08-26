@@ -10,7 +10,9 @@ import ViewOrderDetail from '../components/dashboard/orders/ViewOrderDetail.vue'
 import ViewReport from '../components/dashboard/reports/ViewReport.vue'
 import ViewSettings from '../components/dashboard/settings/ViewSettings.vue'
 import ViewAdmin from '../components/dashboard/admin/ViewAdmin.vue'
+import ViewRoles from '../components/dashboard/roles/ViewRoles.vue'
 import ViewEditOrder from '../components/dashboard/orders/ViewEditOrder.vue'
+import { useAuthStore } from '../stores/authStore'
 
 const routes = [
   {
@@ -33,47 +35,62 @@ const routes = [
       {
         path: 'dashboard',
         name: 'ViewOverview',
-        component: ViewOverview
+        component: ViewOverview,
+        meta: { permission: 'dashboard.view' }
       },
       {
         path: 'orders',
         name: 'ViewOrderList',
-        component: ViewOrderList
+        component: ViewOrderList,
+        meta: { permission: 'orders.view' }
       },
       {
         path: 'orders/new',
         name: 'ViewNewOrder',
-        component: ViewNewOrder
+        component: ViewNewOrder,
+        meta: { permission: 'orders.create' }
       },
       {
         path: 'orders/invoice/:id(.*)',
         name: 'ViewInvoice',
-        component: ViewInvoice
+        component: ViewInvoice,
+        meta: { permission: 'orders.view' }
       },
       {
         path: 'orders/detail/:id(.*)',
         name: 'ViewOrderDetail',
-        component: ViewOrderDetail
+        component: ViewOrderDetail,
+        meta: { permission: 'orders.view' }
       },
       {
         path: 'orders/edit/:id(.*)',
         name: 'ViewEditOrder',
-        component: ViewEditOrder
+        component: ViewEditOrder,
+        meta: { permission: 'orders.update' }
       },
       {
         path: 'reports',
         name: 'ViewReport',
-        component: ViewReport
+        component: ViewReport,
+        meta: { permission: 'reports.view' }
       },
       {
         path: 'admins',
         name: 'ViewAdmin',
-        component: ViewAdmin
+        component: ViewAdmin,
+        meta: { permission: 'admins.view' }
+      },
+      {
+        path: 'roles',
+        name: 'ViewRoles',
+        component: ViewRoles,
+        meta: { permission: 'roles.view' }
       },
       {
         path: 'settings',
         name: 'ViewSettings',
-        component: ViewSettings
+        component: ViewSettings,
+        meta: { permission: 'settings.view' }
       },
       {
         path: '',
@@ -94,16 +111,32 @@ const router = createRouter({
   }
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
 
   if (to.meta.requiresAuth && !token) {
-    next({ name: 'Login' })
-  } else if (to.meta.guest && token) {
-    next({ name: 'Dashboard' })
-  } else {
-    next()
+    return next({ name: 'Login' })
   }
+
+  if (to.meta.guest && token) {
+    return next({ name: 'Dashboard' })
+  }
+
+  // Permission guard
+  if (to.meta.permission && token) {
+    const auth = useAuthStore()
+
+    // Fetch user data if not loaded yet (page refresh)
+    if (!auth.user) {
+      await auth.fetchUser()
+    }
+
+    if (auth.user && !auth.hasPermission(to.meta.permission)) {
+      return next({ name: 'ViewOverview' })
+    }
+  }
+
+  next()
 })
 
 const routeTitles = {
@@ -117,6 +150,7 @@ const routeTitles = {
   ViewEditOrder: 'Edit Pesanan — Tourosa Travel',
   ViewReport: 'Laporan — Tourosa Travel',
   ViewAdmin: 'Admin — Tourosa Travel',
+  ViewRoles: 'Roles & Permissions — Tourosa Travel',
   ViewSettings: 'Pengaturan — Tourosa Travel',
 }
 

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useVueTable, getCoreRowModel, getSortedRowModel, getFilteredRowModel, getPaginationRowModel } from '@tanstack/vue-table'
 import { dashboardService } from '../../../services/dashboardService'
@@ -10,24 +10,33 @@ const auth = useAuthStore()
 const queryClient = useQueryClient()
 const toast = useToast()
 
-const isSuperAdmin = computed(() => !!auth.user?.is_superadmin)
+const canManageAdmins = computed(() => auth.hasPermission('admins.view'))
 
 const { data: adminsData, isLoading } = useQuery({
   queryKey: ['admins'],
   queryFn: dashboardService.getAdmins,
   select: (res) => res.admins || [],
-  enabled: isSuperAdmin
+  enabled: canManageAdmins
 })
 
+const { data: rolesData } = useQuery({
+  queryKey: ['roles'],
+  queryFn: dashboardService.getRoles,
+  select: (res) => res.roles || [],
+  enabled: canManageAdmins
+})
+
+const allRoles = computed(() => rolesData.value || [])
 const admins = computed(() => adminsData.value || [])
 
 // --- Table data ---
 const rawData = computed(() => admins.value.map(a => {
   const isSA = !!a.is_superadmin
+  const roleNames = (a.roles || []).map(r => r.label).join(', ') || (isSA ? 'Super Admin' : 'Admin')
   return {
     name: a.name,
     email: a.email,
-    role: isSA ? 'Super Admin' : 'Admin',
+    role: roleNames,
     roleBg: isSA ? 'rgba(195,154,77,.15)' : '#eef3fb',
     roleColor: isSA ? '#b9892f' : '#3a5a8a',
     isSelf: a.id === auth.user?.id,
@@ -38,7 +47,7 @@ const rawData = computed(() => admins.value.map(a => {
 const columns = [
   { accessorKey: 'name', header: 'Nama', enableSorting: true },
   { accessorKey: 'email', header: 'Email', enableSorting: true },
-  { accessorKey: 'role', header: 'Peran', enableSorting: true },
+  { accessorKey: 'role', header: 'Role', enableSorting: true },
 ]
 
 const search = ref('')
@@ -76,13 +85,13 @@ const sortIcon = (col) => {
 const showForm = ref(false)
 const editingId = ref(null)
 const saving = ref(false)
-const form = ref({ name: '', email: '', password: '', password_confirmation: '', is_superadmin: false })
+const form = ref({ name: '', email: '', password: '', password_confirmation: '', is_superadmin: false, role_ids: [] })
 const showPassword = ref(false)
 const showPasswordConfirm = ref(false)
 
 function openCreate() {
   editingId.value = null
-  form.value = { name: '', email: '', password: '', password_confirmation: '', is_superadmin: false }
+  form.value = { name: '', email: '', password: '', password_confirmation: '', is_superadmin: false, role_ids: [] }
   showForm.value = true
 }
 
@@ -93,7 +102,8 @@ function openEdit(admin) {
     email: admin.email,
     password: '',
     password_confirmation: '',
-    is_superadmin: !!admin.is_superadmin
+    is_superadmin: !!admin.is_superadmin,
+    role_ids: (admin.roles || []).map(r => r.id)
   }
   showForm.value = true
 }
@@ -108,7 +118,8 @@ const saveMut = useMutation({
     const payload = {
       name: form.value.name,
       email: form.value.email,
-      is_superadmin: form.value.is_superadmin
+      is_superadmin: form.value.is_superadmin,
+      role_ids: form.value.role_ids
     }
     if (form.value.password) {
       payload.password = form.value.password
@@ -175,13 +186,22 @@ function cancelDelete() {
   deleteModal.value = false
   deleteTarget.value = null
 }
+
+function toggleRole(roleId) {
+  const idx = form.value.role_ids.indexOf(roleId)
+  if (idx === -1) {
+    form.value.role_ids.push(roleId)
+  } else {
+    form.value.role_ids.splice(idx, 1)
+  }
+}
 </script>
 
 <template>
   <div class="p-mobile" style="padding:30px 32px;">
-    <div v-if="!isSuperAdmin" style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:40px;text-align:center;color:#8a93a5;">
+    <div v-if="!canManageAdmins" style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:40px;text-align:center;color:#8a93a5;">
       <i class="ph ph-warning-circle" style="font-size:34px;color:#c39a4d;display:block;margin-bottom:10px;"></i>
-      Hanya Super Admin yang dapat mengakses menu Admin.
+      Anda tidak memiliki izin untuk mengakses menu Admin.
     </div>
     <template v-else>
     <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;">
@@ -193,7 +213,7 @@ function cancelDelete() {
             <i class="ph ph-magnifying-glass" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;color:#9aa0ad;pointer-events:none;"></i>
             <input v-model="search" placeholder="Cari nama / email..." style="padding:9px 12px 9px 34px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;width:220px;">
           </div>
-          <button @click="openCreate" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:9px 16px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          <button v-if="auth.hasPermission('admins.create')" @click="openCreate" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:9px 16px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
             <i class="ph ph-plus" style="font-size:15px;color:#c39a4d;"></i>Tambah
           </button>
         </div>
@@ -229,8 +249,8 @@ function cancelDelete() {
               <span :style="{ color: row.original.roleColor, background: row.original.roleBg }" style="font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:7px;">{{ row.original.role }}</span>
             </span>
             <span class="col-full-mobile" style="text-align:right;display:flex;gap:6px;justify-content:flex-end;">
-              <button @click="openEdit(row.original.raw)" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><i class="ph ph-pencil-simple" style="font-size:14px;color:#15294f;"></i>Ubah</button>
-              <button @click="confirmDelete(row.original.raw)" class="tr-btn" style="background:#fdf0ed;color:#c2603a;border:1px solid #f0d0c8;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><i class="ph ph-trash" style="font-size:14px;"></i>Hapus</button>
+              <button v-if="auth.hasPermission('admins.update')" @click="openEdit(row.original.raw)" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><i class="ph ph-pencil-simple" style="font-size:14px;color:#15294f;"></i>Ubah</button>
+              <button v-if="auth.hasPermission('admins.delete')" @click="confirmDelete(row.original.raw)" class="tr-btn" style="background:#fdf0ed;color:#c2603a;border:1px solid #f0d0c8;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><i class="ph ph-trash" style="font-size:14px;"></i>Hapus</button>
             </span>
           </div>
 
@@ -270,7 +290,7 @@ function cancelDelete() {
 
     <!-- Add/Edit Modal -->
     <div v-if="showForm" style="position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;" @click.self="closeForm">
-      <div style="background:#fff;border-radius:16px;width:100%;max-width:460px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+      <div style="background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
         <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 16px;display:flex;align-items:center;gap:9px;">
           <i class="ph ph-user-circle" style="color:#c39a4d;font-size:20px;"></i>
           {{ editingId ? 'Ubah Admin' : 'Tambah Admin' }}
@@ -303,8 +323,28 @@ function cancelDelete() {
           </div>
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#5d6a82;cursor:pointer;background:#fafbfc;border:1px solid #eef0f3;border-radius:10px;padding:11px 13px;">
             <input type="checkbox" v-model="form.is_superadmin" style="accent-color:#15294f;width:16px;height:16px;">
-            Jadikan Super Admin (dapat mengelola akun admin lain)
+            Jadikan Super Admin (bypass semua permission)
           </label>
+
+          <!-- Role Assignment -->
+          <div v-if="allRoles.length > 0">
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:8px;">Role</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button v-for="role in allRoles" :key="role.id" @click="toggleRole(role.id)" type="button"
+                :style="{
+                  background: form.role_ids.includes(role.id) ? 'rgba(195,154,77,.15)' : '#f5f6f8',
+                  color: form.role_ids.includes(role.id) ? '#b9892f' : '#5d6a82',
+                  border: form.role_ids.includes(role.id) ? '1.5px solid #c39a4d' : '1.5px solid #e2e4ea',
+                }"
+                style="font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;">
+                <i :class="form.role_ids.includes(role.id) ? 'ph ph-check-circle' : 'ph ph-circle'" style="font-size:14px;"></i>
+                {{ role.label }}
+              </button>
+            </div>
+            <div v-if="form.role_ids.length > 0" style="margin-top:6px;font-size:11.5px;color:#8a93a5;">
+              {{ form.role_ids.length }} role dipilih — permission di-merge dari semua role
+            </div>
+          </div>
         </div>
 
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:22px;">

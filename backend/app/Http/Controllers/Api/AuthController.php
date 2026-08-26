@@ -13,9 +13,6 @@ class AuthController extends Controller
 {
     /**
      * Login dan dapatkan Bearer token.
-     *
-     * @bodyParam email string required Email admin. Example: admin@tourosa.com
-     * @bodyParam password string required Password. Example: password123
      */
     public function login(Request $request)
     {
@@ -40,6 +37,8 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'is_superadmin' => $user->is_superadmin,
+                'roles' => $user->roles->map(fn ($r) => ['id' => $r->id, 'name' => $r->name, 'label' => $r->label]),
+                'permissions' => $user->getPermissionNames(),
             ],
             'token' => $token,
         ]);
@@ -60,22 +59,20 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        $user = $request->user();
+        $user = $request->user()->load('roles');
 
         return response()->json([
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'is_superadmin' => $user->is_superadmin,
+            'roles' => $user->roles->map(fn ($r) => ['id' => $r->id, 'name' => $r->name, 'label' => $r->label]),
+            'permissions' => $user->getPermissionNames(),
         ]);
     }
 
     /**
      * Update profil user yang sedang login.
-     *
-     * @bodyParam name string required Nama lengkap. Example: John Doe
-     * @bodyParam email string required Email. Example: admin@tourosa.com
-     * @bodyParam password string Password baru (opsional). Example: newpassword123
      */
     public function updateProfile(Request $request)
     {
@@ -104,6 +101,8 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'is_superadmin' => $user->is_superadmin,
+                'roles' => $user->roles->map(fn ($r) => ['id' => $r->id, 'name' => $r->name, 'label' => $r->label]),
+                'permissions' => $user->getPermissionNames(),
             ],
         ]);
     }

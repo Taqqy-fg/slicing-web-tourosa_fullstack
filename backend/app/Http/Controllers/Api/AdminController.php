@@ -11,45 +11,40 @@ use Illuminate\Validation\ValidationException;
 class AdminController extends Controller
 {
     /**
-     * Ensure the acting user is a super admin.
-     */
-    protected function ensureSuperAdmin(Request $request)
-    {
-        if (! $request->user() || ! $request->user()->is_superadmin) {
-            abort(403, 'Hanya super admin yang dapat mengelola akun admin.');
-        }
-    }
-
-    /**
-     * Dapatkan semua akun admin (super admin only).
+     * Dapatkan semua akun admin.
      */
     public function index(Request $request)
     {
-        $this->ensureSuperAdmin($request);
+        $user = $request->user();
 
-        $admins = User::orderByDesc('is_superadmin')
-            ->orderBy('name')
-            ->get();
+        // Non-superadmin can only view admins (read-only) if they have admins.view
+        if (! $user->is_superadmin && ! $user->hasPermission('admins.view')) {
+            abort(403, 'Anda tidak memiliki izin untuk mengakses menu Admin.');
+        }
+
+        $admins = User::with('roles')->orderByDesc('is_superadmin')->orderBy('name')->get();
 
         return response()->json(['admins' => $admins]);
     }
 
     /**
-     * Buat akun admin baru (super admin only).
-     *
-     * @bodyParam name string required Nama admin. Example: Admin Baru
-     * @bodyParam email string required Email. Example: admin2@tourosa.com
-     * @bodyParam password string required Password minimal 6 karakter. Example: password123
+     * Buat akun admin baru.
      */
     public function store(Request $request)
     {
-        $this->ensureSuperAdmin($request);
+        $user = $request->user();
+
+        if (! $user->is_superadmin && ! $user->hasPermission('admins.create')) {
+            abort(403, 'Anda tidak memiliki izin untuk membuat akun admin.');
+        }
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:6',
             'is_superadmin' => 'nullable|boolean',
+            'role_ids' => 'nullable|array',
+            'role_ids.*' => 'exists:roles,id',
         ]);
 
         $admin = User::create([
@@ -57,24 +52,32 @@ class AdminController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'is_superadmin' => $request->boolean('is_superadmin', false),
-            'created_by' => $request->user()->id,
-            'updated_by' => $request->user()->id,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
         ]);
 
-        return response()->json(['admin' => $admin], 201);
+        if (! empty($data['role_ids'])) {
+            $admin->roles()->sync($data['role_ids']);
+        }
+
+        return response()->json(['admin' => $admin->load('roles')], 201);
     }
 
     /**
-     * Update akun admin berdasarkan ID (super admin only).
+     * Update akun admin berdasarkan ID.
      */
     public function update(Request $request, $id)
     {
-        $this->ensureSuperAdmin($request);
+        $user = $request->user();
+
+        if (! $user->is_superadmin && ! $user->hasPermission('admins.update')) {
+            abort(403, 'Anda tidak memiliki izin untuk mengubah akun admin.');
+        }
 
         $admin = User::findOrFail($id);
 
         // Prevent a super admin from demoting themselves.
-        if ($admin->id === $request->user()->id && ! $request->boolean('is_superadmin', $admin->is_superadmin)) {
+        if ($admin->id === $user->id && ! $request->boolean('is_superadmin', $admin->is_superadmin)) {
             throw ValidationException::withMessages([
                 'is_superadmin' => ['Anda tidak dapat menonaktifkan status super admin untuk akun Anda sendiri.'],
             ]);
@@ -85,6 +88,8 @@ class AdminController extends Controller
             'email' => 'sometimes|required|email|max:255|unique:users,email,' . $admin->id,
             'password' => 'nullable|string|min:6',
             'is_superadmin' => 'nullable|boolean',
+            'role_ids' => 'nullable|array',
+            'role_ids.*' => 'exists:roles,id',
         ]);
 
         if (isset($data['name'])) {
@@ -99,29 +104,38 @@ class AdminController extends Controller
         if ($request->has('is_superadmin')) {
             $admin->is_superadmin = $request->boolean('is_superadmin');
         }
-        $admin->updated_by = $request->user()->id;
+        $admin->updated_by = $user->id;
         $admin->save();
 
-        return response()->json(['admin' => $admin]);
+        if (array_key_exists('role_ids', $data)) {
+            $admin->roles()->sync($data['role_ids'] ?? []);
+        }
+
+        return response()->json(['admin' => $admin->load('roles')]);
     }
 
     /**
-     * Hapus akun admin berdasarkan ID (super admin only).
+     * Hapus akun admin berdasarkan ID.
      */
     public function destroy(Request $request, $id)
     {
-        $this->ensureSuperAdmin($request);
+        $user = $request->user();
+
+        if (! $user->is_superadmin && ! $user->hasPermission('admins.delete')) {
+            abort(403, 'Anda tidak memiliki izin untuk menghapus akun admin.');
+        }
 
         $admin = User::findOrFail($id);
 
         // Prevent deleting your own account.
-        if ($admin->id === $request->user()->id) {
+        if ($admin->id === $user->id) {
             throw ValidationException::withMessages([
                 'email' => ['Anda tidak dapat menghapus akun Anda sendiri.'],
             ]);
         }
 
-        $admin->deleted_by = $request->user()->id;
+        $admin->roles()->detach();
+        $admin->deleted_by = $user->id;
         $admin->save();
         $admin->delete();
 
