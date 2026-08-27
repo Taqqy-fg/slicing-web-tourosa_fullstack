@@ -3,6 +3,7 @@ import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDashboardStore } from '../../../stores/dashboardStore'
 import { useDashboardData } from '../../../composables/useDashboardData'
+import DatePicker from '../../DatePicker.vue'
 
 const store = useDashboardStore()
 const route = useRoute()
@@ -69,7 +70,7 @@ const detailTerms = computed(() => {
     amountF: fmt(c.grandTotal * (Number(tm.percent) || 0) / 100),
     onLabel: ev => { store.updateTerm(idx, 'label', ev.target.value) }, 
     onPercent: ev => { store.updateTerm(idx, 'percent', ev.target.value) }, 
-    onDue: ev => { store.updateTerm(idx, 'due', ev.target.value) }, 
+    onDue: val => { store.updateTerm(idx, 'due', val) }, 
     onRemove: () => { store.removeTermFromInvoice(idx) }
   }))
 })
@@ -206,7 +207,7 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
             </div>
             <div v-for="(tm, idx) in detailTerms" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:1fr 150px 86px 140px 32px;gap:10px;align-items:center;padding:5px 2px;">
               <input class="col-full-mobile" :value="tm.label" @input="tm.onLabel" placeholder="Keterangan (cth. DP)" style="width:100%;padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
-              <input class="col-half-mobile" :value="tm.due" @input="tm.onDue" type="date" style="width:100%;padding:9px 9px;border:1px solid #d8dce4;border-radius:8px;font-size:12.5px;color:#1a2235;background:#fff;outline:none;">
+              <div class="col-half-mobile" style="min-width: 0;"><DatePicker :modelValue="tm.due" @update:modelValue="tm.onDue" placeholder="Pilih tanggal..." /></div>
               <input class="col-half-mobile" :value="tm.percent" @input="tm.onPercent" type="number" placeholder="Persentase (%)" style="width:100%;padding:9px 9px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;text-align:center;font-family:'IBM Plex Mono',monospace;">
               <span class="col-full-mobile text-right-mobile" style="font-size:13px;font-weight:700;color:#13233f;text-align:right;font-family:'IBM Plex Mono',monospace;">Rp: {{ tm.amountF }}</span>
               <button class="del-btn-mobile tr-btn" @click="tm.onRemove" style="background:none;border:none;cursor:pointer;color:#c2603a;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:7px;"><i class="ph ph-trash" style="font-size:16px;"></i></button>

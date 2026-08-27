@@ -73,7 +73,6 @@ const isSidebarOpen = ref(false)
 const mainScroll = ref(null)
 const allNavDefs = [
   { key: 'overview', label: 'Dashboard', icon: 'ph-squares-four', route: '/dashboard', permission: 'dashboard.view' },
-  { key: 'new-order', label: 'Buat Pesanan', icon: 'ph-note-pencil', route: '/orders/new', permission: 'orders.create' },
   { key: 'order-list', label: 'Daftar Pesanan', icon: 'ph-list-checks', route: '/orders', permission: 'orders.view' },
   { key: 'order-info', label: 'Informasi Pesanan', icon: 'ph-users-three', route: '/orders/info', permission: 'orders.view' },
   { key: 'report', label: 'Laporan', icon: 'ph-chart-bar', route: '/reports', permission: 'reports.view' },

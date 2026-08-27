@@ -38,6 +38,7 @@ const sPax = computed(() => orders.value.reduce((a, o) => a + orderPax(o), 0).to
 const calcs = computed(() => orders.value.map(o => calc(o)))
 const sRevenue = computed(() => fmt(calcs.value.reduce((a, c) => a + c.grandTotal, 0)))
 const sActive = computed(() => orders.value.filter(o => o.status !== 'Lunas').length)
+const sProfit = computed(() => fmt(calcs.value.reduce((a, c) => a + c.profit, 0)))
 
 const openDetail = (o) => { store.setActiveInvoice(o); router.push('/orders/detail/' + encodeURIComponent(o.no)) }
 
@@ -52,12 +53,10 @@ const toRow = (o) => {
 const recentOrders = computed(() => orders.value.slice(0, 4).map(toRow))
 
 const lunasCount = computed(() => orders.value.filter(o => o.status === 'Lunas').length)
-const dpCount = computed(() => orders.value.filter(o => o.status === 'Down Payment').length)
 const pendCount = computed(() => orders.value.filter(o => o.status === 'Belum Lunas').length)
 const totCount = computed(() => Math.max(1, sOrders.value))
 const statusBars = computed(() => [
   { label: 'Lunas', count: lunasCount.value, width: Math.round(lunasCount.value / totCount.value * 100) + '%', color: '#1f7a5c' },
-  { label: 'Down Payment', count: dpCount.value, width: Math.round(dpCount.value / totCount.value * 100) + '%', color: '#c39a4d' },
   { label: 'Belum Lunas', count: pendCount.value, width: Math.round(pendCount.value / totCount.value * 100) + '%', color: '#c2603a' },
 ])
 
@@ -186,26 +185,16 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:26px;">
+    <div class="stats-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-bottom:26px;">
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="width:38px;height:38px;border-radius:11px;background:#eef3fb;display:flex;align-items:center;justify-content:center;"><i class="ph-fill ph-shopping-bag-open" style="font-size:19px;color:#15294f;"></i></div></div>
         <div class="stat-number" style="font-size:30px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1;"><CountUp :value="sOrders" /></div>
         <div class="stat-label" style="font-size:12px;color:#7a8499;font-weight:500;margin-top:6px;">Total pesanan</div>
       </div>
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="width:38px;height:38px;border-radius:11px;background:#f6efe0;display:flex;align-items:center;justify-content:center;"><i class="ph-fill ph-users-three" style="font-size:19px;color:#c39a4d;"></i></div></div>
-        <div class="stat-number" style="font-size:30px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1;"><CountUp :value="sPax" /></div>
-        <div class="stat-label" style="font-size:12px;color:#7a8499;font-weight:500;margin-top:6px;">Total peserta (pax)</div>
-      </div>
-      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="width:38px;height:38px;border-radius:11px;background:#e8f4ed;display:flex;align-items:center;justify-content:center;"><i class="ph-fill ph-wallet" style="font-size:19px;color:#1f7a5c;"></i></div></div>
-        <div class="stat-number" style="font-size:22px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1.1;"><CountUp :value="sRevenue" /></div>
-        <div class="stat-label" style="font-size:12px;color:#7a8499;font-weight:500;margin-top:6px;">Nilai transaksi</div>
-      </div>
-      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="width:38px;height:38px;border-radius:11px;background:#fbeee4;display:flex;align-items:center;justify-content:center;"><i class="ph-fill ph-clock-countdown" style="font-size:19px;color:#c2603a;"></i></div></div>
-        <div class="stat-number" style="font-size:30px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1;"><CountUp :value="sActive" /></div>
-        <div class="stat-label" style="font-size:12px;color:#7a8499;font-weight:500;margin-top:6px;">Pesanan berjalan</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div style="width:38px;height:38px;border-radius:11px;background:#e8f4ed;display:flex;align-items:center;justify-content:center;"><i class="ph-fill ph-trend-up" style="font-size:19px;color:#1f7a5c;"></i></div></div>
+        <div class="stat-number" style="font-size:22px;font-weight:800;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;line-height:1.1;"><CountUp :value="sProfit" /></div>
+        <div class="stat-label" style="font-size:12px;color:#7a8499;font-weight:500;margin-top:6px;">Estimasi keuntungan</div>
       </div>
     </div>
 

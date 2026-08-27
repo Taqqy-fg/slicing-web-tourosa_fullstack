@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 
@@ -13,7 +13,38 @@ const rememberMe = ref(true)
 const error = ref('')
 const loading = ref(false)
 
+const captchaQuestion = ref('')
+const captchaAnswer = ref(0)
+const userCaptcha = ref('')
+
+function generateCaptcha() {
+  const num1 = Math.floor(Math.random() * 10) + 1
+  const num2 = Math.floor(Math.random() * 10) + 1
+  const isAdd = Math.random() > 0.5
+  
+  if (isAdd) {
+    captchaQuestion.value = `${num1} + ${num2}`
+    captchaAnswer.value = num1 + num2
+  } else {
+    const max = Math.max(num1, num2)
+    const min = Math.min(num1, num2)
+    captchaQuestion.value = `${max} - ${min}`
+    captchaAnswer.value = max - min
+  }
+  userCaptcha.value = ''
+}
+
+onMounted(() => {
+  generateCaptcha()
+})
+
 async function handleLogin() {
+  if (userCaptcha.value.trim() === '' || Number(userCaptcha.value) !== captchaAnswer.value) {
+    error.value = 'Jawaban captcha salah.'
+    generateCaptcha()
+    return
+  }
+
   error.value = ''
   loading.value = true
   try {
@@ -22,6 +53,7 @@ async function handleLogin() {
   } catch (e) {
     const msg = e.response?.data?.message || e.response?.data?.errors?.email?.[0] || 'Terjadi kesalahan. Silakan coba lagi.'
     error.value = msg
+    generateCaptcha()
   } finally {
     loading.value = false
   }
@@ -46,10 +78,10 @@ async function handleLogin() {
     <!-- Right panel (form) -->
     <div class="login-right">
       <div class="login-form-wrapper">
-        <div class="login-form-header">
+        <!-- <div class="login-form-header">
           <h2>Selamat Datang</h2>
           <p>Masuk ke panel administrasi Tourosa</p>
-        </div>
+        </div> -->
 
         <form @submit.prevent="handleLogin" class="login-form">
           <div v-if="error" class="login-error">
@@ -88,6 +120,22 @@ async function handleLogin() {
               <button type="button" class="toggle-password" @click="showPassword = !showPassword" tabindex="-1">
                 <i :class="showPassword ? 'ph ph-eye-slash' : 'ph ph-eye'"></i>
               </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="captcha">Berapa hasil dari {{ captchaQuestion }}?</label>
+            <div class="input-wrap">
+              <i class="ph ph-math-operations input-icon"></i>
+              <input
+                id="captcha"
+                v-model="userCaptcha"
+                type="text"
+                inputmode="numeric"
+                placeholder="Jawaban"
+                required
+                autocomplete="off"
+              />
             </div>
           </div>
 

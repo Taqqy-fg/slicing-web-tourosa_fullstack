@@ -59,9 +59,10 @@ const itemRows = computed(() => {
     const price = Number(it.price) || 0
     const markupCompany = cost + markupCost + price
   const isHotel = it.cat === 'Hotel'
-  const showTripType = !isHotel
-  const showDest = !isHotel
-  const showRet = isHotel ? true : (it.tripType || 'Round Trip') !== 'One Way'
+  const noTripTypeCats = ['Group Tour / Land Tour', 'Konsumsi', 'Transport', 'Tour Leader', 'Dokumen / Visa', 'Lainnya']
+  const showTripType = !isHotel && !noTripTypeCats.includes(it.cat)
+  const showDest = !isHotel && !noTripTypeCats.includes(it.cat)
+  const showRet = isHotel ? true : (noTripTypeCats.includes(it.cat) ? false : (it.tripType || 'Round Trip') !== 'One Way')
   const departLabel = isHotel ? 'Tgl Check In' : 'Tanggal Berangkat'
   const retLabel = isHotel ? 'Tgl Check Out' : 'Tanggal Kembali'
   const qtyLabel = isHotel ? 'Room' : 'Qty'
@@ -432,18 +433,18 @@ const addItem = () => store.addItemToEditForm()
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Diskon</label>
               <div style="display:flex;gap:0;">
-                <input :value="discountFmt" @input="onDiscount" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px 0 0 9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
-                <button @click="toggleDiscountType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-left:none;border-radius:0 9px 9px 0;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.discountType }}</button>
+                <button @click="toggleDiscountType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-right:none;border-radius:9px 0 0 9px;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.discountType }}</button>
+                <input :value="discountFmt" @input="onDiscount" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:0 9px 9px 0;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
               </div>
-              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;">*Klik Rp/% untuk ubah tipe</div>
+              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:right;">*Klik Rp/% untuk ubah tipe</div>
             </div>
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Service Fee</label>
               <div style="display:flex;gap:0;">
-                <input :value="serviceFeeFmt" @input="onServiceFee" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px 0 0 9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
-                <button @click="toggleServiceFeeType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-left:none;border-radius:0 9px 9px 0;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.serviceFeeType }}</button>
+                <button @click="toggleServiceFeeType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-right:none;border-radius:9px 0 0 9px;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.serviceFeeType }}</button>
+                <input :value="serviceFeeFmt" @input="onServiceFee" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:0 9px 9px 0;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
               </div>
-              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;">*Klik Rp/% untuk ubah tipe</div>
+              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:right;">*Klik Rp/% untuk ubah tipe</div>
             </div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="11" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">DP (%)</label><input v-model="f.dpPercent" type="number" placeholder="50" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>

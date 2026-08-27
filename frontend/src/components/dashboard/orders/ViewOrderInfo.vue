@@ -40,7 +40,6 @@ const columns = [
   { accessorKey: 'pic_name',     header: 'PIC / Penanggung Jawab', enableSorting: true  },
   { accessorKey: 'contact_info', header: 'No. HP / WhatsApp',      enableSorting: false },
   { accessorKey: 'email',        header: 'Email',                   enableSorting: false },
-  { accessorKey: 'invoice_no',   header: 'No. Invoice',             enableSorting: true  },
   { accessorKey: 'created_at',   header: 'Tanggal',                 enableSorting: true  },
 ]
 
