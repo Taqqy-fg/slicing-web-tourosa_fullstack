@@ -31,7 +31,8 @@ watch(data, (newVal) => {
       address: s.address || 'Jakarta, Indonesia',
       tagline: s.tagline || 'Tiket pesawat, hotel, group tour, hingga gathering korporat.',
       stats: s.stats || [{ n: '12+', l: 'Tahun pengalaman' }, { n: '800+', l: 'Grup diberangkatkan' }, { n: '50+', l: 'Destinasi' }],
-      clients: s.clients || []
+      clients: s.clients || [],
+      bankAccounts: s.bankAccounts || []
     }
     // Resolve active invoice from route param or refresh existing
     const routeId = route.params.id ? decodeURIComponent(route.params.id) : null
@@ -60,7 +61,8 @@ const site = computed(() => {
     address: s.address || 'Jakarta, Indonesia',
     tagline: s.tagline || 'Tiket pesawat, hotel, group tour, hingga gathering korporat.',
     stats: s.stats || [{ n: '12+', l: 'Tahun pengalaman' }, { n: '800+', l: 'Grup diberangkatkan' }, { n: '50+', l: 'Destinasi' }],
-    clients: s.clients || []
+    clients: s.clients || [],
+    bankAccounts: s.bankAccounts || []
   }
 })
 // Share fetched data to child views via store

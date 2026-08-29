@@ -78,10 +78,10 @@ async function handleLogin() {
     <!-- Right panel (form) -->
     <div class="login-right">
       <div class="login-form-wrapper">
-        <!-- <div class="login-form-header">
+        <div class="login-form-header">
           <h2>Selamat Datang</h2>
           <p>Masuk ke panel administrasi Tourosa</p>
-        </div> -->
+        </div>
 
         <form @submit.prevent="handleLogin" class="login-form">
           <div v-if="error" class="login-error">

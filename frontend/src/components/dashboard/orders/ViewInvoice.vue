@@ -36,7 +36,15 @@ const invData = computed(() => {
     dpPercentF: String(c.dpPercent), dpF: fmt(c.dp), dpDueDateF: fmtDate(o.dpDueDate), hasDpDueDate: !!o.dpDueDate,
     tenggatF: fmtDate(o.tenggatDate), hasTenggat: !!o.tenggatDate,
     sisaF: fmt(c.sisa),
-    notes: o.notes || '-', invTerms, hasTerms: invTerms.length > 0
+    notes: o.notes || '-',
+    paymentInfo: o.payment_info
+      ? o.payment_info
+      : (store.site.bankAccounts || []).map(b => `${b.bank}\nNo. Rek: ${b.number}\na.n. ${b.name}`).join('\n\n'),
+    // Structured bank list: use saved payment_info parsed lines, or raw bankAccounts from settings
+    paymentBanks: o.payment_info
+      ? null  // will use paymentInfo text (pre-line)
+      : (store.site.bankAccounts || []),
+    invTerms, hasTerms: invTerms.length > 0
   }
 })
 const invItems = computed(() => {
@@ -155,13 +163,24 @@ const doPrint = () => window.print()
             style="font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;">
             Catatan</div>
           <p style="font-size:12.5px;color:#5d6a82;line-height:1.6;margin:0 0 18px;">{{ inv.notes }}</p>
-          <div style="background:#fafbfc;border:1px solid #eef0f3;border-radius:10px;padding:13px 15px;">
-            <div
-              style="font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;">
+          <div v-if="inv.paymentInfo" style="background:#fafbfc;border:1px solid #eef0f3;border-radius:10px;padding:13px 15px;">
+            <div style="font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">
               Pembayaran</div>
-            <div style="font-size:12.5px;color:#13233f;line-height:1.7;">Bank Central Asia (BCA)<br>No. Rek <span
-                style="font-family:'IBM Plex Mono',monospace;font-weight:700;">1234-567-890</span><br>a.n. PT Tourosa
-              Travel</div>
+            <!-- Structured blocks when using raw bankAccounts (no payment_info saved yet) -->
+            <template v-if="inv.paymentBanks && inv.paymentBanks.length">
+              <div v-for="(b, bi) in inv.paymentBanks" :key="bi"
+                :style="{ borderTop: bi > 0 ? '1px solid #e8eaf0' : 'none', paddingTop: bi > 0 ? '10px' : '0', marginTop: bi > 0 ? '10px' : '0' }">
+                <div style="font-size:12.5px;font-weight:700;color:#13233f;">{{ b.bank }}</div>
+                <div style="font-size:12px;color:#5d6a82;margin-top:2px;">
+                  No. Rek: <span style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:#13233f;letter-spacing:.04em;">{{ b.number }}</span>
+                </div>
+                <div style="font-size:12px;color:#5d6a82;">a.n. {{ b.name }}</div>
+              </div>
+            </template>
+            <!-- Pre-line text when payment_info was already saved/edited on the order -->
+            <template v-else>
+              <div style="font-size:12.5px;color:#13233f;line-height:1.75;white-space:pre-line;">{{ inv.paymentInfo }}</div>
+            </template>
           </div>
         </div>
         <div style="width:300px;flex-shrink:0;">

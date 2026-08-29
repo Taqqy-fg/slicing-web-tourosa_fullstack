@@ -17,11 +17,18 @@ const store = useDashboardStore()
 const allOptions = computed(() => {
   const map = new Map()
   for (const c of store.customers) {
-    map.set(c.name, { name: c.name, pic: c.pic_name || '', contact: c.contact_info || '' })
+    map.set(c.name, { name: c.name, pic: c.pic_name || '', contact: c.contact_info || '', email: c.email || '' })
   }
   for (const o of store.orders) {
-    if (o.group && o.group !== 'Tanpa Nama Grup' && !map.has(o.group)) {
-      map.set(o.group, { name: o.group, pic: o.pic || '', contact: o.contact || '' })
+    if (o.group && o.group !== 'Tanpa Nama Grup') {
+      if (!map.has(o.group)) {
+        map.set(o.group, { name: o.group, pic: o.pic || '', contact: o.contact || '', email: o.email || '' })
+      } else {
+        const existing = map.get(o.group)
+        if (!existing.email && o.email) existing.email = o.email;
+        if (!existing.pic && o.pic) existing.pic = o.pic;
+        if (!existing.contact && o.contact) existing.contact = o.contact;
+      }
     }
   }
   return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'id'))
@@ -106,10 +113,12 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
           @mouseleave="$event.currentTarget.style.background = opt.name === modelValue ? '#eef3fb' : 'transparent'"
         >
           <div style="font-size:13.5px;font-weight:700;color:#13233f;">{{ opt.name }}</div>
-          <div v-if="opt.pic || opt.contact" style="font-size:11.5px;color:#9aa0ad;margin-top:2px;">
+          <div v-if="opt.pic || opt.contact || opt.email" style="font-size:11.5px;color:#9aa0ad;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             <span v-if="opt.pic">{{ opt.pic }}</span>
-            <span v-if="opt.pic && opt.contact"> · </span>
+            <span v-if="opt.pic && (opt.contact || opt.email)"> · </span>
             <span v-if="opt.contact">{{ opt.contact }}</span>
+            <span v-if="opt.contact && opt.email"> · </span>
+            <span v-if="opt.email">{{ opt.email }}</span>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useDashboardStore } from '../../../stores/dashboardStore'
@@ -8,6 +8,7 @@ import { dashboardService } from '../../../services/dashboardService'
 import { useToast } from '../../../composables/useToast'
 import DatePicker from '../../DatePicker.vue'
 import GroupSelect from './GroupSelect.vue'
+
 
 const props = defineProps({
   orders: Array,
@@ -32,10 +33,110 @@ watch(() => route.params.id, (id) => {
   }
 }, { immediate: true })
 
-const catOptions = computed(() => catalog.value.map(c => c.cat))
+watch([() => store.site.bankAccounts, () => store.editForm], ([banks, ef]) => {
+  if (ef && (!ef.payment_info || ef.payment_info === 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ')) {
+    if (banks && banks.length > 0) {
+      ef.payment_info = banks.map(b => `${b.bank}\nNo. Rekening: ${b.number}\na.n. ${b.name}`).join('\n\n');
+    } else if (!ef.payment_info) {
+      ef.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
+    }
+  }
+}, { immediate: true })
+
+const catOptions = computed(() => {
+  const cats = catalog.value.map(c => c.cat)
+  const lainnyaIdx = cats.findIndex(c => c.toLowerCase() === 'lainnya')
+  if (lainnyaIdx !== -1) {
+    const lainnya = cats.splice(lainnyaIdx, 1)[0]
+    cats.push(lainnya)
+  }
+  return cats
+})
 const vendorsFor = (cat) => {
   const c = catalog.value.find(x => x.cat === cat)
   return c ? c.items.filter(v => (v || '').trim()) : []
+}
+
+const saveCatalogMut = useMutation({
+  mutationFn: dashboardService.updateCatalog,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  }
+})
+
+// === Modal Shortcut Kategori & Vendor ===
+const showCatModal = ref(false)
+const showVendorModal = ref(false)
+const newCatName = ref('')
+const newVendorName = ref('')
+const vendorModalCat = ref('')
+const isSavingCatalog = ref(false)
+
+const addShortcutCategory = () => {
+  newCatName.value = ''
+  showCatModal.value = true
+}
+
+const addShortcutVendor = (currentCat) => {
+  if (!currentCat) {
+    toast.error('Pilih Kategori terlebih dahulu')
+    return
+  }
+  newVendorName.value = ''
+  vendorModalCat.value = currentCat
+  showVendorModal.value = true
+}
+
+const saveNewCategory = async () => {
+  const trimName = newCatName.value.trim()
+  if (!trimName) return
+  const updated = [...store.catalog]
+  if (updated.find(c => c.cat.toLowerCase() === trimName.toLowerCase())) {
+    toast.error('Kategori sudah ada')
+    return
+  }
+  isSavingCatalog.value = true
+  try {
+    updated.unshift({ cat: trimName, items: [] })
+    const payload = JSON.parse(JSON.stringify(updated))
+    store.catalog = payload
+    await saveCatalogMut.mutateAsync(payload)
+    toast.success('Kategori ditambahkan')
+    showCatModal.value = false
+    newCatName.value = ''
+  } catch (e) {
+    console.error(e)
+    toast.error('Gagal menyimpan: ' + (e.response?.data?.message || e.message || 'Error'))
+  } finally {
+    isSavingCatalog.value = false
+  }
+}
+
+const saveNewVendor = async () => {
+  const trimName = newVendorName.value.trim()
+  if (!trimName) return
+  const updated = [...store.catalog]
+  const cidx = updated.findIndex(c => c.cat === vendorModalCat.value)
+  if (cidx === -1) return
+  if (updated[cidx].items.some(i => i.toLowerCase() === trimName.toLowerCase())) {
+    toast.error('Vendor sudah ada')
+    return
+  }
+  isSavingCatalog.value = true
+  try {
+    updated[cidx].items.push(trimName)
+    const payload = JSON.parse(JSON.stringify(updated))
+    store.catalog = payload
+    await saveCatalogMut.mutateAsync(payload)
+    toast.success('Vendor ditambahkan')
+    showVendorModal.value = false
+    newVendorName.value = ''
+  } catch (e) {
+    console.error(e)
+    toast.error('Gagal menyimpan: ' + (e.response?.data?.message || e.message || 'Error'))
+  } finally {
+    isSavingCatalog.value = false
+  }
 }
 
 function fmtNum(n) {
@@ -60,7 +161,7 @@ const itemRows = computed(() => {
     const markupCompany = cost + markupCost + price
   const isHotel = it.cat === 'Hotel'
   const noTripTypeCats = ['Group Tour / Land Tour', 'Konsumsi', 'Transport', 'Tour Leader', 'Dokumen / Visa', 'Lainnya']
-  const showTripType = !isHotel && !noTripTypeCats.includes(it.cat)
+  const showTripType = Boolean(it.cat) && !isHotel && !noTripTypeCats.includes(it.cat)
   const showDest = !isHotel && !noTripTypeCats.includes(it.cat)
   const showRet = isHotel ? true : (noTripTypeCats.includes(it.cat) ? false : (it.tripType || 'Round Trip') !== 'One Way')
   const departLabel = isHotel ? 'Tgl Check In' : 'Tanggal Berangkat'
@@ -147,14 +248,14 @@ const saveOrder = async () => {
 
   const payload = {
     group: groupName || 'Tanpa Nama Grup',
-    pic: f.pic, contact: f.contact, 
+    pic: f.pic, contact: f.contact, email: f.email || '',
     dest: firstItemWithDest.dest || '-', 
     depart: firstItemWithDest.depart || null, 
     ret: firstItemWithDest.ret || null, 
     pax: Number(items[0]?.qty) || 0,
     items: items.length ? items : [{ cat: 'Lainnya', desc: '(belum ada item)', qty: 0, cost: 0, price: 0 }],
     discount: f.discount, discountType: f.discountType, serviceFee: f.serviceFee, serviceFeeType: f.serviceFeeType,
-    taxPercent: f.taxPercent, dpPercent: f.dpPercent, dpDueDate: f.dpDueDate, tenggatDate: f.tenggatDate, notes: f.notes,
+    taxPercent: f.taxPercent, dpPercent: f.dpPercent, dpDueDate: f.dpDueDate, tenggatDate: f.tenggatDate, notes: f.notes, payment_info: f.payment_info,
     status: (Number(f.dpPercent) >= 100 ? 'Lunas' : (Number(f.dpPercent) > 0 ? 'Down Payment' : 'Belum Lunas')),
   }
 
@@ -179,52 +280,6 @@ const discountFmt = computed(() => ef.value ? fmtNum(ef.value.discount) : '')
 const onDiscount = e => { store.editForm.discount = parseNum(e.target.value) }
 const serviceFeeFmt = computed(() => ef.value ? fmtNum(ef.value.serviceFee) : '')
 const onServiceFee = e => { store.editForm.serviceFee = parseNum(e.target.value) }
-const showCustModal = ref(false)
-const isSavingCust = ref(false)
-const newCust = ref({ group_name: '', pic_name: '', contact_info: '', email: '', address: '', notes: '' })
-
-const saveNewCustomer = async () => {
-  if (!newCust.value.group_name) {
-    toast.error('Nama grup / instansi harus diisi.')
-    return
-  }
-  isSavingCust.value = true
-  try {
-    const payload = { ...newCust.value }
-    const res = await dashboardService.createOrderInfo(payload)
-    
-    // Asumsikan backend mengembalikan { order_info: ... } atau data
-    const saved = res.order_info || res.data || payload
-    
-    // Tetap masukkan ke store.customers agar dropdown SelectGroup tetap jalan
-    store.customers.push({ 
-      name: saved.group_name, 
-      pic_name: saved.pic_name, 
-      contact_info: saved.contact_info 
-    })
-    
-    f.value.group = saved.group_name
-    f.value.pic = saved.pic_name || ''
-    f.value.contact = saved.contact_info || ''
-    toast.success('Informasi pesanan berhasil ditambahkan.')
-    showCustModal.value = false
-    newCust.value = { group_name: '', pic_name: '', contact_info: '', email: '', address: '', notes: '' }
-  } catch (err) {
-    const msg = err.response?.data?.message || err.message
-    toast.error('Gagal menyimpan: ' + msg)
-  } finally {
-    isSavingCust.value = false
-  }
-}
-
-const onGroupChange = () => {
-  const selected = store.customers.find(c => c.name === f.value.group)
-  if (selected) {
-    f.value.pic = selected.pic_name || ''
-    f.value.contact = selected.contact_info || ''
-  }
-}
-
 const toggleServiceFeeType = () => { store.editForm.serviceFeeType = store.editForm.serviceFeeType === 'Rp' ? '%' : 'Rp' }
 const toggleDiscountType = () => { store.editForm.discountType = store.editForm.discountType === 'Rp' ? '%' : 'Rp' }
 
@@ -248,97 +303,111 @@ const addItem = () => store.addItemToEditForm()
         <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
           <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 4px;display:flex;align-items:center;gap:9px;"><i class="ph ph-users-three" style="color:#c39a4d;font-size:20px;"></i>Informasi Pemesanan</h3>
           <p style="font-size:13px;color:#8a93a5;margin:0 0 20px;">Edit data pemesan.</p>
-          <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div style="grid-column:span 2;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;">Nama Grup / Instansi</label>
-                <button @click="showCustModal = true" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:12px;font-weight:700;padding:6px 11px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:5px;"><i class="ph ph-plus" style="font-size:13px;"></i>Tambah Baru</button>
-              </div>
-              <GroupSelect
-                :model-value="f.group"
-                @update:model-value="store.editForm.group = $event"
-                @select="opt => { store.editForm.group = opt.name; if (opt.pic) store.editForm.pic = opt.pic; if (opt.contact) store.editForm.contact = opt.contact }"
-              />
+          
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nama Grup / Instansi <span style="color:#c2603a;">*</span></label>
+            <GroupSelect
+              :model-value="store.editForm.group"
+              @update:model-value="store.editForm.group = $event"
+              @select="opt => { store.editForm.group = opt.name; store.editForm.pic = opt.pic || ''; store.editForm.contact = opt.contact || ''; store.editForm.email = opt.email || '' }"
+            />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">PIC / Penanggung Jawab</label>
+              <input v-model="store.editForm.pic" readonly placeholder="Otomatis terisi..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#5f6b80;background:#f4f6fa;outline:none;cursor:not-allowed;" />
             </div>
-            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Invoice</label><DatePicker v-model="f.invoiceDate" /></div>
-
-            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Jatuh Tempo</label><DatePicker v-model="f.dpDueDate" placeholder="Pilih tanggal..." /></div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label>
+              <input v-model="store.editForm.contact" readonly placeholder="Otomatis terisi..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#5f6b80;background:#f4f6fa;outline:none;cursor:not-allowed;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Email</label>
+            <input v-model="store.editForm.email" readonly placeholder="Otomatis terisi..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#5f6b80;background:#f4f6fa;outline:none;cursor:not-allowed;" />
           </div>
         </div>
 
-        <!-- modal tambah order_infos -->
-        <div v-if="showCustModal" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
-          <div style="position:absolute;inset:0;background:rgba(13,27,48,.5);backdrop-filter:blur(3px);" @click="showCustModal = false"></div>
-          <div style="position:relative;background:#fff;border-radius:18px;width:100%;max-width:560px;max-height:calc(100vh - 32px);box-shadow:0 24px 70px rgba(13,27,48,.3);display:flex;flex-direction:column;overflow:hidden;">
-            <!-- Header modal -->
-            <div style="background:linear-gradient(135deg,#15294f,#0d1b30);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;">
+        <!-- Modal Tambah Kategori Baru -->
+        <div v-if="showCatModal" style="position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;">
+          <div style="position:absolute;inset:0;background:rgba(13,27,48,.5);backdrop-filter:blur(3px);" @click="showCatModal = false"></div>
+          <div style="position:relative;background:#fff;border-radius:18px;width:100%;max-width:440px;box-shadow:0 24px 70px rgba(13,27,48,.3);overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#15294f,#0d1b30);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
               <div style="display:flex;align-items:center;gap:12px;">
                 <span style="width:38px;height:38px;border-radius:11px;background:rgba(195,154,77,.18);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
-                  <i class="ph ph-users-three" style="font-size:20px;color:#c39a4d;"></i>
+                  <i class="ph ph-tag" style="font-size:20px;color:#c39a4d;"></i>
                 </span>
                 <div>
-                  <h4 style="font-size:15.5px;font-weight:800;color:#fff;margin:0;">Tambah Informasi Pesanan</h4>
-                  <p style="font-size:11.5px;color:#aeb8cc;margin:2px 0 0;">Isi data grup, PIC, dan kontak pemesan</p>
+                  <h4 style="font-size:15.5px;font-weight:800;color:#fff;margin:0;">Tambah Kategori Baru</h4>
+                  <p style="font-size:11.5px;color:#aeb8cc;margin:2px 0 0;">Kategori akan langsung tersimpan ke katalog</p>
                 </div>
               </div>
-              <button @click="showCustModal = false" class="tr-btn" style="background:rgba(255,255,255,.1);border:none;cursor:pointer;color:#fff;padding:6px;border-radius:8px;">
+              <button @click="showCatModal = false" class="tr-btn" style="background:rgba(255,255,255,.1);border:none;cursor:pointer;color:#fff;padding:6px;border-radius:8px;">
                 <i class="ph ph-x" style="font-size:17px;"></i>
               </button>
             </div>
-
-            <!-- Body modal -->
-            <div style="padding:22px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;flex:1;">
-              <!-- Grup -->
+            <div style="padding:22px;display:flex;flex-direction:column;gap:16px;">
               <div>
-                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nama Grup / Instansi <span style="color:#c2603a;">*</span></label>
-                <input v-model="newCust.group_name" placeholder="cth. PT. Maju Bersama" maxlength="255"
-                  style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;">
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:8px;">Nama Kategori</label>
+                <input
+                  v-model="newCatName"
+                  @keyup.enter="saveNewCategory"
+                  type="text"
+                  placeholder="cth. Tiket Pesawat, Hotel, Transport..."
+                  style="width:100%;padding:12px 14px;border:1.5px solid #d8dce4;border-radius:10px;font-size:14px;color:#1a2235;background:#fff;outline:none;transition:border .15s;"
+                  @focus="e => e.target.style.borderColor='#15294f'"
+                  @blur="e => e.target.style.borderColor='#d8dce4'"
+                >
               </div>
-
-              <!-- PIC + Kontak -->
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                <div>
-                  <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">PIC / Penanggung Jawab</label>
-                  <input v-model="newCust.pic_name" placeholder="cth. Budi Santoso" maxlength="255"
-                    style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;">
-                </div>
-                <div>
-                  <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label>
-                  <input v-model="newCust.contact_info" placeholder="cth. 0812xxxxxxxx" maxlength="100"
-                    style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;">
-                </div>
-              </div>
-
-              <!-- Email -->
-              <div>
-                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Email</label>
-                <input v-model="newCust.email" type="email" placeholder="cth. budi@email.com" maxlength="255"
-                  style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;">
-              </div>
-
-              <!-- Alamat -->
-              <div>
-                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Alamat</label>
-                <textarea v-model="newCust.address" rows="2" placeholder="cth. Jl. Sudirman No. 1, Jakarta Pusat"
-                  style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea>
-              </div>
-
-              <!-- Catatan -->
-              <div>
-                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan</label>
-                <textarea v-model="newCust.notes" rows="2" placeholder="Catatan tambahan mengenai pemesan..."
-                  style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea>
-              </div>
-
-              <!-- Footer -->
-              <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;border-top:1px solid #eef0f3;margin-top:4px;">
-                <button @click="showCustModal = false" class="tr-btn"
-                  style="background:#fff;color:#5f6b80;border:1px solid #e2e4ea;font-size:13px;font-weight:600;padding:9px 18px;border-radius:9px;cursor:pointer;">Batal</button>
-                <button @click="saveNewCustomer" :disabled="isSavingCust" class="tr-btn"
-                  style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;">
-                  <i v-if="isSavingCust" class="ph ph-circle-notch" style="font-size:15px;animation:spin 1s linear infinite;"></i>
+              <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;border-top:1px solid #eef0f3;">
+                <button @click="showCatModal = false" class="tr-btn" style="background:#fff;color:#5f6b80;border:1px solid #e2e4ea;font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px;cursor:pointer;">Batal</button>
+                <button @click="saveNewCategory" :disabled="!newCatName.trim() || isSavingCatalog" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:10px 18px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;" :style="{ opacity: (!newCatName.trim() || isSavingCatalog) ? 0.6 : 1 }">
+                  <i v-if="isSavingCatalog" class="ph ph-circle-notch" style="font-size:15px;animation:spin 1s linear infinite;"></i>
                   <i v-else class="ph ph-check-circle" style="font-size:15px;color:#7ed3a6;"></i>
-                  {{ isSavingCust ? 'Menyimpan...' : 'Simpan' }}
+                  {{ isSavingCatalog ? 'Menyimpan...' : 'Simpan Kategori' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Tambah Vendor Baru -->
+        <div v-if="showVendorModal" style="position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;">
+          <div style="position:absolute;inset:0;background:rgba(13,27,48,.5);backdrop-filter:blur(3px);" @click="showVendorModal = false"></div>
+          <div style="position:relative;background:#fff;border-radius:18px;width:100%;max-width:440px;box-shadow:0 24px 70px rgba(13,27,48,.3);overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#15294f,#0d1b30);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="width:38px;height:38px;border-radius:11px;background:rgba(195,154,77,.18);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <i class="ph ph-storefront" style="font-size:20px;color:#c39a4d;"></i>
+                </span>
+                <div>
+                  <h4 style="font-size:15.5px;font-weight:800;color:#fff;margin:0;">Tambah Vendor / Produk</h4>
+                  <p style="font-size:11.5px;color:#aeb8cc;margin:2px 0 0;">Di kategori: <strong style="color:#c39a4d;">{{ vendorModalCat }}</strong></p>
+                </div>
+              </div>
+              <button @click="showVendorModal = false" class="tr-btn" style="background:rgba(255,255,255,.1);border:none;cursor:pointer;color:#fff;padding:6px;border-radius:8px;">
+                <i class="ph ph-x" style="font-size:17px;"></i>
+              </button>
+            </div>
+            <div style="padding:22px;display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:8px;">Nama Vendor / Produk</label>
+                <input
+                  v-model="newVendorName"
+                  @keyup.enter="saveNewVendor"
+                  type="text"
+                  placeholder="cth. Garuda Indonesia, Lion Air..."
+                  style="width:100%;padding:12px 14px;border:1.5px solid #d8dce4;border-radius:10px;font-size:14px;color:#1a2235;background:#fff;outline:none;transition:border .15s;"
+                  @focus="e => e.target.style.borderColor='#15294f'"
+                  @blur="e => e.target.style.borderColor='#d8dce4'"
+                >
+              </div>
+              <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;border-top:1px solid #eef0f3;">
+                <button @click="showVendorModal = false" class="tr-btn" style="background:#fff;color:#5f6b80;border:1px solid #e2e4ea;font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px;cursor:pointer;">Batal</button>
+                <button @click="saveNewVendor" :disabled="!newVendorName.trim() || isSavingCatalog" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:10px 18px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;" :style="{ opacity: (!newVendorName.trim() || isSavingCatalog) ? 0.6 : 1 }">
+                  <i v-if="isSavingCatalog" class="ph ph-circle-notch" style="font-size:15px;animation:spin 1s linear infinite;"></i>
+                  <i v-else class="ph ph-check-circle" style="font-size:15px;color:#7ed3a6;"></i>
+                  {{ isSavingCatalog ? 'Menyimpan...' : 'Simpan Vendor' }}
                 </button>
               </div>
             </div>
@@ -357,25 +426,35 @@ const addItem = () => store.addItemToEditForm()
                 <button @click="r.onDuplicate" style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #d6e1f2;border-radius:8px;padding:6px 10px;cursor:pointer;color:#15294f;font-size:12px;font-weight:600;transition:all .15s;"><i class="ph ph-copy" style="font-size:14px;"></i>Duplikat Item</button>
                 <button @click="r.onRemove" style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #f5d6d0;border-radius:8px;padding:6px 10px;cursor:pointer;color:#c2603a;font-size:12px;font-weight:600;transition:all .15s;"><i class="ph ph-trash" style="font-size:14px;"></i>Hapus Item</button>
               </div>
-              <div :style="{ display:'grid', gridTemplateColumns: r.headCols, gap:'12px', alignItems:'end', marginBottom:'14px' }">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;margin-bottom:14px;">
                 <div>
                   <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Kategori</label>
-                  <select @change="r.onCat" :value="r.cat" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
-                    <option v-for="(co, ci) in catOptions" :key="ci" :value="co">{{ co }}</option>
-                  </select>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <select @change="r.onCat" :value="r.cat" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;appearance:auto;">
+                      <option value="" disabled>Pilih Kategori...</option>
+                      <option v-for="(co, ci) in catOptions" :key="ci" :value="co">{{ co }}</option>
+                    </select>
+                    <button @click.prevent="addShortcutCategory()" title="Tambah Kategori Baru" style="background:#fff;border:1px solid #d8dce4;border-radius:9px;color:#15294f;cursor:pointer;padding:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;"><i class="ph ph-plus-circle" style="font-size:20px;color:#c39a4d;"></i></button>
+                  </div>
+                  <div v-if="r.showTripType" style="margin-top:12px;">
+                    <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Tipe</label>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <select @change="r.onTripType" :value="r.tripType" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
+                        <option v-for="tt in tripTypeOpts" :key="tt" :value="tt">{{ tt }}</option>
+                      </select>
+                      <div style="width:38px;flex-shrink:0;"></div>
+                    </div>
+                  </div>
                 </div>
-                <div>
+                <div style="align-self:start;">
                   <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Vendor / Produk</label>
-                  <select @change="r.onVendor" :value="r.vendor" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fafbfc;outline:none;">
-                    <option value="">Pilih Vendor...</option>
-                    <option v-for="(vo, vi) in r.vendorOptions" :key="vi" :value="vo">{{ vo }}</option>
-                  </select>
-                </div>
-                <div v-if="r.showTripType">
-                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Tipe</label>
-                  <select @change="r.onTripType" :value="r.tripType" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
-                    <option v-for="tt in tripTypeOpts" :key="tt" :value="tt">{{ tt }}</option>
-                  </select>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <select @change="r.onVendor" :value="r.vendor" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fafbfc;outline:none;appearance:auto;">
+                      <option value="">Pilih Vendor...</option>
+                      <option v-for="(vo, vi) in r.vendorOptions" :key="vi" :value="vo">{{ vo }}</option>
+                    </select>
+                    <button @click.prevent="addShortcutVendor(r.cat)" title="Tambah Vendor Baru" style="background:#fff;border:1px solid #d8dce4;border-radius:9px;color:#15294f;cursor:pointer;padding:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;"><i class="ph ph-plus-circle" style="font-size:20px;color:#c39a4d;"></i></button>
+                  </div>
                 </div>
               </div>
               <div style="margin-bottom:14px;">
@@ -429,7 +508,7 @@ const addItem = () => store.addItemToEditForm()
         <!-- diskon, pajak & pembayaran -->
         <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
           <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 18px;display:flex;align-items:center;gap:9px;"><i class="ph ph-sliders-horizontal" style="color:#c39a4d;font-size:20px;"></i>Diskon, Pajak &amp; Pembayaran</h3>
-          <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;">
+          <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Diskon</label>
               <div style="display:flex;gap:0;">
@@ -447,8 +526,17 @@ const addItem = () => store.addItemToEditForm()
               <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:right;">*Klik Rp/% untuk ubah tipe</div>
             </div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="11" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
-            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">DP (%)</label><input v-model="f.dpPercent" type="number" placeholder="50" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
-            <div style="grid-column:span 4;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat Pembayaran</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
+            <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
+            <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pembayaran</label><textarea v-model="f.payment_info" rows="3" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
+          </div>
+        </div>
+
+        <!-- tanggal invoice & jatuh tempo -->
+        <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
+          <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 18px;display:flex;align-items:center;gap:9px;"><i class="ph ph-calendar-blank" style="color:#c39a4d;font-size:20px;"></i>Tanggal Tagihan</h3>
+          <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Invoice</label><DatePicker v-model="f.invoiceDate" /></div>
+            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Jatuh Tempo</label><DatePicker v-model="f.dpDueDate" placeholder="Pilih tanggal..." /></div>
           </div>
         </div>
       </div>

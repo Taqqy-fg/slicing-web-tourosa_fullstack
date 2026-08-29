@@ -2,14 +2,15 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 const createBlankForm = (tax = 11) => ({
-    group: '', pic: '', contact: '',
+    group: '', pic: '', contact: '', email: '',
     invoiceDate: new Date().toISOString().slice(0, 10),
     items: [
-      { cat: 'Tiket Pesawat', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
+      { cat: '', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' },
     ],
     discount: '', discountType: 'Rp', serviceFee: '', serviceFeeType: 'Rp',
     taxPercent: tax, dpPercent: '', dpDueDate: '', tenggatDate: '',
-    notes: '',
+    notes: '', 
+    payment_info: 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ',
 })
 
 export const useDashboardStore = defineStore('dashboard', {
@@ -28,6 +29,7 @@ export const useDashboardStore = defineStore('dashboard', {
             email: 'halo@tourosa.id',
             address: 'Jakarta, Indonesia',
             tagline: '',
+            bankAccounts: [],
             stats: [],
             clients: []
         },
@@ -42,9 +44,19 @@ export const useDashboardStore = defineStore('dashboard', {
             const clonedSite = JSON.parse(JSON.stringify(site.value || {}));
             if (!clonedSite.stats) clonedSite.stats = [];
             if (!clonedSite.clients) clonedSite.clients = [];
+            if (!clonedSite.bankAccounts) clonedSite.bankAccounts = [];
             this.site = clonedSite;
 
             this.testimonials = JSON.parse(JSON.stringify(testimonials.value || []));
+            
+            // Auto-fill new form payment_info if empty
+            if (!this.form.payment_info || this.form.payment_info === 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ') {
+                if (this.site.bankAccounts && this.site.bankAccounts.length > 0) {
+                    this.form.payment_info = this.site.bankAccounts.map(b => `${b.bank}\nNo. Rekening: ${b.number}\na.n. ${b.name}`).join('\n\n');
+                } else if (!this.form.payment_info) {
+                    this.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
+                }
+            }
         },
         setActiveInvoice(invoice) {
             const cloned = JSON.parse(JSON.stringify(invoice));
@@ -57,9 +69,14 @@ export const useDashboardStore = defineStore('dashboard', {
         },
         resetForm() {
             this.form = createBlankForm(this.form.taxPercent);
+            if (this.site && this.site.bankAccounts && this.site.bankAccounts.length > 0) {
+                this.form.payment_info = this.site.bankAccounts.map(b => `${b.bank}\nNo. Rekening: ${b.number}\na.n. ${b.name}`).join('\n\n');
+            } else {
+                this.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
+            }
         },
         addItemToForm() {
-            this.form.items.push({ cat: 'Lainnya', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
+            this.form.items.push({ cat: '', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
         },
         removeItemFromForm(idx) {
             if (this.form.items.length > 1) {
@@ -113,6 +130,7 @@ export const useDashboardStore = defineStore('dashboard', {
                 group: o.group || '',
                 pic: o.pic || '',
                 contact: o.contact || '',
+                email: o.email || '',
                 invoiceDate: o.date || new Date().toISOString().slice(0, 10),
                 dest: o.dest || '',
                 depart: o.depart || '',
@@ -131,7 +149,7 @@ export const useDashboardStore = defineStore('dashboard', {
                     markupCost: it.markupCost ?? '',
                     price: it.price ?? '',
                     markupPrice: it.markupPrice ?? '',
-                })) : [{ cat: 'Lainnya', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' }],
+                })) : [{ cat: '', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' }],
                 discount: o.discount ?? '',
                 discountType: o.discountType ?? 'Rp',
                 serviceFee: o.serviceFee ?? '',
@@ -141,6 +159,9 @@ export const useDashboardStore = defineStore('dashboard', {
                 dpDueDate: o.dpDueDate ?? '',
                 tenggatDate: o.tenggatDate ?? '',
                 notes: o.notes || '',
+                payment_info: o.payment_info || (this.site && this.site.bankAccounts && this.site.bankAccounts.length > 0 
+                    ? this.site.bankAccounts.map(b => `${b.bank}\nNo. Rekening: ${b.number}\na.n. ${b.name}`).join('\n\n') 
+                    : 'Bank: \nNo. Rekening: \nAtas Nama (a.n): '),
                 status: o.status || 'DP',
             }
         },
@@ -150,7 +171,7 @@ export const useDashboardStore = defineStore('dashboard', {
         },
         addItemToEditForm() {
             if (this.editForm) {
-                this.editForm.items.push({ cat: 'Lainnya', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
+                this.editForm.items.push({ cat: '', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
             }
         },
         removeItemFromEditForm(idx) {

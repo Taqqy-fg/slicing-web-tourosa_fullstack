@@ -3,6 +3,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import CountUp from '../../CountUp.vue'
 import { useDashboardStore } from '../../../stores/dashboardStore'
+import { useAuthStore } from '../../../stores/authStore'
 import { useDashboardData } from '../../../composables/useDashboardData'
 import VueApexCharts from 'vue3-apexcharts'
 import moment from 'moment'
@@ -14,6 +15,7 @@ const props = defineProps({
   orders: Array
 })
 const store = useDashboardStore()
+const auth = useAuthStore()
 const router = useRouter()
 const { fmt, fmtNum, fmtDate, calc, statusMeta } = useDashboardData()
 
@@ -178,7 +180,10 @@ onMounted(async () => {
 
 <template>
   <div class="p-mobile" style="padding:30px 32px;">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <div>
+        <h2 style="font-size:20px;font-weight:700;color:#13233f;margin:0 0 4px;">Selamat Datang, {{ auth.user?.name || 'Admin' }}!</h2>
+      </div>
       <div style="position:relative;">
         <input ref="drpInput" type="text" placeholder="Filter Rentang Tanggal..." style="padding:9px 36px 9px 14px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;outline:none;width:240px;background:#fff;cursor:pointer;" readonly />
         <i class="ph ph-calendar-blank" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#8a93a5;font-size:16px;pointer-events:none;"></i>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Catalog;
+use App\Models\CatalogItem;
 use App\Models\OrderInfo;
 use App\Models\OrderPayment;
 use App\Models\Setting;
@@ -50,6 +51,7 @@ class DashboardController extends Controller
                 'group' => $order->orderInfo?->group_name,
                 'pic' => $order->orderInfo?->pic_name,
                 'contact' => $order->orderInfo?->contact_info,
+                'email' => $order->orderInfo?->email,
                 'dest' => $order->destination,
                 'depart' => $order->depart_date,
                 'ret' => $order->return_date,
@@ -64,6 +66,7 @@ class DashboardController extends Controller
                 'dpDueDate' => $order->dp_due_date,
                 'tenggatDate' => $order->tenggat_date,
                 'notes' => $order->notes,
+                'payment_info' => $order->payment_info,
                 'items' => $order->items->map(function ($item) {
                     return [
                         'cat' => $item->category,
@@ -88,9 +91,13 @@ class DashboardController extends Controller
                 }),
                 'terms' => $order->terms->map(function ($term) {
                     return [
+                        'id' => $term->id,
                         'label' => $term->label,
                         'percent' => (float) $term->percent,
                         'due' => $term->due_date,
+                        'is_paid' => (bool) $term->is_paid,
+                        'paid_amount' => (float) $term->paid_amount,
+                        'paid_at' => $term->paid_at,
                     ];
                 }),
                 'payments' => $order->payments->map(function ($pay) {
@@ -148,12 +155,13 @@ class DashboardController extends Controller
         $userId = $request->user()->id;
 
         $data = $request->validate([
-            'no' => 'required|string|unique:orders,invoice_no',
+            'no' => ['required', 'string', \Illuminate\Validation\Rule::unique('orders', 'invoice_no')->whereNull('deleted_at')],
             'date' => 'required|date',
             'order_info_id' => 'nullable|exists:order_infos,id',
             'group' => 'nullable|string',
             'pic' => 'nullable|string',
             'contact' => 'nullable|string',
+            'email' => 'nullable|string|email|max:255',
             'dest' => 'nullable|string',
             'depart' => 'nullable|date',
             'ret' => 'nullable|date',
@@ -168,6 +176,7 @@ class DashboardController extends Controller
             'dpDueDate' => 'nullable|date',
             'tenggatDate' => 'nullable|date',
             'notes' => 'nullable|string',
+            'payment_info' => 'nullable|string',
             'items' => 'nullable|array',
             'expenses' => 'nullable|array',
             'terms' => 'nullable|array'
@@ -179,10 +188,11 @@ class DashboardController extends Controller
             if ($existingInfo) {
                 $orderInfoId = $existingInfo->id;
                 // Update pic and contact if they were provided and empty in db
-                if ($data['pic'] || $data['contact']) {
+                if ($data['pic'] || $data['contact'] || $data['email']) {
                     $existingInfo->update([
                         'pic_name' => $data['pic'] ?? $existingInfo->pic_name,
                         'contact_info' => $data['contact'] ?? $existingInfo->contact_info,
+                        'email' => $data['email'] ?? $existingInfo->email,
                         'updated_by' => $userId,
                     ]);
                 }
@@ -191,6 +201,7 @@ class DashboardController extends Controller
                     'group_name' => $data['group'] ?? 'Tanpa Nama Grup',
                     'pic_name' => $data['pic'] ?? '',
                     'contact_info' => $data['contact'] ?? '',
+                    'email' => $data['email'] ?? '',
                     'created_by' => $userId,
                     'updated_by' => $userId,
                 ]);
@@ -216,6 +227,7 @@ class DashboardController extends Controller
             'dp_due_date' => $data['dpDueDate'] ?? null,
             'tenggat_date' => $data['tenggatDate'] ?? null,
             'notes' => $data['notes'] ?? '',
+            'payment_info' => $data['payment_info'] ?? null,
             'created_by' => $userId,
             'updated_by' => $userId,
         ]);
@@ -280,6 +292,7 @@ class DashboardController extends Controller
             'group'            => 'nullable|string',
             'pic'              => 'nullable|string',
             'contact'          => 'nullable|string',
+            'email'            => 'nullable|string|email|max:255',
             'dest'             => 'nullable|string',
             'depart'           => 'nullable|date',
             'ret'              => 'nullable|date',
@@ -294,6 +307,7 @@ class DashboardController extends Controller
             'dpDueDate'        => 'nullable|date',
             'tenggatDate'      => 'nullable|date',
             'notes'            => 'nullable|string',
+            'payment_info'     => 'nullable|string',
             'items'            => 'nullable|array',
             'items.*.cat'      => 'nullable|string',
             'items.*.vendor'   => 'nullable|string',
@@ -325,6 +339,7 @@ class DashboardController extends Controller
                     'group_name'  => $data['group'] ?? $orderInfo->group_name,
                     'pic_name'    => $data['pic'] ?? $orderInfo->pic_name,
                     'contact_info'=> $data['contact'] ?? $orderInfo->contact_info,
+                    'email'       => $data['email'] ?? $orderInfo->email,
                     'updated_by'  => $userId,
                 ]);
             }
@@ -346,6 +361,7 @@ class DashboardController extends Controller
             'dp_due_date' => $data['dpDueDate'] ?? $order->dp_due_date,
             'tenggat_date' => $data['tenggatDate'] ?? $order->tenggat_date,
             'notes'       => $data['notes'] ?? $order->notes,
+            'payment_info'=> $data['payment_info'] ?? $order->payment_info,
             'updated_by'  => $userId,
         ]);
 
@@ -390,18 +406,32 @@ class DashboardController extends Controller
         }
 
         if (array_key_exists('terms', $data)) {
-            foreach ($order->terms as $term) {
-                $term->update(['deleted_by' => $userId]);
-                $term->delete();
-            }
+            $existingTermIds = [];
             foreach (($data['terms'] ?? []) as $term) {
-                $order->terms()->create([
-                    'label'      => $term['label'] ?? '',
-                    'percent'    => $term['percent'] ?? 0,
-                    'due_date'   => $term['due'] ?? null,
-                    'created_by' => $userId,
-                    'updated_by' => $userId,
-                ]);
+                if (!empty($term['id'])) {
+                    $order->terms()->where('id', $term['id'])->update([
+                        'label'      => $term['label'] ?? '',
+                        'percent'    => $term['percent'] ?? 0,
+                        'due_date'   => $term['due'] ?? null,
+                        'updated_by' => $userId,
+                    ]);
+                    $existingTermIds[] = $term['id'];
+                } else {
+                    $newTerm = $order->terms()->create([
+                        'label'      => $term['label'] ?? '',
+                        'percent'    => $term['percent'] ?? 0,
+                        'due_date'   => $term['due'] ?? null,
+                        'created_by' => $userId,
+                        'updated_by' => $userId,
+                    ]);
+                    $existingTermIds[] = $newTerm->id;
+                }
+            }
+            foreach ($order->terms as $term) {
+                if (!in_array($term->id, $existingTermIds)) {
+                    $term->update(['deleted_by' => $userId]);
+                    $term->delete();
+                }
             }
         }
 
@@ -453,6 +483,65 @@ class DashboardController extends Controller
             'status' => $status,
             'totalPaid' => $totalPaid,
             'grandTotal' => $grandTotal,
+        ]);
+    }
+
+    public function storeTermPayment(Request $request, $invoice_no, $term_id)
+    {
+        $userId = $request->user()->id;
+        $order = Order::with(['terms'])->where('invoice_no', $invoice_no)->firstOrFail();
+        $term = $order->terms()->findOrFail($term_id);
+
+        $data = $request->validate([
+            'payment_date' => 'required|date',
+            'amount' => 'required|numeric|min:0',
+            'proof_file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'comment' => 'nullable|string',
+        ]);
+
+        $proofPath = null;
+        if ($request->hasFile('proof_file')) {
+            $proofPath = $request->file('proof_file')->store('payments', 'public');
+        }
+
+        $term->payments()->create([
+            'order_id' => $order->id,
+            'payment_date' => $data['payment_date'],
+            'amount' => $data['amount'],
+            'proof_file' => $proofPath,
+            'comment' => $data['comment'] ?? null,
+            'created_by' => $userId,
+            'updated_by' => $userId,
+        ]);
+
+        $termTotalPaid = $term->payments()->sum('amount');
+        $grandTotal = $this->computeGrandTotal($order);
+        $termExpected = $grandTotal * ($term->percent / 100);
+
+        $term->update([
+            'paid_amount' => $termTotalPaid,
+            'is_paid' => $termTotalPaid >= $termExpected,
+            'paid_at' => $termTotalPaid >= $termExpected ? now()->toDateString() : null,
+            'updated_by' => $userId,
+        ]);
+
+        // Auto update order status based on ALL terms
+        $allTerms = $order->terms()->get();
+        if ($allTerms->count() > 0) {
+            $allPaid = $allTerms->every(fn($t) => $t->is_paid);
+            $anyPaid = $allTerms->contains(fn($t) => $t->paid_amount > 0);
+            
+            $status = 'Belum Lunas';
+            if ($allPaid) {
+                $status = 'Lunas';
+            } elseif ($anyPaid) {
+                $status = 'Down Payment';
+            }
+            $order->update(['status' => $status, 'updated_by' => $userId]);
+        }
+
+        return response()->json([
+            'message' => 'Term payment recorded successfully',
         ]);
     }
 
@@ -521,6 +610,7 @@ class DashboardController extends Controller
             'email'    => 'nullable|string',
             'address'  => 'nullable|string',
             'tagline'  => 'nullable|string',
+            'bankAccounts' => 'nullable|array',
             'stats'    => 'nullable|array',
             'clients'  => 'nullable|array',
         ]);

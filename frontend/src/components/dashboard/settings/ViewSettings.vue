@@ -108,6 +108,66 @@ const addClient = () => {
   store.site.clients = [...clients, { name: '', img: '' }];
 }
 
+// Rekening Edit
+const tabRekening = () => store.setSettingsTab('rekening')
+const tabRekBg = computed(() => store.settingsTab === 'rekening' ? '#15294f' : 'transparent')
+const tabRekColor = computed(() => store.settingsTab === 'rekening' ? '#fff' : '#5d6a82')
+const isTabRekening = computed(() => store.settingsTab === 'rekening')
+
+const bankAccountsEdit = computed(() => (store.site.bankAccounts || []).map((b, i) => ({
+  idx: i, bank: b.bank, number: b.number, name: b.name,
+  onBank: ev => { store.site.bankAccounts[i].bank = ev.target.value },
+  onNumber: ev => { store.site.bankAccounts[i].number = ev.target.value },
+  onName: ev => { store.site.bankAccounts[i].name = ev.target.value },
+  onRemove: () => {
+    const updated = [...store.site.bankAccounts];
+    updated.splice(i, 1);
+    store.site.bankAccounts = updated;
+  }
+})))
+
+const addBankAccount = () => {
+  const accounts = store.site.bankAccounts || [];
+  store.site.bankAccounts = [...accounts, { bank: '', number: '', name: '' }];
+}
+
+const invoiceBankAccounts = computed(() => {
+  const accounts = []
+  const uniqueSet = new Set()
+  
+  store.orders.forEach(order => {
+    if (!order.payment_info) return
+    const blocks = order.payment_info.split('\n\n')
+    blocks.forEach(block => {
+      const bankMatch = block.match(/Bank:\s*(.+)/i)
+      const numMatch = block.match(/No\.\s*Rekening:\s*(.+)/i)
+      const nameMatch = block.match(/(?:Atas Nama \(a\.n\)|a\.n\.)[:\s]*(.+)/i)
+      
+      if (bankMatch && numMatch && nameMatch) {
+        const bank = bankMatch[1].trim()
+        const number = numMatch[1].trim()
+        const name = nameMatch[1].trim()
+        
+        if (bank && number && name) {
+          const key = `${bank.toLowerCase()}-${number.toLowerCase()}`
+          if (!uniqueSet.has(key)) {
+            uniqueSet.add(key)
+            accounts.push({ bank, number, name, invoiceNo: order.no })
+          }
+        }
+      }
+    })
+  })
+  
+  const existingKeys = new Set((store.site.bankAccounts || []).map(b => `${b.bank.toLowerCase()}-${b.number.toLowerCase()}`))
+  return accounts.filter(a => !existingKeys.has(`${a.bank.toLowerCase()}-${a.number.toLowerCase()}`))
+})
+
+const addFromInvoice = (b) => {
+  const accounts = store.site.bankAccounts || [];
+  store.site.bankAccounts = [...accounts, { bank: b.bank, number: b.number, name: b.name }];
+}
+
 const catalogEdit = computed(() => store.catalog.map((c, ci) => ({
   idx: ci, cat: c.cat, 
   onName: ev => { 
@@ -248,6 +308,7 @@ const saveSettings = () => {
     tagline: store.site.tagline,
     stats: store.site.stats,
     clients: store.site.clients,
+    bankAccounts: store.site.bankAccounts,
   })
 }
 
@@ -271,6 +332,7 @@ const saveCatalog = () => {
   <div class="p-mobile" style="padding:30px 32px;">
     <div style="display:inline-flex;flex-wrap:wrap;background:#fff;border:1px solid #e8e9ee;border-radius:12px;padding:5px;margin-bottom:22px;gap:4px;">
       <button @click="tabWebsite" class="tr-btn" :style="{ background: tabWebBg, color: tabWebColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-globe-hemisphere-west" style="font-size:16px;"></i>Konten Website</button>
+      <button @click="tabRekening" class="tr-btn" :style="{ background: tabRekBg, color: tabRekColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-bank" style="font-size:16px;"></i>Rekening Bank</button>
       <button @click="tabCatalog" class="tr-btn" :style="{ background: tabCatBg, color: tabCatColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-tag" style="font-size:16px;"></i>Kategori &amp; Vendor</button>
       <button @click="tabTestimoni" class="tr-btn" :style="{ background: tabTestBg, color: tabTestColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-quotes" style="font-size:16px;"></i>Testimoni</button>
       <button @click="tabProfile" class="tr-btn" :style="{ background: tabProfBg, color: tabProfColor, border:'none', borderRadius:'9px', cursor:'pointer', fontSize:'13.5px', fontWeight:'700', padding:'9px 18px', display:'flex', alignItems:'center', gap:'7px' }"><i class="ph ph-user-circle" style="font-size:16px;"></i>Profil Admin</button>
@@ -316,6 +378,67 @@ const saveCatalog = () => {
         </div>
       </div>
       <!-- Save website settings button -->
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;padding-top:4px;">
+        <button @click="saveSettings" :disabled="saveSettingsMut.isPending.value" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: saveSettingsMut.isPending.value ? 0.7 : 1 }">
+          <i v-if="saveSettingsMut.isPending.value" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
+          <i v-else class="ph ph-floppy-disk" style="font-size:16px;color:#c39a4d;"></i>
+          {{ saveSettingsMut.isPending.value ? 'Menyimpan...' : 'Simpan Pengaturan' }}
+        </button>
+      </div>
+    </div>
+
+    <div v-if="isTabRekening" style="display:flex;flex-direction:column;gap:18px;">
+      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap;">
+          <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0;display:flex;align-items:center;gap:9px;"><i class="ph ph-bank" style="color:#c39a4d;font-size:20px;"></i>Rekening Bank</h3>
+          <button @click="addBankAccount" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Rekening</button>
+        </div>
+        <p style="font-size:13px;color:#8a93a5;margin:0 0 14px;">Rekening bank yang akan ditampilkan secara otomatis pada invoice.</p>
+        <div v-for="(b, idx) in bankAccountsEdit" :key="'bank-' + idx" style="display:grid;grid-template-columns:1fr 1.5fr 1.5fr 40px;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #f1f2f5;">
+          <div>
+            <label style="display:block;font-size:11.5px;font-weight:600;color:#9aa0ad;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Bank</label>
+            <input :value="b.bank" @input="b.onBank" placeholder="cth. BCA" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;">
+          </div>
+          <div>
+            <label style="display:block;font-size:11.5px;font-weight:600;color:#9aa0ad;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Nomor Rekening</label>
+            <input :value="b.number" @input="b.onNumber" placeholder="cth. 1234-567-890" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;font-weight:600;">
+          </div>
+          <div>
+            <label style="display:block;font-size:11.5px;font-weight:600;color:#9aa0ad;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Atas Nama (a.n)</label>
+            <input :value="b.name" @input="b.onName" placeholder="cth. PT Tourosa Travel" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;">
+          </div>
+          <div style="padding-top:20px;">
+            <button @click="b.onRemove" class="tr-btn" style="background:none;border:none;cursor:pointer;color:#c2603a;padding:6px;display:flex;align-items:center;justify-content:center;width:100%;"><i class="ph ph-trash" style="font-size:18px;"></i></button>
+          </div>
+        </div>
+        <div v-if="!bankAccountsEdit.length" style="text-align:center;padding:24px 0;color:#9aa0ad;font-size:13px;">Belum ada data rekening.</div>
+        
+        <!-- Rekening dari Invoice Sebelumnya -->
+        <div v-if="invoiceBankAccounts.length > 0" style="margin-top:24px;border-top:1px dashed #d8dce4;padding-top:24px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <i class="ph ph-clock-counter-clockwise" style="color:#c39a4d;font-size:18px;"></i>
+            <h4 style="font-size:14px;font-weight:700;color:#13233f;margin:0;">Rekening dari Invoice Sebelumnya</h4>
+          </div>
+          <p style="font-size:12.5px;color:#8a93a5;margin:0 0 14px;">Ditemukan dari riwayat invoice. Klik '+' untuk menambahkan ke daftar utama di atas.</p>
+          <div v-for="(b, idx) in invoiceBankAccounts" :key="'inv-bank-' + idx" style="display:grid;grid-template-columns:1fr 1.5fr 1.5fr 40px;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #f1f2f5;">
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:600;color:#9aa0ad;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Bank</label>
+              <input :value="b.bank" readonly style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#f4f6fa;outline:none;cursor:default;">
+            </div>
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:600;color:#9aa0ad;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Nomor Rekening</label>
+              <input :value="b.number" readonly style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#f4f6fa;outline:none;font-family:'IBM Plex Mono',monospace;font-weight:600;cursor:default;">
+            </div>
+            <div>
+              <label style="display:block;font-size:11.5px;font-weight:600;color:#9aa0ad;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Atas Nama (a.n)</label>
+              <input :value="b.name" readonly style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#f4f6fa;outline:none;cursor:default;">
+            </div>
+            <div style="padding-top:20px;">
+              <button @click="addFromInvoice(b)" title="Tambahkan ke Rekening Utama" class="tr-btn" style="background:#eef3fb;border:1px solid #d6e1f2;cursor:pointer;color:#15294f;padding:6px;display:flex;align-items:center;justify-content:center;width:100%;border-radius:8px;"><i class="ph ph-plus" style="font-size:18px;"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;padding-top:4px;">
         <button @click="saveSettings" :disabled="saveSettingsMut.isPending.value" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;" :style="{ opacity: saveSettingsMut.isPending.value ? 0.7 : 1 }">
           <i v-if="saveSettingsMut.isPending.value" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>

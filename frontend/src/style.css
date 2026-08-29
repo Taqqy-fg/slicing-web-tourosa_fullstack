@@ -715,6 +715,19 @@ input.tr-datepicker[readonly] {
   background-color: #fdf5f3;
 }
 
+/* Compact datepicker inside termin rows */
+.term-datepicker-wrap .flatpickr-input,
+.term-datepicker-wrap .tr-datepicker,
+.term-datepicker-wrap .flatpickr-alt-input {
+  padding: 9px 11px 9px 32px;
+  border-radius: 8px;
+  font-size: 13px;
+  background-position: 10px center;
+  background-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* DateRangePicker overrides */
 .daterangepicker {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
@@ -778,8 +791,15 @@ input.tr-datepicker[readonly] {
   color: #15294f;
 }
 .daterangepicker .ranges li.active {
-  background: #15294f;
-  color: #fff;
+  background: #15294f !important;
+  color: #fff !important;
+}
+.daterangepicker td.start-date,
+.daterangepicker td.end-date,
+.daterangepicker td.start-date.end-date {
+  background: #15294f !important;
+  border-color: #15294f !important;
+  color: #fff !important;
 }
 .daterangepicker td.available:hover {
   background: #eef3fb;

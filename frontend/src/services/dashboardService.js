@@ -27,6 +27,15 @@ export const dashboardService = {
     },
 
     /**
+     * Record a term payment
+     */
+    async payOrderTerm({ invoiceNo, termId, formData }) {
+        return await apiClient.post(`/orders/${encodeURIComponent(invoiceNo)}/terms/${termId}/payments`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+
+    /**
      * Update an existing order (full: header fields, items, expenses, terms)
      * @param {{ invoiceNo: string, orderData: Object }} payload
      */

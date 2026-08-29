@@ -1,14 +1,69 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { dashboardService } from '../../../services/dashboardService'
 import { useDashboardStore } from '../../../stores/dashboardStore'
 import { useDashboardData } from '../../../composables/useDashboardData'
+import { useToast } from '../../../composables/useToast'
 import DatePicker from '../../DatePicker.vue'
 
 const store = useDashboardStore()
 const route = useRoute()
 const router = useRouter()
 const { fmt, fmtDate, calc, statusMeta } = useDashboardData()
+const toast = useToast()
+
+// Pay Modal Logic
+const showPayModal = ref(false)
+const payTermId = ref(null)
+const payForm = ref({ date: '', amount: 0, proof: null, comment: '' })
+const isPaying = ref(false)
+const openPayModal = (term) => {
+  if (!term.id) {
+    toast.error('Termin belum disimpan. Silakan simpan termin terlebih dahulu.')
+    return
+  }
+  payTermId.value = term.id
+  payForm.value = {
+    date: new Date().toISOString().split('T')[0],
+    amount: term.amountRaw || 0,
+    proof: null,
+    comment: ''
+  }
+  showPayModal.value = true
+}
+
+const payMut = useMutation({
+  mutationFn: dashboardService.payOrderTerm,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    showPayModal.value = false
+    toast.success('Pembayaran berhasil dicatat')
+  },
+  onError: () => {
+    toast.error('Gagal mencatat pembayaran')
+  }
+})
+
+const submitPayment = async () => {
+  if (!payTermId.value || !invoiceId.value) return
+  if (!payForm.value.amount || payForm.value.amount <= 0) {
+    toast.error('Nominal pembayaran tidak valid')
+    return
+  }
+  isPaying.value = true
+  const formData = new FormData()
+  formData.append('payment_date', payForm.value.date)
+  formData.append('amount', payForm.value.amount)
+  if (payForm.value.proof) formData.append('proof_file', payForm.value.proof)
+  if (payForm.value.comment) formData.append('comment', payForm.value.comment)
+  try {
+    await payMut.mutateAsync({ invoiceNo: invoiceId.value, termId: payTermId.value, formData })
+  } finally {
+    isPaying.value = false
+  }
+}
 
 watch(() => route.params.id, (id) => {
   const decoded = id ? decodeURIComponent(id) : null
@@ -66,7 +121,9 @@ const detailTerms = computed(() => {
   if (!store.activeInvoice) return []
   const o = store.activeInvoice; const c = calc(o);
   return (o.terms || []).map((tm, idx) => ({
-    idx, label: tm.label, percent: tm.percent, due: tm.due, dueF: tm.due ? fmtDate(tm.due) : '—',
+    idx, id: tm.id, label: tm.label, percent: tm.percent, due: tm.due, dueF: tm.due ? fmtDate(tm.due) : '—',
+    isPaid: tm.is_paid, paidAmountF: fmt(tm.paid_amount || 0),
+    amountRaw: c.grandTotal * (Number(tm.percent) || 0) / 100,
     amountF: fmt(c.grandTotal * (Number(tm.percent) || 0) / 100),
     onLabel: ev => { store.updateTerm(idx, 'label', ev.target.value) }, 
     onPercent: ev => { store.updateTerm(idx, 'percent', ev.target.value) }, 
@@ -88,6 +145,36 @@ const invoiceId = computed(() => store.activeInvoice?.no || (route.params.id ? d
 const goList = () => router.push('/orders')
 const goInvoiceFromDetail = () => router.push('/orders/invoice/' + encodeURIComponent(invoiceId.value))
 const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(invoiceId.value))
+
+const isSavingTerms = ref(false)
+const queryClient = useQueryClient()
+const saveOrderMut = useMutation({
+  mutationFn: dashboardService.updateOrder,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    toast.success('Termin berhasil disimpan')
+  },
+  onError: () => {
+    toast.error('Gagal menyimpan termin')
+  }
+})
+const saveTerms = async () => {
+  if (!store.activeInvoice || !invoiceId.value) return
+  isSavingTerms.value = true
+  const payload = {
+    terms: store.activeInvoice.terms.map(tm => ({
+      id: tm.id,
+      label: tm.label,
+      percent: Number(tm.percent) || 0,
+      due: tm.due || null
+    }))
+  }
+  try {
+    await saveOrderMut.mutateAsync({ invoiceNo: invoiceId.value, orderData: payload })
+  } finally {
+    isSavingTerms.value = false
+  }
+}
 </script>
 
 <template>
@@ -197,20 +284,30 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
     <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;">
       <div style="padding:24px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><i class="ph ph-list-numbers" style="color:#c39a4d;font-size:19px;"></i><h3 style="font-size:15px;font-weight:700;color:#13233f;margin:0;">Termin Pembayaran</h3><span style="font-size:11px;color:#9aa0ad;background:#f4f5f8;padding:4px 10px;border-radius:6px;">Split invoice — nominal dihitung dari grand total</span></div>
-        <button @click="addTerm" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Termin</button>
+        <div style="display:flex;gap:8px;">
+          <button @click="saveTerms" :disabled="isSavingTerms" class="tr-btn" style="background:#fff;color:#1f7a5c;border:1px solid #7ed3a6;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-floppy-disk" style="font-size:15px;"></i>Simpan Termin</button>
+          <button @click="addTerm" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Termin</button>
+        </div>
       </div>
       <div style="padding:14px 24px 10px;">
         <div class="table-scroll">
-          <div style="min-width: 550px;">
-            <div class="table-header-mobile" style="display:grid;grid-template-columns:1fr 150px 86px 140px 32px;gap:10px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">
-              <span>Keterangan Termin</span><span>Jatuh Tempo</span><span style="text-align:center;">%</span><span style="text-align:right;">Nominal</span><span></span>
+          <div style="min-width: 820px;">
+            <div class="table-header-mobile" style="display:grid;grid-template-columns:1fr 160px 80px 140px 90px 100px 32px;gap:16px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;align-items:center;">
+              <span>Keterangan Termin</span><span>Jatuh Tempo</span><span style="text-align:center;">%</span><span>Nominal</span><span style="text-align:left;">Status</span><span></span><span></span>
             </div>
-            <div v-for="(tm, idx) in detailTerms" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:1fr 150px 86px 140px 32px;gap:10px;align-items:center;padding:5px 2px;">
-              <input class="col-full-mobile" :value="tm.label" @input="tm.onLabel" placeholder="Keterangan (cth. DP)" style="width:100%;padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
-              <div class="col-half-mobile" style="min-width: 0;"><DatePicker :modelValue="tm.due" @update:modelValue="tm.onDue" placeholder="Pilih tanggal..." /></div>
-              <input class="col-half-mobile" :value="tm.percent" @input="tm.onPercent" type="number" placeholder="Persentase (%)" style="width:100%;padding:9px 9px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;text-align:center;font-family:'IBM Plex Mono',monospace;">
-              <span class="col-full-mobile text-right-mobile" style="font-size:13px;font-weight:700;color:#13233f;text-align:right;font-family:'IBM Plex Mono',monospace;">Rp: {{ tm.amountF }}</span>
-              <button class="del-btn-mobile tr-btn" @click="tm.onRemove" style="background:none;border:none;cursor:pointer;color:#c2603a;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:7px;"><i class="ph ph-trash" style="font-size:16px;"></i></button>
+            <div v-for="(tm, idx) in detailTerms" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:1fr 160px 80px 140px 90px 100px 32px;gap:16px;align-items:center;padding:5px 2px;">
+              <input class="col-full-mobile" :value="tm.label" @input="tm.onLabel" :disabled="tm.isPaid" placeholder="Keterangan (cth. DP)" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:8px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;box-sizing:border-box;" :style="{ opacity: tm.isPaid ? 0.7 : 1 }">
+              <div class="col-half-mobile term-datepicker-wrap" style="min-width:0;overflow:visible;" :style="{ opacity: tm.isPaid ? 0.7 : 1, pointerEvents: tm.isPaid ? 'none' : 'auto' }"><DatePicker :modelValue="tm.due" @update:modelValue="tm.onDue" placeholder="Pilih tanggal..." /></div>
+              <input class="col-half-mobile" :value="tm.percent" @input="tm.onPercent" :disabled="tm.isPaid" type="number" placeholder="%" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:8px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;text-align:center;font-family:'IBM Plex Mono',monospace;box-sizing:border-box;" :style="{ opacity: tm.isPaid ? 0.7 : 1 }">
+              <span class="col-full-mobile" style="font-size:13.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ tm.amountF }}</span>
+              <span style="text-align:left;">
+                <span v-if="tm.isPaid" style="font-size:11.5px;font-weight:700;color:#1f7a5c;background:#e5f5ed;padding:5px 10px;border-radius:6px;">Lunas</span>
+                <span v-else style="font-size:11.5px;font-weight:700;color:#c2603a;background:#fcefed;padding:5px 10px;border-radius:6px;">Belum</span>
+              </span>
+              <button v-if="!tm.isPaid" @click="openPayModal(tm)" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:8px 16px;border-radius:6px;cursor:pointer;white-space:nowrap;width:100%;">Bayar</button>
+              <div v-else></div>
+              <button v-if="!tm.isPaid" class="del-btn-mobile tr-btn" @click="tm.onRemove" style="background:none;border:none;cursor:pointer;color:#c2603a;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:7px;"><i class="ph ph-trash" style="font-size:17px;"></i></button>
+              <div v-else></div>
             </div>
           </div>
         </div>
@@ -218,6 +315,41 @@ const goEditFromDetail = () => router.push('/orders/edit/' + encodeURIComponent(
           <span style="font-size:12.5px;color:#5d6a82;">Total teralokasi <span style="font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ termSummary.totalPctF }}</span> · sisa <span style="font-weight:700;color:#c2603a;font-family:'IBM Plex Mono',monospace;">{{ termSummary.remPctF }}</span></span>
           <span style="font-size:14px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ termSummary.totalAmtF }}</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Bayar Termin -->
+  <div v-if="showPayModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(19,35,63,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px);">
+    <div style="background:#fff;width:100%;max-width:400px;border-radius:18px;box-shadow:0 12px 36px rgba(0,0,0,0.15);overflow:hidden;animation:modalIn 0.2s cubic-bezier(0.16,1,0.3,1);">
+      <div style="padding:22px 26px;border-bottom:1px solid #f0f2f5;display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:0;font-size:17px;font-weight:800;color:#13233f;letter-spacing:-0.01em;">Catat Pembayaran</h3>
+        <button @click="showPayModal = false" style="background:none;border:none;font-size:20px;color:#9aa0ad;cursor:pointer;padding:0;display:flex;"><i class="ph ph-x"></i></button>
+      </div>
+      <div style="padding:24px 26px;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#5d6a82;margin-bottom:6px;">Tanggal Bayar <span style="color:#c2603a;">*</span></label>
+          <input type="date" v-model="payForm.date" style="width:100%;padding:10px 14px;border:1px solid #d8dce4;border-radius:10px;font-size:14px;color:#13233f;outline:none;" required>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#5d6a82;margin-bottom:6px;">Nominal (Rp) <span style="color:#c2603a;">*</span></label>
+          <input type="number" v-model="payForm.amount" style="width:100%;padding:10px 14px;border:1px solid #d8dce4;border-radius:10px;font-size:14px;color:#13233f;font-family:'IBM Plex Mono',monospace;outline:none;" required>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#5d6a82;margin-bottom:6px;">Bukti Transfer / Dokumen</label>
+          <input type="file" @change="e => payForm.proof = e.target.files[0]" style="width:100%;font-size:13px;color:#5d6a82;" accept=".jpg,.jpeg,.png,.pdf">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#5d6a82;margin-bottom:6px;">Catatan (Opsional)</label>
+          <textarea v-model="payForm.comment" rows="2" placeholder="Cth: Transfer via BCA" style="width:100%;padding:10px 14px;border:1px solid #d8dce4;border-radius:10px;font-size:14px;color:#13233f;outline:none;resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div style="padding:20px 26px;border-top:1px solid #f0f2f5;display:flex;justify-content:flex-end;gap:10px;background:#fafbfc;">
+        <button @click="showPayModal = false" :disabled="isPaying" style="padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;color:#5d6a82;background:#fff;border:1px solid #d6e1f2;cursor:pointer;">Batal</button>
+        <button @click="submitPayment" :disabled="isPaying" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;color:#fff;background:#15294f;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
+          <i v-if="isPaying" class="ph ph-spinner ph-spin"></i>
+          <span>Simpan Pembayaran</span>
+        </button>
       </div>
     </div>
   </div>

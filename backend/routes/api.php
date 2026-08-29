@@ -33,6 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/orders/{invoice_no}', [DashboardController::class, 'destroy'])
         ->where('invoice_no', '.*')
         ->middleware('permission:orders.delete');
+    Route::post('/orders/{invoice_no}/terms/{term_id}/payments', [DashboardController::class, 'storeTermPayment'])
+        ->where('invoice_no', '.*')
+        ->middleware('permission:orders.payment');
     Route::post('/orders/{invoice_no}/payments', [DashboardController::class, 'storePayment'])
         ->where('invoice_no', '.*')
         ->middleware('permission:orders.payment');

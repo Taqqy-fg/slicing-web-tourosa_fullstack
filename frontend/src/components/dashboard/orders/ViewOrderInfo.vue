@@ -22,7 +22,6 @@ const { data: infoData, isLoading } = useQuery({
 const rawData = computed(() =>
   (infoData.value ?? []).map(i => ({
     id:          i.id,
-    invoice_no:  i.invoice_no  || '-',
     group_name:  i.group_name  || '-',
     pic_name:    i.pic_name    || '-',
     contact_info:i.contact_info|| '-',
@@ -65,7 +64,7 @@ const table = useVueTable({
   globalFilterFn: (row, _col, val) => {
     const s = String(val).toLowerCase()
     const o = row.original
-    return [o.group_name, o.pic_name, o.contact_info, o.email, o.invoice_no]
+    return [o.group_name, o.pic_name, o.contact_info, o.email]
       .some(f => String(f).toLowerCase().includes(s))
   },
 })
@@ -256,11 +255,6 @@ const doDelete = () => {
               <!-- Email -->
               <td style="padding:15px 20px;">
                 <span style="font-size:12.5px;color:#5d6a82;">{{ row.original.email }}</span>
-              </td>
-              <!-- No. Invoice -->
-              <td style="padding:15px 20px;">
-                <span v-if="row.original.invoice_no !== '-'" style="font-size:12px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;background:#f0f1f5;padding:3px 8px;border-radius:6px;">{{ row.original.invoice_no }}</span>
-                <span v-else style="font-size:12.5px;color:#c2c8d4;">—</span>
               </td>
               <!-- Tanggal -->
               <td style="padding:15px 20px;">
