@@ -39,7 +39,6 @@ const columns = [
   { accessorKey: 'pic_name',     header: 'PIC / Penanggung Jawab', enableSorting: true  },
   { accessorKey: 'contact_info', header: 'No. HP / WhatsApp',      enableSorting: false },
   { accessorKey: 'email',        header: 'Email',                   enableSorting: false },
-  { accessorKey: 'created_at',   header: 'Tanggal',                 enableSorting: true  },
 ]
 
 const search  = ref('')
@@ -232,7 +231,7 @@ const doDelete = () => {
           </thead>
           <tbody>
             <tr v-if="!table.getRowModel().rows.length">
-              <td colspan="7" style="padding:50px;text-align:center;color:#9aa0ad;font-size:14px;">
+              <td colspan="6" style="padding:50px;text-align:center;color:#9aa0ad;font-size:14px;">
                 <i class="ph ph-magnifying-glass" style="font-size:32px;display:block;margin-bottom:8px;color:#c2c8d4;"></i>
                 Belum ada data informasi pesanan.
               </td>
@@ -255,10 +254,6 @@ const doDelete = () => {
               <!-- Email -->
               <td style="padding:15px 20px;">
                 <span style="font-size:12.5px;color:#5d6a82;">{{ row.original.email }}</span>
-              </td>
-              <!-- Tanggal -->
-              <td style="padding:15px 20px;">
-                <span style="font-size:12.5px;color:#5d6a82;">{{ row.original.created_at }}</span>
               </td>
               <!-- Aksi -->
               <td style="padding:15px 20px;text-align:right;">
