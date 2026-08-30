@@ -580,7 +580,7 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
                 <button @click="toggleDiscountType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-right:none;border-radius:9px 0 0 9px;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.discountType }}</button>
                 <input :value="discountFmt" @input="onDiscount" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:0 9px 9px 0;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
               </div>
-              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:right;">*Klik Rp/% untuk ubah tipe</div>
+              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:left;">*Klik Rp/% untuk ubah tipe</div>
             </div>
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Service Fee</label>
@@ -588,7 +588,7 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
                 <button @click="toggleServiceFeeType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-right:none;border-radius:9px 0 0 9px;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.serviceFeeType }}</button>
                 <input :value="serviceFeeFmt" @input="onServiceFee" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:0 9px 9px 0;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
               </div>
-              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:right;">*Klik Rp/% untuk ubah tipe</div>
+              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:left;">*Klik Rp/% untuk ubah tipe</div>
             </div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="11" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
             <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>

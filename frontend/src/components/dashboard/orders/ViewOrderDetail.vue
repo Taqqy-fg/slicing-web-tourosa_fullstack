@@ -367,23 +367,23 @@ const saveTerms = async () => {
           Belum ada termin. Klik <b>Tambah Termin</b> untuk membuat jadwal pembayaran.
         </div>
         <div v-else class="table-scroll">
-          <div style="min-width: 820px;">
-            <div class="table-header-mobile" style="display:grid;grid-template-columns:1fr 160px 80px 140px 90px 100px 32px;gap:16px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;align-items:center;">
-              <span>Keterangan Termin</span><span>Jatuh Tempo</span><span style="text-align:center;">%</span><span>Nominal</span><span style="text-align:left;">Status</span><span></span><span></span>
+          <div style="min-width: 760px;">
+            <div class="table-header-mobile" style="display:grid;grid-template-columns:minmax(140px,1fr) 150px 70px 130px 118px 88px 34px;gap:10px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;align-items:center;">
+              <span>Keterangan Termin</span><span>Jatuh Tempo</span><span style="text-align:center;">%</span><span>Nominal</span><span style="text-align:center;">Status</span><span style="text-align:right;">Aksi</span><span></span>
             </div>
-            <div v-for="(tm, idx) in detailTerms" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:1fr 160px 80px 140px 90px 100px 32px;gap:16px;align-items:center;padding:5px 2px;">
+            <div v-for="(tm, idx) in detailTerms" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:minmax(140px,1fr) 150px 70px 130px 118px 88px 34px;gap:10px;align-items:center;padding:5px 2px;">
               <div style="display:flex;align-items:center;gap:8px;min-width:0;">
                 <i v-if="tm.isPaid" class="ph ph-lock-simple" style="color:#1f7a5c;font-size:15px;flex-shrink:0;"></i>
-                <input class="col-full-mobile" :value="tm.label" @input="tm.onLabel" :disabled="tm.isPaid" placeholder="Keterangan (cth. DP)" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:8px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;box-sizing:border-box;min-width:0;" :style="{ opacity: tm.isPaid ? 0.6 : 1, background: tm.isPaid ? '#f4f6f9' : '#fff' }">
+                <input class="col-full-mobile" :value="tm.label" @input="tm.onLabel" :disabled="tm.isPaid" placeholder="Keterangan (cth. DP)" style="width:100%;padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;box-sizing:border-box;min-width:0;" :style="{ opacity: tm.isPaid ? 0.6 : 1, background: tm.isPaid ? '#f4f6f9' : '#fff' }">
               </div>
               <div class="col-half-mobile term-datepicker-wrap" style="min-width:0;overflow:visible;" :style="{ opacity: tm.isPaid ? 0.6 : 1, pointerEvents: tm.isPaid ? 'none' : 'auto' }"><DatePicker :modelValue="tm.due" @update:modelValue="tm.onDue" placeholder="Pilih tanggal..." /></div>
-              <input class="col-half-mobile" :value="tm.percent" @input="tm.onPercent" :disabled="tm.isPaid" type="number" placeholder="%" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:8px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;text-align:center;font-family:'IBM Plex Mono',monospace;box-sizing:border-box;" :style="{ opacity: tm.isPaid ? 0.6 : 1, background: tm.isPaid ? '#f4f6f9' : '#fff' }">
-              <span class="col-full-mobile" style="font-size:13.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ tm.amountF }}</span>
-              <span style="text-align:left;">
-                <span v-if="tm.isPaid" style="font-size:11.5px;font-weight:700;color:#1f7a5c;background:#e5f5ed;padding:5px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;"><i class="ph ph-lock-simple" style="font-size:12px;"></i>Lunas &amp; Terkunci</span>
-                <span v-else style="font-size:11.5px;font-weight:700;color:#c2603a;background:#fcefed;padding:5px 10px;border-radius:6px;">Belum Dibayar</span>
+              <input class="col-half-mobile" :value="tm.percent" @input="tm.onPercent" :disabled="tm.isPaid" type="number" placeholder="%" style="width:100%;padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;text-align:center;font-family:'IBM Plex Mono',monospace;box-sizing:border-box;" :style="{ opacity: tm.isPaid ? 0.6 : 1, background: tm.isPaid ? '#f4f6f9' : '#fff' }">
+              <span class="col-full-mobile" style="font-size:13px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ tm.amountF }}</span>
+              <span style="text-align:left;display:flex;align-items:center;">
+                <span v-if="tm.isPaid" style="font-size:11px;font-weight:700;color:#1f7a5c;background:#e5f5ed;padding:4px 8px;border-radius:6px;white-space:nowrap;">Lunas</span>
+                <span v-else style="font-size:11px;font-weight:700;color:#c2603a;background:#fcefed;padding:4px 8px;border-radius:6px;white-space:nowrap;">Blm Dibayar</span>
               </span>
-              <button v-if="!tm.isPaid" @click="openPayModal(tm)" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:8px 16px;border-radius:6px;cursor:pointer;white-space:nowrap;width:100%;">Bayar</button>
+              <button v-if="!tm.isPaid" @click="openPayModal(tm)" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;width:100%;">Bayar</button>
               <div v-else style="text-align:center;color:#9aa0ad;font-size:12px;">—</div>
               <button v-if="!tm.isPaid" class="del-btn-mobile tr-btn" @click="tm.onRemove" style="background:none;border:none;cursor:pointer;color:#c2603a;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:7px;"><i class="ph ph-trash" style="font-size:17px;"></i></button>
               <div v-else style="text-align:center;color:#9aa0ad;font-size:12px;">—</div>
@@ -450,7 +450,7 @@ const saveTerms = async () => {
         <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1.2fr;gap:14px;">
           <div>
             <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Pembayaran <span style="color:#c2603a;">*</span></label>
-            <input type="date" v-model="payForm.date" :max="new Date().toISOString().split('T')[0]" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#13233f;background:#fff;outline:none;" required>
+            <DatePicker v-model="payForm.date" placeholder="Pilih tanggal..." />
           </div>
           <div>
             <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nominal Bayar (Rp) <span style="color:#c2603a;">*</span></label>
