@@ -738,6 +738,15 @@ input.tr-datepicker[readonly] {
 .daterangepicker .ranges li {
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
 }
+.daterangepicker .ranges li:first-child {
+  border-radius: 9px 9px 0 0;
+}
+.daterangepicker.is-custom .ranges li:first-child {
+  border-radius: 0;
+}
+.daterangepicker .ranges ul {
+  padding: 6px;
+}
 
 /* Footer buttons (Terapkan / Clear) */
 .daterangepicker .drp-buttons {
