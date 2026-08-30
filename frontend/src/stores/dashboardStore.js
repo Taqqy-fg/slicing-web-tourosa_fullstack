@@ -110,7 +110,9 @@ export const useDashboardStore = defineStore('dashboard', {
         addTermToInvoice() {
             if (this.activeInvoice) {
                 if (!this.activeInvoice.terms) this.activeInvoice.terms = [];
-                this.activeInvoice.terms.push({ label: '', percent: 0, due: '' });
+                const allocated = (this.activeInvoice.terms || []).reduce((a, tm) => a + (Number(tm.percent) || 0), 0)
+                const remaining = Math.max(0, 100 - allocated)
+                this.activeInvoice.terms.push({ label: '', percent: remaining, due: '' })
             }
         },
         removeTermFromInvoice(idx) {
@@ -120,6 +122,11 @@ export const useDashboardStore = defineStore('dashboard', {
         },
         updateTerm(idx, field, val) {
             if (this.activeInvoice && this.activeInvoice.terms) {
+                if (field === 'percent') {
+                    const others = (this.activeInvoice.terms || []).reduce((a, tm, i) => a + (i === idx ? 0 : (Number(tm.percent) || 0)), 0)
+                    const maxAllowed = Math.max(0, 100 - others)
+                    val = Math.min(Number(val) || 0, maxAllowed)
+                }
                 this.activeInvoice.terms[idx][field] = val;
             }
         },
@@ -190,6 +197,19 @@ export const useDashboardStore = defineStore('dashboard', {
             if (this.editForm) {
                 this.editForm.items[idx][field] = val;
             }
+        },
+        syncActiveInvoiceFromOrders() {
+            if (this.activeInvoice && this.orders && this.orders.length) {
+                const match = this.orders.find(o => o.no === this.activeInvoice.no)
+                if (match) {
+                    const cloned = JSON.parse(JSON.stringify(match));
+                    if (!cloned.expenses) cloned.expenses = [];
+                    if (!cloned.terms) cloned.terms = [];
+                    this.activeInvoice = cloned;
+                    return true
+                }
+            }
+            return false
         },
         findOrderById(id) {
             const match = this.orders.find(o => o.no === id)

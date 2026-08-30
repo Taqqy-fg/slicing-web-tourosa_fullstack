@@ -30,7 +30,7 @@ export const dashboardService = {
      * Record a term payment
      */
     async payOrderTerm({ invoiceNo, termId, formData }) {
-        return await apiClient.post(`/orders/${encodeURIComponent(invoiceNo)}/terms/${termId}/payments`, formData, {
+        return await apiClient.post(`/orders/${decodeURIComponent(invoiceNo)}/terms/${termId}/payments`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
     },
@@ -40,7 +40,7 @@ export const dashboardService = {
      * @param {{ invoiceNo: string, orderData: Object }} payload
      */
     async updateOrder({ invoiceNo, orderData }) {
-        return await apiClient.put(`/orders/${encodeURIComponent(invoiceNo)}`, orderData);
+        return await apiClient.put(`/orders/${decodeURIComponent(invoiceNo)}`, orderData);
     },
 
     /**
@@ -48,7 +48,7 @@ export const dashboardService = {
      * @param {string} invoiceNo
      */
     async deleteOrder(invoiceNo) {
-        return await apiClient.delete(`/orders/${encodeURIComponent(invoiceNo)}`);
+        return await apiClient.delete(`/orders/${decodeURIComponent(invoiceNo)}`);
     },
 
     /**
@@ -57,7 +57,7 @@ export const dashboardService = {
      * @param {{ invoiceNo: string, formData: FormData }} payload
      */
     async createOrderPayment({ invoiceNo, formData }) {
-        return await apiClient.post(`/orders/${encodeURIComponent(invoiceNo)}/payments`, formData, {
+        return await apiClient.post(`/orders/${decodeURIComponent(invoiceNo)}/payments`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
     },

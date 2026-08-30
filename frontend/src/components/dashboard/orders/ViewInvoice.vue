@@ -65,9 +65,13 @@ const siteEmail = computed(() => props.site?.email || store.site.email)
 const waDisplay = computed(() => props.site?.waNumber || store.site.waNumber)
 const goNew = () => router.push('/orders/new')
 const goOrderList = () => router.push('/orders')
-const goOrderDetail = () => router.push('/orders/detail/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
-const goEditOrder = () => router.push('/orders/edit/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
-const backFromInvoice = () => router.push('/orders/detail/' + encodeURIComponent(store.activeInvoice?.no || route.params.id))
+const currentInvoiceNo = () => {
+  const raw = store.activeInvoice?.no || route.params.id || ''
+  try { return decodeURIComponent(raw) } catch { return raw }
+}
+const goOrderDetail = () => router.push('/orders/detail/' + encodeURIComponent(currentInvoiceNo()))
+const goEditOrder = () => router.push('/orders/edit/' + encodeURIComponent(currentInvoiceNo()))
+const backFromInvoice = () => router.push('/orders/detail/' + encodeURIComponent(currentInvoiceNo()))
 const doPrint = () => window.print()
 </script>
 <template>

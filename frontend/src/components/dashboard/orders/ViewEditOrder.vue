@@ -24,7 +24,10 @@ const toast = useToast()
 
 const catalog = computed(() => props.catalog ?? store.catalog)
 const ef = computed(() => store.editForm)
-const invoiceNo = computed(() => store.editInvoiceNo || route.params.id)
+const invoiceNo = computed(() => {
+  const v = store.editInvoiceNo || route.params.id
+  try { return v ? decodeURIComponent(v) : '' } catch { return v || '' }
+})
 
 watch(() => route.params.id, (id) => {
   const decoded = id ? decodeURIComponent(id) : null

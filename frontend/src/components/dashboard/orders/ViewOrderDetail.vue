@@ -36,8 +36,9 @@ const openPayModal = (term) => {
 
 const payMut = useMutation({
   mutationFn: dashboardService.payOrderTerm,
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    store.syncActiveInvoiceFromOrders()
     showPayModal.value = false
     toast.success('Pembayaran berhasil dicatat')
   },
@@ -150,8 +151,9 @@ const isSavingTerms = ref(false)
 const queryClient = useQueryClient()
 const saveOrderMut = useMutation({
   mutationFn: dashboardService.updateOrder,
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    store.syncActiveInvoiceFromOrders()
     toast.success('Termin berhasil disimpan')
   },
   onError: () => {
@@ -161,13 +163,16 @@ const saveOrderMut = useMutation({
 const saveTerms = async () => {
   if (!store.activeInvoice || !invoiceId.value) return
   isSavingTerms.value = true
+  // Termin yang sudah lunas dikunci penuh: tidak ikut dikirim/ubah ke backend.
   const payload = {
-    terms: store.activeInvoice.terms.map(tm => ({
-      id: tm.id,
-      label: tm.label,
-      percent: Number(tm.percent) || 0,
-      due: tm.due || null
-    }))
+    terms: (store.activeInvoice.terms || [])
+      .filter(tm => !tm.is_paid)
+      .map(tm => ({
+        id: tm.id || undefined,
+        label: tm.label || '',
+        percent: Number(tm.percent) || 0,
+        due: tm.due || null
+      }))
   }
   try {
     await saveOrderMut.mutateAsync({ invoiceNo: invoiceId.value, orderData: payload })
@@ -283,36 +288,43 @@ const saveTerms = async () => {
     <!-- termin pembayaran / split invoice -->
     <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;">
       <div style="padding:24px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><i class="ph ph-list-numbers" style="color:#c39a4d;font-size:19px;"></i><h3 style="font-size:15px;font-weight:700;color:#13233f;margin:0;">Termin Pembayaran</h3><span style="font-size:11px;color:#9aa0ad;background:#f4f5f8;padding:4px 10px;border-radius:6px;">Split invoice — nominal dihitung dari grand total</span></div>
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><i class="ph ph-list-numbers" style="color:#c39a4d;font-size:19px;"></i><h3 style="font-size:15px;font-weight:700;color:#13233f;margin:0;">Termin Pembayaran</h3><span style="font-size:11px;color:#9aa0ad;background:#f4f5f8;padding:4px 10px;border-radius:6px;">Nominal dihitung dari grand total</span></div>
         <div style="display:flex;gap:8px;">
           <button @click="saveTerms" :disabled="isSavingTerms" class="tr-btn" style="background:#fff;color:#1f7a5c;border:1px solid #7ed3a6;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-floppy-disk" style="font-size:15px;"></i>Simpan Termin</button>
-          <button @click="addTerm" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Termin</button>
+          <button @click="addTerm" :disabled="isSavingTerms" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Termin</button>
         </div>
       </div>
       <div style="padding:14px 24px 10px;">
-        <div class="table-scroll">
+        <div v-if="(detailTerms || []).length === 0" style="text-align:center;padding:30px 12px;color:#9aa0ad;font-size:13px;">
+          <i class="ph ph-list-numbers" style="font-size:22px;display:block;margin-bottom:8px;"></i>
+          Belum ada termin. Klik <b>Tambah Termin</b> untuk membuat jadwal pembayaran.
+        </div>
+        <div v-else class="table-scroll">
           <div style="min-width: 820px;">
             <div class="table-header-mobile" style="display:grid;grid-template-columns:1fr 160px 80px 140px 90px 100px 32px;gap:16px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;align-items:center;">
               <span>Keterangan Termin</span><span>Jatuh Tempo</span><span style="text-align:center;">%</span><span>Nominal</span><span style="text-align:left;">Status</span><span></span><span></span>
             </div>
             <div v-for="(tm, idx) in detailTerms" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:1fr 160px 80px 140px 90px 100px 32px;gap:16px;align-items:center;padding:5px 2px;">
-              <input class="col-full-mobile" :value="tm.label" @input="tm.onLabel" :disabled="tm.isPaid" placeholder="Keterangan (cth. DP)" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:8px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;box-sizing:border-box;" :style="{ opacity: tm.isPaid ? 0.7 : 1 }">
-              <div class="col-half-mobile term-datepicker-wrap" style="min-width:0;overflow:visible;" :style="{ opacity: tm.isPaid ? 0.7 : 1, pointerEvents: tm.isPaid ? 'none' : 'auto' }"><DatePicker :modelValue="tm.due" @update:modelValue="tm.onDue" placeholder="Pilih tanggal..." /></div>
-              <input class="col-half-mobile" :value="tm.percent" @input="tm.onPercent" :disabled="tm.isPaid" type="number" placeholder="%" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:8px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;text-align:center;font-family:'IBM Plex Mono',monospace;box-sizing:border-box;" :style="{ opacity: tm.isPaid ? 0.7 : 1 }">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                <i v-if="tm.isPaid" class="ph ph-lock-simple" style="color:#1f7a5c;font-size:15px;flex-shrink:0;"></i>
+                <input class="col-full-mobile" :value="tm.label" @input="tm.onLabel" :disabled="tm.isPaid" placeholder="Keterangan (cth. DP)" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:8px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;box-sizing:border-box;min-width:0;" :style="{ opacity: tm.isPaid ? 0.6 : 1, background: tm.isPaid ? '#f4f6f9' : '#fff' }">
+              </div>
+              <div class="col-half-mobile term-datepicker-wrap" style="min-width:0;overflow:visible;" :style="{ opacity: tm.isPaid ? 0.6 : 1, pointerEvents: tm.isPaid ? 'none' : 'auto' }"><DatePicker :modelValue="tm.due" @update:modelValue="tm.onDue" placeholder="Pilih tanggal..." /></div>
+              <input class="col-half-mobile" :value="tm.percent" @input="tm.onPercent" :disabled="tm.isPaid" type="number" placeholder="%" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:8px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;text-align:center;font-family:'IBM Plex Mono',monospace;box-sizing:border-box;" :style="{ opacity: tm.isPaid ? 0.6 : 1, background: tm.isPaid ? '#f4f6f9' : '#fff' }">
               <span class="col-full-mobile" style="font-size:13.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ tm.amountF }}</span>
               <span style="text-align:left;">
-                <span v-if="tm.isPaid" style="font-size:11.5px;font-weight:700;color:#1f7a5c;background:#e5f5ed;padding:5px 10px;border-radius:6px;">Lunas</span>
-                <span v-else style="font-size:11.5px;font-weight:700;color:#c2603a;background:#fcefed;padding:5px 10px;border-radius:6px;">Belum</span>
+                <span v-if="tm.isPaid" style="font-size:11.5px;font-weight:700;color:#1f7a5c;background:#e5f5ed;padding:5px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;"><i class="ph ph-lock-simple" style="font-size:12px;"></i>Lunas &amp; Terkunci</span>
+                <span v-else style="font-size:11.5px;font-weight:700;color:#c2603a;background:#fcefed;padding:5px 10px;border-radius:6px;">Belum Dibayar</span>
               </span>
               <button v-if="!tm.isPaid" @click="openPayModal(tm)" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:8px 16px;border-radius:6px;cursor:pointer;white-space:nowrap;width:100%;">Bayar</button>
-              <div v-else></div>
+              <div v-else style="text-align:center;color:#9aa0ad;font-size:12px;">—</div>
               <button v-if="!tm.isPaid" class="del-btn-mobile tr-btn" @click="tm.onRemove" style="background:none;border:none;cursor:pointer;color:#c2603a;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:7px;"><i class="ph ph-trash" style="font-size:17px;"></i></button>
-              <div v-else></div>
+              <div v-else style="text-align:center;color:#9aa0ad;font-size:12px;">—</div>
             </div>
           </div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 2px 6px;margin-top:4px;border-top:1px solid #f1f2f5;">
-          <span style="font-size:12.5px;color:#5d6a82;">Total teralokasi <span style="font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ termSummary.totalPctF }}</span> · sisa <span style="font-weight:700;color:#c2603a;font-family:'IBM Plex Mono',monospace;">{{ termSummary.remPctF }}</span></span>
+          <span style="font-size:12.5px;color:#5d6a82;">Total teralokasi <span style="font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ termSummary.totalPctF }}</span> · sisa <span v-if="termSummary.ok" style="font-weight:700;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;">{{ termSummary.remPctF }} <i class="ph ph-check-circle" style="font-size:12px;"></i></span><span v-else style="font-weight:700;color:#c2603a;font-family:'IBM Plex Mono',monospace;">{{ termSummary.remPctF }}</span></span>
           <span style="font-size:14px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ termSummary.totalAmtF }}</span>
         </div>
       </div>

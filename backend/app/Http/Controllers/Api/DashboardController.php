@@ -409,6 +409,12 @@ class DashboardController extends Controller
             $existingTermIds = [];
             foreach (($data['terms'] ?? []) as $term) {
                 if (!empty($term['id'])) {
+                    $existing = $order->terms()->find($term['id']);
+                    // Termin yang sudah lunas wajib terkunci: tidak boleh diubah/ulang.
+                    if ($existing && $existing->is_paid) {
+                        $existingTermIds[] = $existing->id;
+                        continue;
+                    }
                     $order->terms()->where('id', $term['id'])->update([
                         'label'      => $term['label'] ?? '',
                         'percent'    => $term['percent'] ?? 0,
@@ -428,7 +434,8 @@ class DashboardController extends Controller
                 }
             }
             foreach ($order->terms as $term) {
-                if (!in_array($term->id, $existingTermIds)) {
+                // Termin yang sudah lunas tidak boleh ikut terhapus.
+                if (!in_array($term->id, $existingTermIds) && !$term->is_paid) {
                     $term->update(['deleted_by' => $userId]);
                     $term->delete();
                 }
@@ -489,7 +496,7 @@ class DashboardController extends Controller
     public function storeTermPayment(Request $request, $invoice_no, $term_id)
     {
         $userId = $request->user()->id;
-        $order = Order::with(['terms'])->where('invoice_no', $invoice_no)->firstOrFail();
+        $order = Order::with(['items', 'terms'])->where('invoice_no', $invoice_no)->firstOrFail();
         $term = $order->terms()->findOrFail($term_id);
 
         $data = $request->validate([
