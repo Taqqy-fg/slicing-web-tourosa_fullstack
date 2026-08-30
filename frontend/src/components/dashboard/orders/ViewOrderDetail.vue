@@ -11,7 +11,7 @@ import DatePicker from '../../DatePicker.vue'
 const store = useDashboardStore()
 const route = useRoute()
 const router = useRouter()
-const { fmt, fmtDate, calc, statusMeta } = useDashboardData()
+const { fmt, fmtNum, parseNum, fmtDate, calc, statusMeta } = useDashboardData()
 const toast = useToast()
 
 // Pay Modal Logic
@@ -19,6 +19,43 @@ const showPayModal = ref(false)
 const payTermId = ref(null)
 const payForm = ref({ date: '', amount: 0, proof: null, comment: '' })
 const isPaying = ref(false)
+const dragOver = ref(false)
+const fileInputRef = ref(null)
+const payTarget = computed(() => {
+  if (!store.activeInvoice || !payTermId.value) return null
+  return (store.activeInvoice.terms || []).find(t => t.id === payTermId.value) || null
+})
+const payCalc = computed(() => {
+  const o = store.activeInvoice
+  const c = o ? calc(o) : {}
+  const t = payTarget.value
+  const grandTotal = c.grandTotal || 0
+  const termNominal = t ? grandTotal * (Number(t.percent) || 0) / 100 : 0
+  const termPaid = t ? (Number(t.paid_amount) || 0) : 0
+  const termSisa = Math.max(0, termNominal - termPaid)
+  return { grandTotal, paid: termPaid, sisa: termSisa, termNominal, termPaid, termSisa }
+})
+const payProof = computed(() => payForm.value.proof || null)
+const proofPreviewUrl = computed(() => {
+  if (!payProof.value) return null
+  if (typeof payProof.value === 'string') return payProof.value
+  try { return URL.createObjectURL(payProof.value) } catch { return null }
+})
+const payAmountFmt = computed(() => payForm.value.amount ? fmtNum(payForm.value.amount) : '')
+const onPayAmount = (e) => {
+  payForm.value.amount = parseNum(e.target.value)
+}
+const sisaAfterPay = computed(() => Math.max(0, (payCalc.value.sisa || 0) - (Number(payForm.value.amount) || 0)))
+const willLunas = computed(() => (Number(payForm.value.amount) || 0) >= (payCalc.value.sisa || 0) && (payCalc.value.sisa || 0) > 0)
+const fillSisa = () => {
+  payForm.value.amount = payCalc.value.sisa || 0
+}
+const fmtBytes = (bytes) => {
+  const b = Number(bytes) || 0
+  if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB'
+  if (b >= 1024) return (b / 1024).toFixed(0) + ' KB'
+  return b + ' B'
+}
 const openPayModal = (term) => {
   if (!term.id) {
     toast.error('Termin belum disimpan. Silakan simpan termin terlebih dahulu.')
@@ -27,11 +64,33 @@ const openPayModal = (term) => {
   payTermId.value = term.id
   payForm.value = {
     date: new Date().toISOString().split('T')[0],
-    amount: term.amountRaw || 0,
+    amount: payCalc.value.sisa || 0,
     proof: null,
     comment: ''
   }
   showPayModal.value = true
+}
+const cancelPay = () => {
+  showPayModal.value = false
+  payTermId.value = null
+  payForm.value = { date: '', amount: 0, proof: null, comment: '' }
+  dragOver.value = false
+}
+const onDropFile = (e) => {
+  dragOver.value = false
+  const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]
+  if (file) payForm.value.proof = file
+}
+const onPickFile = (e) => {
+  const file = e.target.files && e.target.files[0] || null
+  if (file) payForm.value.proof = file
+}
+const removeProof = () => {
+  payForm.value.proof = null
+  if (fileInputRef.value) fileInputRef.value.value = ''
+}
+const triggerFilePick = () => {
+  if (fileInputRef.value) fileInputRef.value.click()
 }
 
 const payMut = useMutation({
@@ -39,7 +98,7 @@ const payMut = useMutation({
   onSuccess: async () => {
     await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     store.syncActiveInvoiceFromOrders()
-    showPayModal.value = false
+    cancelPay()
     toast.success('Pembayaran berhasil dicatat')
   },
   onError: () => {
@@ -49,8 +108,16 @@ const payMut = useMutation({
 
 const submitPayment = async () => {
   if (!payTermId.value || !invoiceId.value) return
+  if (!payForm.value.date) {
+    toast.error('Tanggal pembayaran wajib diisi')
+    return
+  }
   if (!payForm.value.amount || payForm.value.amount <= 0) {
     toast.error('Nominal pembayaran tidak valid')
+    return
+  }
+  if (payForm.value.amount > payCalc.value.termSisa) {
+    toast.error('Nominal melebihi sisa termin')
     return
   }
   isPaying.value = true
@@ -332,34 +399,110 @@ const saveTerms = async () => {
   </div>
 
   <!-- Modal Bayar Termin -->
-  <div v-if="showPayModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(19,35,63,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px);">
-    <div style="background:#fff;width:100%;max-width:400px;border-radius:18px;box-shadow:0 12px 36px rgba(0,0,0,0.15);overflow:hidden;animation:modalIn 0.2s cubic-bezier(0.16,1,0.3,1);">
-      <div style="padding:22px 26px;border-bottom:1px solid #f0f2f5;display:flex;justify-content:space-between;align-items:center;">
-        <h3 style="margin:0;font-size:17px;font-weight:800;color:#13233f;letter-spacing:-0.01em;">Catat Pembayaran</h3>
-        <button @click="showPayModal = false" style="background:none;border:none;font-size:20px;color:#9aa0ad;cursor:pointer;padding:0;display:flex;"><i class="ph ph-x"></i></button>
+  <div v-if="showPayModal && payTarget" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;">
+    <div style="position:absolute;inset:0;background:rgba(13,27,48,.55);backdrop-filter:blur(3px);"></div>
+    <div style="position:relative;background:#fff;border-radius:18px;width:100%;max-width:600px;max-height:calc(100vh - 32px);box-shadow:0 24px 70px rgba(13,27,48,.35);display:flex;flex-direction:column;overflow:hidden;animation:modalIn 0.2s cubic-bezier(0.16,1,0.3,1);">
+      <!-- header -->
+      <div style="background:linear-gradient(135deg,#15294f,#0d1b30);padding:15px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;">
+        <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+          <span style="width:38px;height:38px;border-radius:11px;background:rgba(195,154,77,.18);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ph ph-hand-coins" style="font-size:20px;color:#c39a4d;"></i></span>
+          <div style="min-width:0;">
+            <h4 style="font-size:15.5px;font-weight:800;color:#fff;margin:0;">Bayar Termin: {{ payTarget.label || 'Termin' }}</h4>
+            <p style="font-size:11.5px;color:#aeb8cc;margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Termin otomatis terkunci bila sudah lunas</p>
+          </div>
+        </div>
+        <button @click="cancelPay" class="tr-btn" style="background:rgba(255,255,255,.1);border:none;cursor:pointer;color:#fff;padding:6px;border-radius:8px;flex-shrink:0;"><i class="ph ph-x" style="font-size:17px;"></i></button>
       </div>
-      <div style="padding:24px 26px;display:flex;flex-direction:column;gap:16px;">
-        <div>
-          <label style="display:block;font-size:12px;font-weight:700;color:#5d6a82;margin-bottom:6px;">Tanggal Bayar <span style="color:#c2603a;">*</span></label>
-          <input type="date" v-model="payForm.date" style="width:100%;padding:10px 14px;border:1px solid #d8dce4;border-radius:10px;font-size:14px;color:#13233f;outline:none;" required>
+      <!-- body -->
+      <div style="padding:18px 22px 20px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;min-height:0;flex:1 1 auto;"
+           @dragover.prevent="dragOver = true"
+           @dragleave.prevent="dragOver = false"
+           @drop.prevent="onDropFile">
+        <!-- info order -->
+        <div style="border:1px solid #eef0f3;border-radius:12px;overflow:hidden;flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid #eef0f3;background:#fafbfc;">
+            <div style="min-width:0;">
+              <span style="font-size:13px;font-weight:700;color:#13233f;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ store.activeInvoice.group }}</span>
+              <span style="font-size:11px;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;margin-top:1px;display:block;">{{ store.activeInvoice.no }} · {{ store.activeInvoice.pic || '-' }}</span>
+            </div>
+            <span :style="{ color: statusMeta(store.activeInvoice.status).color, background: statusMeta(store.activeInvoice.status).bg }" style="font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:7px;white-space:nowrap;flex-shrink:0;">{{ store.activeInvoice.status }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);">
+            <div style="padding:9px 12px;text-align:center;">
+              <div style="font-size:10px;font-weight:600;color:#9aa0ad;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Grand Total</div>
+              <div style="font-size:13px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ fmt(payCalc.grandTotal) }}</div>
+            </div>
+            <div style="padding:9px 12px;text-align:center;border-left:1px solid #eef0f3;">
+              <div style="font-size:10px;font-weight:600;color:#9aa0ad;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Nominal Termin</div>
+              <div style="font-size:13px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ fmt(payCalc.termNominal) }}</div>
+            </div>
+            <div style="padding:9px 12px;text-align:center;border-left:1px solid #eef0f3;">
+              <div style="font-size:10px;font-weight:600;color:#9aa0ad;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Sudah Dibayar</div>
+              <div style="font-size:13px;font-weight:800;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;">{{ fmt(payCalc.termPaid) }}</div>
+            </div>
+            <div style="padding:9px 12px;text-align:center;border-left:1px solid #eef0f3;">
+              <div style="font-size:10px;font-weight:600;color:#9aa0ad;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Sisa Tagihan</div>
+              <div style="font-size:13px;font-weight:800;color:#c2603a;font-family:'IBM Plex Mono',monospace;">{{ fmt(payCalc.sisa) }}</div>
+            </div>
+          </div>
         </div>
-        <div>
-          <label style="display:block;font-size:12px;font-weight:700;color:#5d6a82;margin-bottom:6px;">Nominal (Rp) <span style="color:#c2603a;">*</span></label>
-          <input type="number" v-model="payForm.amount" style="width:100%;padding:10px 14px;border:1px solid #d8dce4;border-radius:10px;font-size:14px;color:#13233f;font-family:'IBM Plex Mono',monospace;outline:none;" required>
+        <!-- form -->
+        <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1.2fr;gap:14px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Pembayaran <span style="color:#c2603a;">*</span></label>
+            <input type="date" v-model="payForm.date" :max="new Date().toISOString().split('T')[0]" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#13233f;background:#fff;outline:none;" required>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nominal Bayar (Rp) <span style="color:#c2603a;">*</span></label>
+            <div style="position:relative;">
+              <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:12.5px;font-weight:700;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;pointer-events:none;">Rp</span>
+              <input :value="payAmountFmt" @input="onPayAmount" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px 11px 36px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;font-weight:700;color:#13233f;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
+            </div>
+            <button v-if="payCalc.sisa > 0" type="button" @click="fillSisa" class="tr-btn" style="margin-top:7px;background:#e6f4ec;color:#1f7a5c;border:1px solid #bfe3cf;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;"><i class="ph ph-magic-wand" style="font-size:13px;"></i>Isi Sisa Tagihan ({{ fmt(payCalc.sisa) }})</button>
+          </div>
         </div>
-        <div>
-          <label style="display:block;font-size:12px;font-weight:700;color:#5d6a82;margin-bottom:6px;">Bukti Transfer / Dokumen</label>
-          <input type="file" @change="e => payForm.proof = e.target.files[0]" style="width:100%;font-size:13px;color:#5d6a82;" accept=".jpg,.jpeg,.png,.pdf">
+        <div v-if="Number(payForm.amount) > 0" :style="{ background: willLunas ? '#e6f4ec' : '#fbf1dc', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px' }">
+          <i :class="['ph', willLunas ? 'ph-seal-check' : 'ph-hourglass-medium']" :style="{ fontSize: '16px', color: willLunas ? '#1f7a5c' : '#9a7320' }"></i>
+          <span v-if="willLunas" style="font-size:12.5px;font-weight:700;color:#1f7a5c;">Pembayaran ini melunasi seluruh termin — termin akan terkunci Lunas.</span>
+          <span v-else style="font-size:12.5px;font-weight:600;color:#9a7320;">Sisa setelah pembayaran ini: <b style="font-family:'IBM Plex Mono',monospace;">{{ fmt(sisaAfterPay) }}</b></span>
         </div>
+        <!-- upload bukti -->
         <div>
-          <label style="display:block;font-size:12px;font-weight:700;color:#5d6a82;margin-bottom:6px;">Catatan (Opsional)</label>
-          <textarea v-model="payForm.comment" rows="2" placeholder="Cth: Transfer via BCA" style="width:100%;padding:10px 14px;border:1px solid #d8dce4;border-radius:10px;font-size:14px;color:#13233f;outline:none;resize:vertical;"></textarea>
+          <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Bukti Pembayaran</label>
+          <div v-if="!payProof"
+               @click="triggerFilePick"
+               @dragover.prevent="dragOver = true"
+               @dragleave.prevent="dragOver = false"
+               @drop.prevent="onDropFile"
+               :style="{ border: dragOver ? '2px dashed #15294f' : '2px dashed #d8dce4', background: dragOver ? '#eef3fb' : '#fafbfc' }"
+               style="border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .15s;">
+            <span style="width:38px;height:38px;border-radius:11px;background:#fff;border:1px solid #eef0f3;display:inline-flex;align-items:center;justify-content:center;margin-bottom:5px;"><i class="ph ph-cloud-arrow-up" style="font-size:20px;color:#15294f;"></i></span>
+            <div style="font-size:12.5px;font-weight:600;color:#5f6b80;">Tarik &amp; lepas file di sini, atau <span style="color:#15294f;text-decoration:underline;">klik untuk memilih</span></div>
+            <div style="font-size:11px;color:#9aa0ad;margin-top:2px;">Bukti transfer / screenshot · JPG, PNG, PDF · maks 5MB</div>
+          </div>
+          <div v-else style="display:flex;align-items:center;gap:13px;border:1px solid #d8dce4;border-radius:14px;padding:13px 15px;background:#fafbfc;">
+            <img v-if="proofPreviewUrl && payProof.type && payProof.type.startsWith('image/')" :src="proofPreviewUrl" alt="preview" style="width:52px;height:52px;border-radius:10px;object-fit:cover;flex-shrink:0;border:1px solid #eef0f3;">
+            <span v-else style="width:52px;height:52px;border-radius:10px;background:#fdf0ed;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ph ph-file-pdf" style="font-size:25px;color:#c2603a;"></i></span>
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:13px;font-weight:700;color:#13233f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ payProof.name }}</div>
+              <div style="font-size:11.5px;color:#9aa0ad;margin-top:2px;">{{ fmtBytes(payProof.size) }}</div>
+            </div>
+            <button @click="removeProof" class="tr-btn" style="background:#fdf0ed;border:1px solid #f0d0c8;color:#c2603a;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;"><i class="ph ph-trash" style="font-size:13px;"></i>Hapus</button>
+          </div>
+          <input ref="fileInputRef" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" style="display:none;" @change="onPickFile">
+        </div>
+        <!-- catatan -->
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan <span style="color:#9aa0ad;font-weight:500;">(Opsional)</span></label>
+          <textarea v-model="payForm.comment" rows="2" placeholder="Cth: Transfer via BCA" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#13233f;outline:none;resize:vertical;font-family:inherit;"></textarea>
         </div>
       </div>
-      <div style="padding:20px 26px;border-top:1px solid #f0f2f5;display:flex;justify-content:flex-end;gap:10px;background:#fafbfc;">
-        <button @click="showPayModal = false" :disabled="isPaying" style="padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;color:#5d6a82;background:#fff;border:1px solid #d6e1f2;cursor:pointer;">Batal</button>
+      <!-- footer -->
+      <div style="padding:14px 22px;border-top:1px solid #eef0f3;display:flex;justify-content:flex-end;gap:10px;background:#fafbfc;flex-shrink:0;">
+        <button @click="cancelPay" :disabled="isPaying" style="padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;color:#5d6a82;background:#fff;border:1px solid #d6e1f2;cursor:pointer;">Batal</button>
         <button @click="submitPayment" :disabled="isPaying" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;color:#fff;background:#15294f;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
           <i v-if="isPaying" class="ph ph-spinner ph-spin"></i>
+          <i v-else class="ph ph-check" style="font-size:15px;"></i>
           <span>Simpan Pembayaran</span>
         </button>
       </div>
