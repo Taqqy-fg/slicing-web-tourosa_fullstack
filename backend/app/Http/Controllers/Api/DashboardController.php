@@ -440,6 +440,9 @@ class DashboardController extends Controller
                     $term->delete();
                 }
             }
+
+            // Sinkronkan status order dengan kondisi semua termin setelah diedit.
+            $this->syncOrderStatusFromTerms($order, $userId);
         }
 
 
@@ -533,23 +536,38 @@ class DashboardController extends Controller
         ]);
 
         // Auto update order status based on ALL terms
-        $allTerms = $order->terms()->get();
-        if ($allTerms->count() > 0) {
-            $allPaid = $allTerms->every(fn($t) => $t->is_paid);
-            $anyPaid = $allTerms->contains(fn($t) => $t->paid_amount > 0);
-            
-            $status = 'Belum Lunas';
-            if ($allPaid) {
-                $status = 'Lunas';
-            } elseif ($anyPaid) {
-                $status = 'Down Payment';
-            }
-            $order->update(['status' => $status, 'updated_by' => $userId]);
-        }
+        $this->syncOrderStatusFromTerms($order, $userId);
 
         return response()->json([
             'message' => 'Term payment recorded successfully',
         ]);
+    }
+
+    /**
+     * Sinkronkan status order berdasarkan kondisi semua termin pembayaran.
+     * - Tidak ada termin        : status dibiarkan (tidak diubah).
+     * - Semua termin lunas      : 'Lunas'.
+     * - Sebagian termin dibayar : 'Down Payment'.
+     * - Belum ada yang dibayar  : 'Belum Lunas'.
+     */
+    private function syncOrderStatusFromTerms($order, $userId)
+    {
+        $allTerms = $order->terms()->get();
+        if ($allTerms->count() === 0) {
+            return;
+        }
+
+        $allPaid = $allTerms->every(fn($t) => (bool) $t->is_paid);
+        $anyPaid = $allTerms->contains(fn($t) => (float) $t->paid_amount > 0);
+
+        $status = 'Belum Lunas';
+        if ($allPaid) {
+            $status = 'Lunas';
+        } elseif ($anyPaid) {
+            $status = 'Down Payment';
+        }
+
+        $order->update(['status' => $status, 'updated_by' => $userId]);
     }
 
     /**

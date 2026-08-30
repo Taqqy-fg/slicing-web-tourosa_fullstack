@@ -73,7 +73,7 @@ class OrderExport implements FromCollection, WithHeadings, WithMapping, WithColu
 
     public function map($order): array
     {
-        $subtotal = $order->items->sum(fn($i) => $i->qty * ($i->price + ($i->markup_price ?? 0)));
+        $subtotal = $order->items->sum(fn($i) => $i->qty * ($i->markup_price ?? 0));
         $totalCost = $order->items->sum(fn($i) => $i->qty * ($i->cost + ($i->markup_cost ?? 0)));
         $totalExpenses = $order->expenses->sum('amount');
 

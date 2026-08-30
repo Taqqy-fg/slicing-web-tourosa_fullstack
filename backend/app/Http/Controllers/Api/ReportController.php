@@ -41,7 +41,7 @@ class ReportController extends Controller
         $totalProfit = 0;
 
         $processedOrders = $orders->map(function ($o) use (&$totalRevenue, &$totalCost, &$totalProfit) {
-            $subtotal = $o->items->sum(fn($i) => $i->qty * ($i->price + ($i->markup_price ?? 0)));
+            $subtotal = $o->items->sum(fn($i) => $i->qty * ($i->markup_price ?? 0));
             $totalCostOrder = $o->items->sum(fn($i) => $i->qty * ($i->cost + ($i->markup_cost ?? 0))) + $o->expenses->sum('amount');
             
             $discountType = $o->discount_type ?? 'Rp';
