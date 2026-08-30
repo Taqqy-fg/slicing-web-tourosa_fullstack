@@ -741,7 +741,7 @@ input.tr-datepicker[readonly] {
 .daterangepicker .ranges li:first-child {
   border-radius: 9px 9px 0 0;
 }
-.daterangepicker.is-custom .ranges li:first-child {
+.daterangepicker.show-calendar .ranges li:first-child {
   border-radius: 0;
 }
 .daterangepicker .ranges ul {

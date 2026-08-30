@@ -165,19 +165,9 @@ onMounted(async () => {
     }
   })
 
-  window.$(el).on('show.daterangepicker', function(ev, picker) {
-    if (picker.container) picker.container.removeClass('is-custom')
-  })
-  window.$(el).on('hideCalendar.daterangepicker', function(ev, picker) {
-    if (picker.container) picker.container.removeClass('is-custom')
-  })
-  window.$(el).on('showCalendar.daterangepicker', function(ev, picker) {
-    if (picker.container) picker.container.addClass('is-custom')
-  })
   window.$(el).on('apply.daterangepicker', function(ev, picker) {
     dateRange.value = { start: picker.startDate.toDate(), end: picker.endDate.toDate() }
     el.value = picker.startDate.format('DD/MM/YYYY') + ' - ' + picker.endDate.format('DD/MM/YYYY')
-    if (picker.container) picker.container.toggleClass('is-custom', picker.chosenLabel !== 'Today')
   })
 
   window.$(el).on('cancel.daterangepicker', function() {
