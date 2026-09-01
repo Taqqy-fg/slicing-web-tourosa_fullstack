@@ -21,14 +21,27 @@ const { fmt, calc } = useDashboardData()
 const toast = useToast()
 
 watch(() => store.site.bankAccounts, (banks) => {
-  if (!store.form.payment_info || store.form.payment_info === 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ') {
-    if (banks && banks.length > 0) {
-      store.form.payment_info = banks.map(b => `${b.bank}\nNo. Rekening: ${b.number}\na.n. ${b.name}`).join('\n\n');
-    } else if (!store.form.payment_info) {
-      store.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
-    }
+  if (!store.form.payment_info) {
+    store.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
   }
 }, { immediate: true })
+
+const insertBank = (b) => {
+  const text = `Bank: ${b.bank}\nNo. Rekening: ${b.number}\nAtas Nama (a.n): ${b.name}`
+  if (!store.form.payment_info || store.form.payment_info === 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ') {
+    store.form.payment_info = text
+  } else {
+    store.form.payment_info += '\n\n' + text
+  }
+}
+
+const onSelectBank = (e) => {
+  const idx = e.target.value
+  if (idx === '') return
+  const b = store.site.bankAccounts[idx]
+  if (b) insertBank(b)
+  e.target.value = '' // Reset dropdown
+}
 
 const catalog = computed(() => props.catalog ?? store.catalog)
 const orders = computed(() => props.orders ?? store.orders)
@@ -592,7 +605,19 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
             </div>
             <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="11" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
             <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
-            <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pembayaran</label><textarea v-model="f.payment_info" rows="3" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
+            <div style="grid-column:span 3;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;">Pembayaran</label>
+                <div v-if="store.site.bankAccounts && store.site.bankAccounts.length" style="position:relative;display:inline-block;">
+                  <select @change="onSelectBank" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;appearance:none;-webkit-appearance:none;">
+                    <option value="" disabled selected>Pilih Rekening</option>
+                    <option v-for="(b, idx) in store.site.bankAccounts" :key="idx" :value="idx">{{ b.bank }} - a.n. {{ b.name }}</option>
+                  </select>
+                  <button type="button" tabindex="-1" style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #d6e1f2;border-radius:8px;padding:6px 10px;color:#15294f;font-size:12px;font-weight:600;pointer-events:none;"><i class="ph ph-copy" style="font-size:14px;"></i>Salin Rekening</button>
+                </div>
+              </div>
+              <textarea v-model="f.payment_info" rows="3" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea>
+            </div>
           </div>
         </div>
 

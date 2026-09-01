@@ -146,7 +146,7 @@ const cancelDelete = () => {
             <span style="text-align:right;">Aksi</span>
           </div>
 
-          <div v-for="row in table.getRowModel().rows" :key="row.id" class="table-row-mobile" style="display:grid;grid-template-columns:1.8fr 1fr .6fr 1.2fr .9fr .5fr;gap:12px;padding:15px 22px;border-top:1px solid #f1f2f5;align-items:center;">
+          <div v-for="(row, idx) in table.getRowModel().rows" :key="row.id" class="table-row-mobile" style="display:grid;grid-template-columns:1.8fr 1fr .6fr 1.2fr .9fr .5fr;gap:12px;padding:15px 22px;border-top:1px solid #f1f2f5;align-items:center;">
             <div class="col-full-mobile" style="min-width:0;"><div style="font-size:14px;font-weight:700;color:#13233f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ row.original.group }}</div><div style="font-size:11px;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;">{{ row.original.no }}</div></div>
             <span class="col-half-mobile" style="font-size:13px;color:#5d6a82;font-family:'IBM Plex Mono',monospace;"><i class="ph ph-calendar" style="font-size:13px;color:#5d6a82;vertical-align:middle;padding-right:4px;"></i>{{ row.original.dateInv }}</span>
             <span class="col-auto-mobile hide-mobile" style="font-size:13.5px;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ row.original.pax }}</span>
@@ -157,7 +157,11 @@ const cancelDelete = () => {
                 <i class="ph ph-dots-three-vertical" style="font-size:20px;"></i>
               </button>
               
-              <div v-if="openMenuId === row.id" style="position:absolute;top:calc(100% - 4px);right:0;background:#fff;border:1px solid #eef0f3;border-radius:12px;box-shadow:0 12px 36px rgba(13,27,48,.12);z-index:50;width:160px;padding:6px;display:flex;flex-direction:column;gap:2px;">
+              <div v-if="openMenuId === row.id" 
+                   :style="{ position: 'absolute', right: 0, 
+                             top: (idx >= table.getRowModel().rows.length - 2 && table.getRowModel().rows.length >= 3) ? 'auto' : 'calc(100% - 4px)', 
+                             bottom: (idx >= table.getRowModel().rows.length - 2 && table.getRowModel().rows.length >= 3) ? 'calc(100% - 4px)' : 'auto', 
+                             background: '#fff', border: '1px solid #eef0f3', borderRadius: '12px', boxShadow: '0 12px 36px rgba(13,27,48,.12)', zIndex: 50, width: '160px', padding: '6px', display: 'flex', flexDirection: 'column', gap: '2px' }">
                 <button @click="openDetail(row.original.raw); closeMenu()" style="background:none;border:none;width:100%;text-align:left;padding:10px 14px;font-size:13px;font-weight:600;color:#13233f;cursor:pointer;border-radius:8px;display:flex;align-items:center;gap:8px;transition:background 0.15s;" onmouseover="this.style.background='#f4f6fa'" onmouseout="this.style.background='none'">
                   <i class="ph ph-file-text" style="font-size:16px;color:#5d6a82;"></i> Detail
                 </button>

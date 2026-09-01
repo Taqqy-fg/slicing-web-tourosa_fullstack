@@ -114,16 +114,32 @@ const tabRekBg = computed(() => store.settingsTab === 'rekening' ? '#15294f' : '
 const tabRekColor = computed(() => store.settingsTab === 'rekening' ? '#fff' : '#5d6a82')
 const isTabRekening = computed(() => store.settingsTab === 'rekening')
 
+// Delete confirmation modal
+const showDeleteBankModal = ref(false)
+const deleteBankTarget = ref(null) // { idx, bank, number, name }
+
+const confirmDeleteBank = (b) => {
+  deleteBankTarget.value = b
+  showDeleteBankModal.value = true
+}
+const cancelDeleteBank = () => {
+  showDeleteBankModal.value = false
+  deleteBankTarget.value = null
+}
+const doDeleteBank = () => {
+  if (deleteBankTarget.value === null) return
+  const updated = [...store.site.bankAccounts]
+  updated.splice(deleteBankTarget.value.idx, 1)
+  store.site.bankAccounts = updated
+  cancelDeleteBank()
+}
+
 const bankAccountsEdit = computed(() => (store.site.bankAccounts || []).map((b, i) => ({
   idx: i, bank: b.bank, number: b.number, name: b.name,
   onBank: ev => { store.site.bankAccounts[i].bank = ev.target.value },
   onNumber: ev => { store.site.bankAccounts[i].number = ev.target.value },
   onName: ev => { store.site.bankAccounts[i].name = ev.target.value },
-  onRemove: () => {
-    const updated = [...store.site.bankAccounts];
-    updated.splice(i, 1);
-    store.site.bankAccounts = updated;
-  }
+  onRemove: () => confirmDeleteBank({ idx: i, bank: b.bank, number: b.number, name: b.name })
 })))
 
 const addBankAccount = () => {
@@ -160,8 +176,21 @@ const invoiceBankAccounts = computed(() => {
   })
   
   const existingKeys = new Set((store.site.bankAccounts || []).map(b => `${b.bank.toLowerCase()}-${b.number.toLowerCase()}`))
-  return accounts.filter(a => !existingKeys.has(`${a.bank.toLowerCase()}-${a.number.toLowerCase()}`))
+  const hiddenKeys = new Set(store.site.hiddenBankAccounts || [])
+  
+  return accounts.filter(a => {
+    const k = `${a.bank.toLowerCase()}-${a.number.toLowerCase()}`
+    return !existingKeys.has(k) && !hiddenKeys.has(k)
+  })
 })
+
+const hideInvoiceBank = (b) => {
+  const hidden = store.site.hiddenBankAccounts || []
+  const k = `${b.bank.toLowerCase()}-${b.number.toLowerCase()}`
+  if (!hidden.includes(k)) {
+    store.site.hiddenBankAccounts = [...hidden, k]
+  }
+}
 
 const addFromInvoice = (b) => {
   const accounts = store.site.bankAccounts || [];
@@ -309,6 +338,7 @@ const saveSettings = () => {
     stats: store.site.stats,
     clients: store.site.clients,
     bankAccounts: store.site.bankAccounts,
+    hiddenBankAccounts: store.site.hiddenBankAccounts || [],
   })
 }
 
@@ -391,7 +421,7 @@ const saveCatalog = () => {
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;flex-wrap:wrap;">
           <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0;display:flex;align-items:center;gap:9px;"><i class="ph ph-bank" style="color:#c39a4d;font-size:20px;"></i>Rekening Bank</h3>
-          <button @click="addBankAccount" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Rekening</button>
+          <button @click="addBankAccount" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:9px 16px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;"><i class="ph ph-plus" style="font-size:15px;color:#c39a4d;"></i>Tambah Rekening</button>
         </div>
         <p style="font-size:13px;color:#8a93a5;margin:0 0 14px;">Rekening bank yang akan ditampilkan secara otomatis pada invoice.</p>
         <div v-for="(b, idx) in bankAccountsEdit" :key="'bank-' + idx" style="display:grid;grid-template-columns:1fr 1.5fr 1.5fr 40px;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #f1f2f5;">
@@ -408,7 +438,7 @@ const saveCatalog = () => {
             <input :value="b.name" @input="b.onName" placeholder="cth. PT Tourosa Travel" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;">
           </div>
           <div style="padding-top:20px;">
-            <button @click="b.onRemove" class="tr-btn" style="background:none;border:none;cursor:pointer;color:#c2603a;padding:6px;display:flex;align-items:center;justify-content:center;width:100%;"><i class="ph ph-trash" style="font-size:18px;"></i></button>
+            <button @click="b.onRemove" title="Kembalikan ke Riwayat" class="tr-btn" style="background:none;border:none;cursor:pointer;color:#5d6a82;padding:6px;display:flex;align-items:center;justify-content:center;width:100%;"><i class="ph ph-arrow-u-up-left" style="font-size:18px;"></i></button>
           </div>
         </div>
         <div v-if="!bankAccountsEdit.length" style="text-align:center;padding:24px 0;color:#9aa0ad;font-size:13px;">Belum ada data rekening.</div>
@@ -420,7 +450,7 @@ const saveCatalog = () => {
             <h4 style="font-size:14px;font-weight:700;color:#13233f;margin:0;">Rekening dari Invoice Sebelumnya</h4>
           </div>
           <p style="font-size:12.5px;color:#8a93a5;margin:0 0 14px;">Ditemukan dari riwayat invoice. Klik '+' untuk menambahkan ke daftar utama di atas.</p>
-          <div v-for="(b, idx) in invoiceBankAccounts" :key="'inv-bank-' + idx" style="display:grid;grid-template-columns:1fr 1.5fr 1.5fr 40px;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #f1f2f5;">
+          <div v-for="(b, idx) in invoiceBankAccounts" :key="'inv-bank-' + idx" style="display:grid;grid-template-columns:1fr 1.5fr 1.5fr 80px;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #f1f2f5;">
             <div>
               <label style="display:block;font-size:11.5px;font-weight:600;color:#9aa0ad;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Bank</label>
               <input :value="b.bank" readonly style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#f4f6fa;outline:none;cursor:default;">
@@ -433,8 +463,9 @@ const saveCatalog = () => {
               <label style="display:block;font-size:11.5px;font-weight:600;color:#9aa0ad;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em;">Atas Nama (a.n)</label>
               <input :value="b.name" readonly style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#f4f6fa;outline:none;cursor:default;">
             </div>
-            <div style="padding-top:20px;">
-              <button @click="addFromInvoice(b)" title="Tambahkan ke Rekening Utama" class="tr-btn" style="background:#eef3fb;border:1px solid #d6e1f2;cursor:pointer;color:#15294f;padding:6px;display:flex;align-items:center;justify-content:center;width:100%;border-radius:8px;"><i class="ph ph-plus" style="font-size:18px;"></i></button>
+            <div style="padding-top:20px;display:flex;gap:6px;">
+              <button @click="addFromInvoice(b)" title="Tambahkan ke Rekening Utama" class="tr-btn" style="background:#eef3fb;border:1px solid #d6e1f2;cursor:pointer;color:#15294f;padding:6px;display:flex;align-items:center;justify-content:center;flex:1;border-radius:8px;"><i class="ph ph-plus" style="font-size:18px;"></i></button>
+              <button @click="hideInvoiceBank(b)" title="Hapus Permanen" class="tr-btn" style="background:#fdf0ed;border:1px solid #f5d6d0;cursor:pointer;color:#c2603a;padding:6px;display:flex;align-items:center;justify-content:center;flex:1;border-radius:8px;"><i class="ph ph-trash" style="font-size:18px;"></i></button>
             </div>
           </div>
         </div>
@@ -446,7 +477,42 @@ const saveCatalog = () => {
           {{ saveSettingsMut.isPending.value ? 'Menyimpan...' : 'Simpan Pengaturan' }}
         </button>
       </div>
+
+      <!-- Modal Konfirmasi Hapus Rekening -->
+      <Teleport to="body">
+        <div v-if="showDeleteBankModal" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;" @click.self="cancelDeleteBank">
+          <!-- Backdrop -->
+          <div style="position:absolute;inset:0;background:rgba(15,25,50,0.45);backdrop-filter:blur(2px);"></div>
+          <!-- Modal Card -->
+          <div style="position:relative;background:#fff;border-radius:20px;padding:28px 28px 24px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.18);">
+            <!-- Header -->
+            <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;">
+              <div style="width:44px;height:44px;border-radius:12px;background:#fdf0ed;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="ph ph-warning" style="font-size:22px;color:#c2603a;"></i>
+              </div>
+              <div>
+                <div style="font-size:16px;font-weight:800;color:#13233f;margin-bottom:3px;">Hapus Rekening?</div>
+                <div style="font-size:13px;color:#8a93a5;">Tindakan ini tidak dapat dibatalkan.</div>
+              </div>
+            </div>
+            <!-- Detail Rekening -->
+            <div v-if="deleteBankTarget" style="background:#fafbfc;border:1px solid #eef0f3;border-radius:12px;padding:14px 16px;margin-bottom:22px;">
+              <div style="font-size:14px;font-weight:700;color:#13233f;margin-bottom:3px;">{{ deleteBankTarget.bank || 'Rekening Bank' }}</div>
+              <div style="font-size:12.5px;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;font-weight:600;margin-bottom:2px;">{{ deleteBankTarget.number || '-' }}</div>
+              <div style="font-size:12.5px;color:#5d6a82;">a.n. {{ deleteBankTarget.name || '-' }}</div>
+            </div>
+            <!-- Actions -->
+            <div style="display:flex;justify-content:flex-end;gap:10px;">
+              <button @click="cancelDeleteBank" class="tr-btn" style="background:#fff;color:#13233f;border:1.5px solid #d8dce4;font-size:13.5px;font-weight:700;padding:10px 22px;border-radius:10px;cursor:pointer;">Batal</button>
+              <button @click="doDeleteBank" class="tr-btn" style="background:#c2603a;color:#fff;border:none;font-size:13.5px;font-weight:700;padding:10px 22px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px;">
+                <i class="ph ph-trash" style="font-size:15px;"></i>Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
     </div>
+
 
     <div v-if="isTabCatalog" style="display:flex;flex-direction:column;gap:16px;">
       <p style="font-size:13.5px;color:#5d6a82;margin:0;line-height:1.5;">Kategori &amp; vendor di sini muncul sebagai pilihan saat membuat pesanan. Edit nama dengan mengetik langsung.</p>

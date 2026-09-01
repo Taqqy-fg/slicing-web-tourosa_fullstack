@@ -49,13 +49,9 @@ export const useDashboardStore = defineStore('dashboard', {
 
             this.testimonials = JSON.parse(JSON.stringify(testimonials.value || []));
             
-            // Auto-fill new form payment_info if empty
-            if (!this.form.payment_info || this.form.payment_info === 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ') {
-                if (this.site.bankAccounts && this.site.bankAccounts.length > 0) {
-                    this.form.payment_info = this.site.bankAccounts.map(b => `${b.bank}\nNo. Rekening: ${b.number}\na.n. ${b.name}`).join('\n\n');
-                } else if (!this.form.payment_info) {
-                    this.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
-                }
+            // Set blank template for new order payment_info if empty
+            if (!this.form.payment_info) {
+                this.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
             }
         },
         setActiveInvoice(invoice) {
@@ -69,11 +65,7 @@ export const useDashboardStore = defineStore('dashboard', {
         },
         resetForm() {
             this.form = createBlankForm(this.form.taxPercent);
-            if (this.site && this.site.bankAccounts && this.site.bankAccounts.length > 0) {
-                this.form.payment_info = this.site.bankAccounts.map(b => `${b.bank}\nNo. Rekening: ${b.number}\na.n. ${b.name}`).join('\n\n');
-            } else {
-                this.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
-            }
+            this.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
         },
         addItemToForm() {
             this.form.items.push({ cat: '', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
@@ -166,9 +158,7 @@ export const useDashboardStore = defineStore('dashboard', {
                 dpDueDate: o.dpDueDate ?? '',
                 tenggatDate: o.tenggatDate ?? '',
                 notes: o.notes || '',
-                payment_info: o.payment_info || (this.site && this.site.bankAccounts && this.site.bankAccounts.length > 0 
-                    ? this.site.bankAccounts.map(b => `${b.bank}\nNo. Rekening: ${b.number}\na.n. ${b.name}`).join('\n\n') 
-                    : 'Bank: \nNo. Rekening: \nAtas Nama (a.n): '),
+                payment_info: o.payment_info || 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ',
                 status: o.status || 'DP',
             }
         },

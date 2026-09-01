@@ -153,7 +153,10 @@ const detailData = computed(() => {
     discountLabel: c.discountType === '%' ? 'Diskon (' + (Number(o.discount) || 0) + '%)' : 'Diskon',
     serviceFeeF: fmt(c.serviceFeeAmount), hasServiceFee: Number(o.serviceFee) > 0,
     taxF: fmt(c.tax), taxPercentF: String(c.taxPercent),
-    grandTotalF: fmt(c.grandTotal), perPaxF: fmt(c.perPax), dpPercentF: String(c.dpPercent), dpF: fmt(c.dp), dpDueDateF: fmtDate(o.dpDueDate), hasDpDueDate: !!o.dpDueDate, sisaF: fmt(c.sisa),
+    grandTotalF: fmt(c.grandTotal), perPaxF: fmt(c.perPax),
+    totalPaid: (o.terms || []).reduce((s, t) => s + (Number(t.paid_amount) || 0), 0),
+    totalPaidF: fmt((o.terms || []).reduce((s, t) => s + (Number(t.paid_amount) || 0), 0)),
+    sisaF: fmt(Math.max(0, c.grandTotal - (o.terms || []).reduce((s, t) => s + (Number(t.paid_amount) || 0), 0))),
     profitColor: c.profit >= 0 ? '#1f7a5c' : '#c2603a'
   }
 })
@@ -348,7 +351,7 @@ const saveTerms = async () => {
 
     <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:8px;">Grand Total</div><div style="font-size:17px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ detail.grandTotalF }}</div></div>
-      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:8px;">Sudah Dibayar (DP {{ detail.dpPercentF }}%)</div><div style="font-size:17px;font-weight:800;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;">{{ detail.dpF }}</div><div v-if="detail.hasDpDueDate" style="font-size:11px;color:#9aa0ad;margin-top:4px;">Jatuh tempo: {{ detail.dpDueDateF }}</div></div>
+      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:8px;">Sudah Dibayar (Down Payment 0%)</div><div style="font-size:17px;font-weight:800;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;">{{ detail.totalPaidF }}</div></div>
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:8px;">Sisa Pelunasan</div><div style="font-size:17px;font-weight:800;color:#c2603a;font-family:'IBM Plex Mono',monospace;">{{ detail.sisaF }}</div></div>
     </div>
 
@@ -381,7 +384,7 @@ const saveTerms = async () => {
               <span class="col-full-mobile" style="font-size:13px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ tm.amountF }}</span>
               <span style="text-align:left;display:flex;align-items:center;">
                 <span v-if="tm.isPaid" style="font-size:11px;font-weight:700;color:#1f7a5c;background:#e5f5ed;padding:4px 8px;border-radius:6px;white-space:nowrap;">Lunas</span>
-                <span v-else style="font-size:11px;font-weight:700;color:#c2603a;background:#fcefed;padding:4px 8px;border-radius:6px;white-space:nowrap;">Blm Dibayar</span>
+                <span v-else style="font-size:11px;font-weight:700;color:#c2603a;background:#fcefed;padding:4px 8px;border-radius:6px;white-space:nowrap;">Belum Dibayar</span>
               </span>
               <button v-if="!tm.isPaid" @click="openPayModal(tm)" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;width:100%;">Bayar</button>
               <div v-else style="text-align:center;color:#9aa0ad;font-size:12px;">—</div>
