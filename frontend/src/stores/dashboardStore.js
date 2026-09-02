@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-const createBlankForm = (tax = 11) => ({
+const createBlankForm = (tax = 0) => ({
     group: '', pic: '', contact: '', email: '',
     invoiceDate: new Date().toISOString().slice(0, 10),
     items: [
@@ -17,13 +17,14 @@ export const useDashboardStore = defineStore('dashboard', {
     state: () => ({
         activeInvoice: null,
         settingsTab: 'website',
-        form: createBlankForm(11),
+        form: createBlankForm(0),
         editForm: null,
         editInvoiceNo: null,
         // Shared query data from Dashboard layout
         orders: [],
         catalog: [],
         customers: [],
+        orderInfos: [],
         site: {
             waNumber: '6281200000000',
             email: 'halo@tourosa.id',
@@ -36,10 +37,11 @@ export const useDashboardStore = defineStore('dashboard', {
         testimonials: [],
     }),
     actions: {
-        setQueryData({ orders, catalog, site, testimonials, customers }) {
-            this.orders = orders.value;
-            this.catalog = catalog.value;
+        setQueryData({ orders, catalog, site, testimonials, customers, orderInfos }) {
+            if (orders && orders.value) this.orders = orders.value;
+            if (catalog && catalog.value) this.catalog = catalog.value;
             if (customers && customers.value) this.customers = customers.value;
+            if (orderInfos && orderInfos.value) this.orderInfos = orderInfos.value;
             
             const clonedSite = JSON.parse(JSON.stringify(site.value || {}));
             if (!clonedSite.stats) clonedSite.stats = [];
@@ -153,7 +155,7 @@ export const useDashboardStore = defineStore('dashboard', {
                 discountType: o.discountType ?? 'Rp',
                 serviceFee: o.serviceFee ?? '',
                 serviceFeeType: o.serviceFeeType ?? 'Rp',
-                taxPercent: o.taxPercent ?? 11,
+                taxPercent: o.taxPercent ?? 0,
                 dpPercent: o.dpPercent ?? 0,
                 dpDueDate: o.dpDueDate ?? '',
                 tenggatDate: o.tenggatDate ?? '',

@@ -360,7 +360,6 @@ const saveTerms = async () => {
       <div style="padding:24px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><i class="ph ph-list-numbers" style="color:#c39a4d;font-size:19px;"></i><h3 style="font-size:15px;font-weight:700;color:#13233f;margin:0;">Termin Pembayaran</h3><span style="font-size:11px;color:#9aa0ad;background:#f4f5f8;padding:4px 10px;border-radius:6px;">Nominal dihitung dari grand total</span></div>
         <div style="display:flex;gap:8px;">
-          <button @click="saveTerms" :disabled="isSavingTerms" class="tr-btn" style="background:#fff;color:#1f7a5c;border:1px solid #7ed3a6;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-floppy-disk" style="font-size:15px;"></i>Simpan Termin</button>
           <button @click="addTerm" :disabled="isSavingTerms" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Termin</button>
         </div>
       </div>
@@ -370,11 +369,11 @@ const saveTerms = async () => {
           Belum ada termin. Klik <b>Tambah Termin</b> untuk membuat jadwal pembayaran.
         </div>
         <div v-else class="table-scroll">
-          <div style="min-width: 760px;">
-            <div class="table-header-mobile" style="display:grid;grid-template-columns:minmax(140px,1fr) 150px 70px 130px 118px 88px 34px;gap:10px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;align-items:center;">
-              <span>Keterangan Termin</span><span>Jatuh Tempo</span><span style="text-align:center;">%</span><span>Nominal</span><span style="text-align:center;">Status</span><span style="text-align:right;">Aksi</span><span></span>
+          <div style="min-width: 820px;">
+            <div class="table-header-mobile" style="display:grid;grid-template-columns:minmax(140px,1fr) 150px 70px 130px 118px 145px 34px;gap:10px;padding:0 2px 8px;font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;align-items:center;">
+              <span>Keterangan Termin</span><span>Jatuh Tempo</span><span style="text-align:center;">%</span><span>Nominal</span><span style="text-align:center;">Status</span><span style="text-align:left;">Aksi</span><span></span>
             </div>
-            <div v-for="(tm, idx) in detailTerms" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:minmax(140px,1fr) 150px 70px 130px 118px 88px 34px;gap:10px;align-items:center;padding:5px 2px;">
+            <div v-for="(tm, idx) in detailTerms" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:minmax(140px,1fr) 150px 70px 130px 118px 145px 34px;gap:10px;align-items:center;padding:5px 2px;">
               <div style="display:flex;align-items:center;gap:8px;min-width:0;">
                 <i v-if="tm.isPaid" class="ph ph-lock-simple" style="color:#1f7a5c;font-size:15px;flex-shrink:0;"></i>
                 <input class="col-full-mobile" :value="tm.label" @input="tm.onLabel" :disabled="tm.isPaid" placeholder="Keterangan (cth. DP)" style="width:100%;padding:9px 11px;border:1px solid #d8dce4;border-radius:8px;font-size:13px;color:#1a2235;background:#fff;outline:none;box-sizing:border-box;min-width:0;" :style="{ opacity: tm.isPaid ? 0.6 : 1, background: tm.isPaid ? '#f4f6f9' : '#fff' }">
@@ -386,7 +385,10 @@ const saveTerms = async () => {
                 <span v-if="tm.isPaid" style="font-size:11px;font-weight:700;color:#1f7a5c;background:#e5f5ed;padding:4px 8px;border-radius:6px;white-space:nowrap;">Lunas</span>
                 <span v-else style="font-size:11px;font-weight:700;color:#c2603a;background:#fcefed;padding:4px 8px;border-radius:6px;white-space:nowrap;">Belum Dibayar</span>
               </span>
-              <button v-if="!tm.isPaid" @click="openPayModal(tm)" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;width:100%;">Bayar</button>
+              <div v-if="!tm.isPaid" style="display:flex;align-items:center;gap:5px;width:100%;">
+                <button @click="saveTerms" :disabled="isSavingTerms" class="tr-btn" style="background:#fff;color:#1f7a5c;border:1px solid #7ed3a6;font-size:12px;font-weight:700;padding:6px 9px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0;"><i class="ph ph-floppy-disk" style="font-size:13px;"></i>Simpan</button>
+                <button @click="openPayModal(tm)" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;flex:1;">Bayar</button>
+              </div>
               <div v-else style="text-align:center;color:#9aa0ad;font-size:12px;">—</div>
               <button v-if="!tm.isPaid" class="del-btn-mobile tr-btn" @click="tm.onRemove" style="background:none;border:none;cursor:pointer;color:#c2603a;display:flex;align-items:center;justify-content:center;padding:6px;border-radius:7px;"><i class="ph ph-trash" style="font-size:17px;"></i></button>
               <div v-else style="text-align:center;color:#9aa0ad;font-size:12px;">—</div>

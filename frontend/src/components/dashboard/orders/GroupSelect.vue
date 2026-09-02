@@ -10,15 +10,33 @@ const props = defineProps({
   modelValue: { type: String, default: '' }
 })
 
-const emit = defineEmits(['update:modelValue', 'select'])
+const emit = defineEmits(['update:modelValue', 'select', 'add-new'])
 
 const store = useDashboardStore()
 
 const allOptions = computed(() => {
   const map = new Map()
-  for (const c of store.customers) {
-    map.set(c.name, { name: c.name, pic: c.pic_name || '', contact: c.contact_info || '', email: c.email || '' })
+
+  // 1. Data dari halaman Informasi Pesanan (prioritas tertinggi)
+  for (const i of store.orderInfos) {
+    if (i.group_name && i.group_name !== '-') {
+      map.set(i.group_name, {
+        name: i.group_name,
+        pic: i.pic_name || '',
+        contact: i.contact_info || '',
+        email: i.email || '',
+      })
+    }
   }
+
+  // 2. Data customers
+  for (const c of store.customers) {
+    if (!map.has(c.name)) {
+      map.set(c.name, { name: c.name, pic: c.pic_name || '', contact: c.contact_info || '', email: c.email || '' })
+    }
+  }
+
+  // 3. Data dari orders yang sudah ada (fallback)
   for (const o of store.orders) {
     if (o.group && o.group !== 'Tanpa Nama Grup') {
       if (!map.has(o.group)) {
@@ -66,6 +84,11 @@ function selectOption(opt) {
   emit('update:modelValue', opt.name)
   emit('select', opt)
   close()
+}
+
+function onAddNew() {
+  close()
+  emit('add-new')
 }
 
 function onClickOutside(e) {
@@ -121,6 +144,16 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
             <span v-if="opt.email">{{ opt.email }}</span>
           </div>
         </div>
+      </div>
+      <!-- Footer: Tambah Informasi Baru -->
+      <div
+        @mousedown.prevent="onAddNew"
+        style="border-top:1px solid #eef0f3;padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;background:#fafbfc;transition:background .12s;"
+        @mouseenter="$event.currentTarget.style.background='#eef3fb'"
+        @mouseleave="$event.currentTarget.style.background='#fafbfc'"
+      >
+        <i class="ph ph-plus-circle" style="font-size:16px;color:#c39a4d;flex-shrink:0;"></i>
+        <span style="font-size:13px;font-weight:700;color:#15294f;">Tambah Informasi Baru...</span>
       </div>
     </div>
   </div>

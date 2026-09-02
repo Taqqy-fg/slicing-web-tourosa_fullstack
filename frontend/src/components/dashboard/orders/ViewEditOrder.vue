@@ -103,6 +103,23 @@ const addShortcutVendor = (currentCat) => {
   showVendorModal.value = true
 }
 
+// Cust Info Modal
+const showCustInfoModal = ref(false)
+const newCustInfo = ref({ group: '', pic: '', contact: '', email: '' })
+const openCustInfoModal = () => {
+  newCustInfo.value = { group: '', pic: '', contact: '', email: '' }
+  showCustInfoModal.value = true
+}
+const saveCustInfo = () => {
+  const g = (newCustInfo.value.group || '').trim()
+  if (!g) { toast.error('Nama Grup / Instansi wajib diisi'); return }
+  store.editForm.group = g
+  store.editForm.pic = newCustInfo.value.pic || ''
+  store.editForm.contact = newCustInfo.value.contact || ''
+  store.editForm.email = newCustInfo.value.email || ''
+  showCustInfoModal.value = false
+}
+
 const saveNewCategory = async () => {
   const trimName = newCatName.value.trim()
   if (!trimName) return
@@ -194,8 +211,22 @@ const itemRows = computed(() => {
     vendorOptions: vendorsFor(it.cat),
     isHotel, showTripType, showDest, showRet, departLabel, retLabel, qtyLabel, dateCols, headCols,
       lineF: fmt((Number(it.qty) || 0) * markupCompany),
-      onCat: e => { store.updateEditFormItem(idx, 'cat', e.target.value); store.updateEditFormItem(idx, 'vendor', '') },
-      onVendor: e => { store.updateEditFormItem(idx, 'vendor', e.target.value); if (!it.desc) store.updateEditFormItem(idx, 'desc', e.target.value) },
+      onCat: e => {
+        if (e.target.value === '__ADD_NEW__') {
+          addShortcutCategory()
+          e.target.value = it.cat || ''
+          return
+        }
+        store.updateEditFormItem(idx, 'cat', e.target.value); store.updateEditFormItem(idx, 'vendor', '')
+      },
+      onVendor: e => {
+        if (e.target.value === '__ADD_NEW__') {
+          addShortcutVendor(it.cat)
+          e.target.value = it.vendor || ''
+          return
+        }
+        store.updateEditFormItem(idx, 'vendor', e.target.value); if (!it.desc) store.updateEditFormItem(idx, 'desc', e.target.value)
+      },
       onTripType: e => store.updateEditFormItem(idx, 'tripType', e.target.value),
       onDest: e => store.updateEditFormItem(idx, 'dest', e.target.value),
       onDepart: val => store.updateEditFormItem(idx, 'depart', val),
@@ -326,6 +357,7 @@ const addItem = () => store.addItemToEditForm()
               :model-value="store.editForm.group"
               @update:model-value="store.editForm.group = $event"
               @select="opt => { store.editForm.group = opt.name; store.editForm.pic = opt.pic || ''; store.editForm.contact = opt.contact || ''; store.editForm.email = opt.email || '' }"
+              @add-new="openCustInfoModal"
             />
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
@@ -341,6 +373,55 @@ const addItem = () => store.addItemToEditForm()
           <div>
             <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Email</label>
             <input v-model="store.editForm.email" readonly placeholder="Otomatis terisi..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#5f6b80;background:#f4f6fa;outline:none;cursor:not-allowed;" />
+          </div>
+        </div>
+
+        <!-- Modal Tambah Informasi Pesanan Baru -->
+        <div v-if="showCustInfoModal" style="position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;">
+          <div style="position:absolute;inset:0;background:rgba(13,27,48,.5);backdrop-filter:blur(3px);" @click="showCustInfoModal = false"></div>
+          <div style="position:relative;background:#fff;border-radius:18px;width:100%;max-width:560px;max-height:calc(100vh - 32px);box-shadow:0 24px 70px rgba(13,27,48,.3);display:flex;flex-direction:column;overflow:hidden;">
+            <!-- Header modal -->
+            <div style="background:linear-gradient(135deg,#15294f,#0d1b30);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="width:38px;height:38px;border-radius:11px;background:rgba(195,154,77,.18);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <i class="ph ph-users-three" style="font-size:20px;color:#c39a4d;"></i>
+                </span>
+                <div>
+                  <h4 style="font-size:15.5px;font-weight:800;color:#fff;margin:0;">Tambah Informasi Pesanan</h4>
+                  <p style="font-size:11.5px;color:#aeb8cc;margin:2px 0 0;">Isi data grup, PIC, dan kontak pemesan</p>
+                </div>
+              </div>
+              <button @click="showCustInfoModal = false" class="tr-btn" style="background:rgba(255,255,255,.1);border:none;cursor:pointer;color:#fff;padding:6px;border-radius:8px;">
+                <i class="ph ph-x" style="font-size:17px;"></i>
+              </button>
+            </div>
+            <!-- Body modal -->
+            <div style="padding:22px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;flex:1;">
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nama Grup / Instansi <span style="color:#c2603a;">*</span></label>
+                <input v-model="newCustInfo.group" @keyup.enter="saveCustInfo" placeholder="cth. PT. Maju Bersama" style="width:100%;padding:11px 13px;border:1.5px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;" @focus="e => e.target.style.borderColor='#15294f'" @blur="e => e.target.style.borderColor='#d8dce4'">
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">PIC / Penanggung Jawab</label>
+                  <input v-model="newCustInfo.pic" placeholder="cth. Budi Santoso" style="width:100%;padding:11px 13px;border:1.5px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;" @focus="e => e.target.style.borderColor='#15294f'" @blur="e => e.target.style.borderColor='#d8dce4'">
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label>
+                  <input v-model="newCustInfo.contact" placeholder="cth. 0812xxxxxxxx" style="width:100%;padding:11px 13px;border:1.5px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;" @focus="e => e.target.style.borderColor='#15294f'" @blur="e => e.target.style.borderColor='#d8dce4'">
+                </div>
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Email</label>
+                <input v-model="newCustInfo.email" type="email" placeholder="cth. budi@email.com" style="width:100%;padding:11px 13px;border:1.5px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;" @focus="e => e.target.style.borderColor='#15294f'" @blur="e => e.target.style.borderColor='#d8dce4'">
+              </div>
+              <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;border-top:1px solid #eef0f3;margin-top:4px;">
+                <button @click="showCustInfoModal = false" class="tr-btn" style="background:#fff;color:#5f6b80;border:1px solid #e2e4ea;font-size:13px;font-weight:600;padding:9px 18px;border-radius:9px;cursor:pointer;">Batal</button>
+                <button @click="saveCustInfo" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;">
+                  <i class="ph ph-check-circle" style="font-size:15px;color:#7ed3a6;"></i>Simpan
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -449,8 +530,8 @@ const addItem = () => store.addItemToEditForm()
                     <select @change="r.onCat" :value="r.cat" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;appearance:auto;">
                       <option value="" disabled>Pilih Kategori...</option>
                       <option v-for="(co, ci) in catOptions" :key="ci" :value="co">{{ co }}</option>
+                      <option value="__ADD_NEW__" style="color: #c39a4d; font-weight: 600;">+ Tambah Kategori Baru...</option>
                     </select>
-                    <button @click.prevent="addShortcutCategory()" title="Tambah Kategori Baru" style="background:#fff;border:1px solid #d8dce4;border-radius:9px;color:#15294f;cursor:pointer;padding:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;"><i class="ph ph-plus-circle" style="font-size:20px;color:#c39a4d;"></i></button>
                   </div>
                   <div v-if="r.showTripType" style="margin-top:12px;">
                     <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Tipe</label>
@@ -468,8 +549,8 @@ const addItem = () => store.addItemToEditForm()
                     <select @change="r.onVendor" :value="r.vendor" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fafbfc;outline:none;appearance:auto;">
                       <option value="">Pilih Vendor...</option>
                       <option v-for="(vo, vi) in r.vendorOptions" :key="vi" :value="vo">{{ vo }}</option>
+                      <option value="__ADD_NEW__" style="color: #c39a4d; font-weight: 600;">+ Tambah Vendor Baru...</option>
                     </select>
-                    <button @click.prevent="addShortcutVendor(r.cat)" title="Tambah Vendor Baru" style="background:#fff;border:1px solid #d8dce4;border-radius:9px;color:#15294f;cursor:pointer;padding:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;"><i class="ph ph-plus-circle" style="font-size:20px;color:#c39a4d;"></i></button>
                   </div>
                 </div>
               </div>
@@ -541,8 +622,7 @@ const addItem = () => store.addItemToEditForm()
               </div>
               <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:left;">*Klik Rp/% untuk ubah tipe</div>
             </div>
-            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="11" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
-            <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
+            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
             <div style="grid-column:span 3;">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                 <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;">Pembayaran</label>
@@ -556,6 +636,7 @@ const addItem = () => store.addItemToEditForm()
               </div>
               <textarea v-model="f.payment_info" rows="3" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea>
             </div>
+            <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
           </div>
         </div>
 

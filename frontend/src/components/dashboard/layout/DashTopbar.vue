@@ -31,7 +31,7 @@ async function handleLogout() {
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
-      <div style="display:flex;align-items:center;gap:8px;background:#f4f5f8;border:1px solid #e8e9ee;border-radius:10px;padding:9px 13px;font-size:13px;color:#7a8499;font-family:'IBM Plex Mono',monospace;"><i class="ph ph-calendar-blank" style="font-size:15px;"></i>{{ todayF }}</div>
+
       <button @click="goNew" class="tr-btn" style="background:#15294f;color:#fff;font-size:13.5px;font-weight:700;padding:11px 18px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;"><i class="ph ph-plus" style="font-size:16px;"></i>Buat Pesanan</button>
       <button @click="handleLogout" class="tr-btn" style="background:#f4f5f8;color:#7a8499;font-size:13.5px;font-weight:600;padding:11px 14px;border-radius:10px;border:1px solid #e8e9ee;cursor:pointer;display:flex;align-items:center;gap:6px;" title="Keluar">
         <i class="ph ph-sign-out" style="font-size:16px;"></i>

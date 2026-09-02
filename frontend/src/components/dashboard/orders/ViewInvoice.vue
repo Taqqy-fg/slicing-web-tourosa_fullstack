@@ -163,11 +163,7 @@ const doPrint = () => window.print()
       <div data-print="keep" class="flex-col-mobile"
         style="display:flex;justify-content:space-between;gap:40px;padding-top:24px;">
         <div style="flex:1;max-width:320px;">
-          <div
-            style="font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;">
-            Catatan</div>
-          <p style="font-size:12.5px;color:#5d6a82;line-height:1.6;margin:0 0 18px;">{{ inv.notes }}</p>
-          <div v-if="inv.paymentInfo" style="background:#fafbfc;border:1px solid #eef0f3;border-radius:10px;padding:13px 15px;">
+          <div v-if="inv.paymentInfo" style="background:#fafbfc;border:1px solid #eef0f3;border-radius:10px;padding:13px 15px;margin-bottom:18px;">
             <div style="font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">
               Pembayaran</div>
             <!-- Structured blocks when using raw bankAccounts (no payment_info saved yet) -->
@@ -186,6 +182,10 @@ const doPrint = () => window.print()
               <div style="font-size:12.5px;color:#13233f;line-height:1.75;white-space:pre-line;">{{ inv.paymentInfo }}</div>
             </template>
           </div>
+          <div
+            style="font-size:11px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;">
+            Catatan / Syarat</div>
+          <p style="font-size:12.5px;color:#5d6a82;line-height:1.6;margin:0 0 18px;">{{ inv.notes }}</p>
         </div>
         <div style="width:300px;flex-shrink:0;">
           <div style="display:flex;justify-content:space-between;padding:8px 0;"><span

@@ -197,8 +197,22 @@ const itemRows = computed(() => {
        vendorOptions: vendorsFor(it.cat),
        isHotel, showTripType, showDest, showRet, departLabel, retLabel, qtyLabel, dateCols, headCols,
       lineF: fmt((Number(it.qty) || 0) * markupCompany),
-      onCat: e => { store.updateFormItem(idx, 'cat', e.target.value); store.updateFormItem(idx, 'vendor', '') },
-      onVendor: e => { store.updateFormItem(idx, 'vendor', e.target.value); if (!it.desc) store.updateFormItem(idx, 'desc', e.target.value) },
+      onCat: e => {
+        if (e.target.value === '__ADD_NEW__') {
+          addShortcutCategory()
+          e.target.value = it.cat || ''
+          return
+        }
+        store.updateFormItem(idx, 'cat', e.target.value); store.updateFormItem(idx, 'vendor', '')
+      },
+      onVendor: e => {
+        if (e.target.value === '__ADD_NEW__') {
+          addShortcutVendor(it.cat)
+          e.target.value = it.vendor || ''
+          return
+        }
+        store.updateFormItem(idx, 'vendor', e.target.value); if (!it.desc) store.updateFormItem(idx, 'desc', e.target.value)
+      },
       onTripType: e => store.updateFormItem(idx, 'tripType', e.target.value),
       onDest: e => store.updateFormItem(idx, 'dest', e.target.value),
       onDepart: val => store.updateFormItem(idx, 'depart', val),
@@ -327,9 +341,6 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
         <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
             <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0;display:flex;align-items:center;gap:9px;"><i class="ph ph-users-three" style="color:#c39a4d;font-size:20px;"></i>Informasi Pemesanan</h3>
-            <button @click="openCustInfoModal" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:12px;font-weight:700;padding:7px 13px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;flex-shrink:0;">
-              <i class="ph ph-plus-circle" style="font-size:15px;color:#c39a4d;"></i>Tambah Baru
-            </button>
           </div>
           <p style="font-size:13px;color:#8a93a5;margin:0 0 20px;">Data utama pemesan.</p>
           
@@ -339,6 +350,7 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
               :model-value="store.form.group"
               @update:model-value="store.form.group = $event"
               @select="opt => { store.form.group = opt.name; store.form.pic = opt.pic || ''; store.form.contact = opt.contact || ''; store.form.email = opt.email || '' }"
+              @add-new="openCustInfoModal"
             />
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
@@ -511,8 +523,8 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
                     <select @change="r.onCat" :value="r.cat" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;appearance:auto;">
                       <option value="" disabled>Pilih Kategori...</option>
                       <option v-for="(co, ci) in catOptions" :key="ci" :value="co">{{ co }}</option>
+                      <option value="__ADD_NEW__" style="color: #c39a4d; font-weight: 600;">+ Tambah Kategori Baru...</option>
                     </select>
-                    <button @click.prevent="addShortcutCategory()" title="Tambah Kategori Baru" style="background:#fff;border:1px solid #d8dce4;border-radius:9px;color:#15294f;cursor:pointer;padding:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;"><i class="ph ph-plus-circle" style="font-size:20px;color:#c39a4d;"></i></button>
                   </div>
                   <div v-if="r.showTripType" style="margin-top:12px;">
                     <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Tipe</label>
@@ -530,8 +542,8 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
                     <select @change="r.onVendor" :value="r.vendor" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fafbfc;outline:none;appearance:auto;">
                       <option value="">Pilih Vendor…</option>
                       <option v-for="(vo, vi) in r.vendorOptions" :key="vi" :value="vo">{{ vo }}</option>
+                      <option value="__ADD_NEW__" style="color: #c39a4d; font-weight: 600;">+ Tambah Vendor Baru...</option>
                     </select>
-                    <button @click.prevent="addShortcutVendor(r.cat)" title="Tambah Vendor Baru" style="background:#fff;border:1px solid #d8dce4;border-radius:9px;color:#15294f;cursor:pointer;padding:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;"><i class="ph ph-plus-circle" style="font-size:20px;color:#c39a4d;"></i></button>
                   </div>
                 </div>
               </div>
@@ -603,21 +615,16 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
               </div>
               <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:left;">*Klik Rp/% untuk ubah tipe</div>
             </div>
-            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="11" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
-            <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
+            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
             <div style="grid-column:span 3;">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                 <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;">Pembayaran</label>
                 <div v-if="store.site.bankAccounts && store.site.bankAccounts.length" style="position:relative;display:inline-block;">
-                  <select @change="onSelectBank" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;appearance:none;-webkit-appearance:none;">
-                    <option value="" disabled selected>Pilih Rekening</option>
-                    <option v-for="(b, idx) in store.site.bankAccounts" :key="idx" :value="idx">{{ b.bank }} - a.n. {{ b.name }}</option>
-                  </select>
-                  <button type="button" tabindex="-1" style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #d6e1f2;border-radius:8px;padding:6px 10px;color:#15294f;font-size:12px;font-weight:600;pointer-events:none;"><i class="ph ph-copy" style="font-size:14px;"></i>Salin Rekening</button>
                 </div>
               </div>
               <textarea v-model="f.payment_info" rows="3" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea>
             </div>
+            <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
           </div>
         </div>
 

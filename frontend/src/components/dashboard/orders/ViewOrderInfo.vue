@@ -112,6 +112,7 @@ const createMut = useMutation({
   mutationFn: dashboardService.createOrderInfo,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['order-infos'] })
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     closeForm()
     toast.success('Informasi pesanan berhasil ditambahkan.')
   },
@@ -123,6 +124,7 @@ const updateMut = useMutation({
   mutationFn: dashboardService.updateOrderInfo,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['order-infos'] })
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     closeForm()
     toast.success('Informasi pesanan berhasil diperbarui.')
   },
@@ -160,6 +162,7 @@ const deleteMut = useMutation({
   mutationFn: dashboardService.deleteOrderInfo,
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['order-infos'] })
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     cancelDelete()
     toast.success('Informasi pesanan berhasil dihapus.')
   },
