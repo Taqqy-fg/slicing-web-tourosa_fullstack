@@ -24,27 +24,29 @@ return new class extends Migration
 
         // Backfill: buat baris order_infos dari data flat di tabel orders
         // (group_name, pic_name, contact_info) bila belum ada.
-        $orders = DB::table('orders')->whereNull('order_info_id')->get([
-            'id', 'group_name', 'pic_name', 'created_by', 'updated_by',
-        ]);
-
-        foreach ($orders as $order) {
-            $infoId = DB::table('order_infos')->insertGetId([
-                'group_name'   => $order->group_name ?: 'Tanpa Nama Grup',
-                'pic_name'     => $order->pic_name ?? '',
-                'contact_info' => $order->contact_info ?? '',
-                'email'        => '',
-                'address'      => null,
-                'notes'        => null,
-                'created_by'   => $order->created_by,
-                'updated_by'   => $order->updated_by,
-                'created_at'   => now(),
-                'updated_at'   => now(),
+        if (Schema::hasColumn('orders', 'group_name')) {
+            $orders = DB::table('orders')->whereNull('order_info_id')->get([
+                'id', 'group_name', 'pic_name', 'created_by', 'updated_by',
             ]);
 
-            DB::table('orders')
-                ->where('id', $order->id)
-                ->update(['order_info_id' => $infoId]);
+            foreach ($orders as $order) {
+                $infoId = DB::table('order_infos')->insertGetId([
+                    'group_name'   => $order->group_name ?: 'Tanpa Nama Grup',
+                    'pic_name'     => $order->pic_name ?? '',
+                    'contact_info' => $order->contact_info ?? '',
+                    'email'        => '',
+                    'address'      => null,
+                    'notes'        => null,
+                    'created_by'   => $order->created_by,
+                    'updated_by'   => $order->updated_by,
+                    'created_at'   => now(),
+                    'updated_at'   => now(),
+                ]);
+
+                DB::table('orders')
+                    ->where('id', $order->id)
+                    ->update(['order_info_id' => $infoId]);
+            }
         }
     }
 
