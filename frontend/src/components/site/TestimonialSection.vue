@@ -1,15 +1,38 @@
 <script setup>
+import { Swiper, SwiperSlide } from 'swiper/vue'
+import { Autoplay, Pagination } from 'swiper/modules'
+import 'swiper/css'
+import 'swiper/css/pagination'
+
+const props = defineProps({
+  testimonials: { type: Array, default: () => [] }
+})
 </script>
 
 <template>
-  <section style="background:#13233f;color:#fff;">
-    <div data-aos="zoom-in" class="testimonial-inner">
+  <section v-if="testimonials.length" style="background:#13233f;color:#fff;">
+    <div class="testimonial-inner">
       <i class="ph-fill ph-quotes" style="font-size:40px;color:#c39a4d;"></i>
-      <p class="testimonial-quote">"Outing kantor 120 orang ke Bali berjalan mulus tanpa drama. Penawaran jelas, invoice rapi untuk reimbursement, dan tim Tourosa standby penuh di lokasi."</p>
-      <div style="display:flex;align-items:center;justify-content:center;gap:14px;">
-        <div class="testimonial-avatar"><img src="/assets/foto_profil.png" alt="Rendra Pratama" style="width:100%;height:100%;object-fit:cover;display:block;"></div>
-        <div style="text-align:left;"><div style="font-size:15px;font-weight:700;">Rendra Pratama</div><div style="font-size:13px;color:#9fabc4;">HRD · PT Sinar Abadi</div></div>
-      </div>
+      <Swiper
+        :modules="[Autoplay, Pagination]"
+        :autoplay="{ delay: 5000, disableOnInteraction: false }"
+        :pagination="{ clickable: true }"
+        :loop="testimonials.length > 1"
+        :fade-effect="{ crossFade: true }"
+        effect="fade"
+        speed="600"
+        style="width:100%;"
+      >
+        <SwiperSlide v-for="(t, idx) in testimonials" :key="t.id || idx">
+          <div class="testimonial-slide">
+            <p class="testimonial-quote">"{{ t.quote }}"</p>
+            <div style="display:flex;align-items:center;justify-content:center;gap:14px;">
+              <div class="testimonial-avatar"><img :src="t.avatar_url || '/assets/blank.png'" :alt="t.name" style="width:100%;height:100%;object-fit:cover;object-position:center center;display:block;"></div>
+              <div style="text-align:left;"><div style="font-size:15px;font-weight:700;">{{ t.name }}</div><div style="font-size:13px;color:#9fabc4;">{{ t.role }} · {{ t.company }}</div></div>
+            </div>
+          </div>
+        </SwiperSlide>
+      </Swiper>
     </div>
   </section>
 </template>
@@ -20,6 +43,9 @@
   margin: 0 auto;
   padding: 84px 32px;
   text-align: center;
+}
+.testimonial-slide {
+  padding: 20px 0 32px;
 }
 .testimonial-quote {
   font-size: 27px;
@@ -34,12 +60,22 @@
   height: 52px;
   flex-shrink: 0;
   background: #1b2e4a;
-  border: 2px solid #c39a4d;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   overflow: hidden;
+}
+
+:deep(.swiper-pagination) {
+  bottom: 8px !important;
+}
+:deep(.swiper-pagination-bullet) {
+  background: #3d5278;
+  opacity: 1;
+}
+:deep(.swiper-pagination-bullet-active) {
+  background: #c39a4d;
 }
 
 @media (max-width: 768px) {

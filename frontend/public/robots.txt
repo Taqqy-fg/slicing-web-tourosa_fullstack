@@ -1,0 +1,11 @@
+﻿User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /orders/
+Disallow: /reports/
+Disallow: /settings/
+Disallow: /admins/
+Disallow: /login
+
+Sitemap: https://tourosa.id/sitemap.xml

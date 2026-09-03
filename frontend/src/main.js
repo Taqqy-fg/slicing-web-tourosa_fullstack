@@ -8,6 +8,12 @@ import 'aos/dist/aos.css'
 import App from './App.vue'
 import router from './router'
 
+// Setup jQuery globally BEFORE daterangepicker is imported anywhere
+import $ from 'jquery'
+import moment from 'moment'
+window.jQuery = window.$ = $
+window.moment = moment
+
 const app = createApp(App)
 const pinia = createPinia()
 

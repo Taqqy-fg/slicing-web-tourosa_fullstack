@@ -1,9 +1,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../stores/authStore'
 import AOS from 'aos'
 
 const router = useRouter()
+const auth = useAuthStore()
 defineProps({
   waLink: String
 })
@@ -50,7 +52,7 @@ const navigateTo = (id) => {
       </nav>
 
       <div class="header-actions">
-        <button @click="goDash" class="tr-btn hdr-btn-dash" style="border:1px solid #d9dbe0;background:#fff;color:#15294f;font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px;">
+        <button v-if="auth.isAuthenticated" @click="goDash" class="tr-btn hdr-btn-dash" style="border:1px solid #d9dbe0;background:#fff;color:#15294f;font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:7px;">
           <i class="ph ph-squares-four" style="font-size:16px;"></i>Dashboard
         </button>
         <a :href="waLink" target="_blank" class="tr-btn hdr-btn-wa" style="background:#15294f;color:#fff;font-size:13.5px;font-weight:600;padding:10px 18px;border-radius:10px;display:flex;align-items:center;gap:8px;">
@@ -90,11 +92,11 @@ const navigateTo = (id) => {
       </nav>
       <!-- Action buttons — di atas nav links -->
     <div class="offcanvas-actions">
-        <button @click="goDash" class="offcanvas-btn-outline">
-          <i class="ph ph-squares-four"></i> Dashboard Admin
+        <button v-if="auth.isAuthenticated" @click="goDash" class="offcanvas-btn-outline">
+          <i class="ph ph-squares-four"></i> Dashboard
         </button>
         <a :href="waLink" target="_blank" class="offcanvas-btn-primary">
-          <i class="ph-fill ph-whatsapp-logo" style="color:#c39a4d;"></i> WhatsApp
+          <i class="ph-fill ph-whatsapp-logo" style="color:#c39a4d;"></i> Hubungi Kami
         </a>
       </div>
 

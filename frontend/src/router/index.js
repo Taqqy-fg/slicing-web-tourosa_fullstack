@@ -1,13 +1,19 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
+import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
-import ViewOverview from '../components/dashboard/ViewOverview.vue'
-import ViewNewOrder from '../components/dashboard/ViewNewOrder.vue'
-import ViewOrderList from '../components/dashboard/ViewOrderList.vue'
-import ViewInvoice from '../components/dashboard/ViewInvoice.vue'
-import ViewOrderDetail from '../components/dashboard/ViewOrderDetail.vue'
-import ViewReport from '../components/dashboard/ViewReport.vue'
-import ViewSettings from '../components/dashboard/ViewSettings.vue'
+import ViewOverview from '../components/dashboard/overview/ViewOverview.vue'
+import ViewNewOrder from '../components/dashboard/orders/ViewNewOrder.vue'
+import ViewOrderList from '../components/dashboard/orders/ViewOrderList.vue'
+import ViewOrderInfo from '../components/dashboard/orders/ViewOrderInfo.vue'
+import ViewInvoice from '../components/dashboard/orders/ViewInvoice.vue'
+import ViewOrderDetail from '../components/dashboard/orders/ViewOrderDetail.vue'
+import ViewReport from '../components/dashboard/reports/ViewReport.vue'
+import ViewSettings from '../components/dashboard/settings/ViewSettings.vue'
+import ViewAdmin from '../components/dashboard/admin/ViewAdmin.vue'
+import ViewRoles from '../components/dashboard/roles/ViewRoles.vue'
+import ViewEditOrder from '../components/dashboard/orders/ViewEditOrder.vue'
+import { useAuthStore } from '../stores/authStore'
 
 const routes = [
   {
@@ -16,45 +22,86 @@ const routes = [
     component: Home
   },
   {
-    path: '/dashboard',
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { guest: true }
+  },
+  {
+    path: '/',
     name: 'Dashboard',
     component: Dashboard,
-    redirect: '/dashboard/overview',
+    meta: { requiresAuth: true },
     children: [
       {
-        path: 'overview',
+        path: 'dashboard',
         name: 'ViewOverview',
-        component: ViewOverview
+        component: ViewOverview,
+        meta: { permission: 'dashboard.view' }
       },
       {
-        path: 'new-order',
-        name: 'ViewNewOrder',
-        component: ViewNewOrder
-      },
-      {
-        path: 'order-list',
+        path: 'orders',
         name: 'ViewOrderList',
-        component: ViewOrderList
+        component: ViewOrderList,
+        meta: { permission: 'orders.view' }
       },
       {
-        path: 'invoice',
+        path: 'orders/new',
+        name: 'ViewNewOrder',
+        component: ViewNewOrder,
+        meta: { permission: 'orders.create' }
+      },
+      {
+        path: 'orders/invoice/:id(.*)',
         name: 'ViewInvoice',
-        component: ViewInvoice
+        component: ViewInvoice,
+        meta: { permission: 'orders.view' }
       },
       {
-        path: 'order-detail',
+        path: 'orders/detail/:id(.*)',
         name: 'ViewOrderDetail',
-        component: ViewOrderDetail
+        component: ViewOrderDetail,
+        meta: { permission: 'orders.view' }
       },
       {
-        path: 'report',
+        path: 'orders/edit/:id(.*)',
+        name: 'ViewEditOrder',
+        component: ViewEditOrder,
+        meta: { permission: 'orders.update' }
+      },
+      {
+        path: 'orders/info',
+        name: 'ViewOrderInfo',
+        component: ViewOrderInfo,
+        meta: { permission: 'orders.view' }
+      },
+      {
+        path: 'reports',
         name: 'ViewReport',
-        component: ViewReport
+        component: ViewReport,
+        meta: { permission: 'reports.view' }
+      },
+      {
+        path: 'admins',
+        name: 'ViewAdmin',
+        component: ViewAdmin,
+        meta: { permission: 'admins.view' }
+      },
+      {
+        path: 'roles',
+        name: 'ViewRoles',
+        component: ViewRoles,
+        meta: { permission: 'roles.view' }
       },
       {
         path: 'settings',
         name: 'ViewSettings',
-        component: ViewSettings
+        component: ViewSettings,
+        meta: { permission: 'settings.view' }
+      },
+      {
+        path: '',
+        redirect: '/dashboard'
       }
     ]
   }
@@ -69,6 +116,54 @@ const router = createRouter({
     }
     return { top: 0 }
   }
+})
+
+router.beforeEach(async (to, from, next) => {
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+
+  if (to.meta.requiresAuth && !token) {
+    return next({ name: 'Login' })
+  }
+
+  if (to.meta.guest && token) {
+    return next({ name: 'Dashboard' })
+  }
+
+  // Permission guard
+  if (to.meta.permission && token) {
+    const auth = useAuthStore()
+
+    // Fetch user data if not loaded yet (page refresh)
+    if (!auth.user) {
+      await auth.fetchUser()
+    }
+
+    if (auth.user && !auth.hasPermission(to.meta.permission)) {
+      return next({ name: 'ViewOverview' })
+    }
+  }
+
+  next()
+})
+
+const routeTitles = {
+  Home: 'Tourosa Travel',
+  Login: 'Masuk — Tourosa Travel',
+  ViewOverview: 'Dashboard — Tourosa Travel',
+  ViewNewOrder: 'Buat Pesanan — Tourosa Travel',
+  ViewOrderList: 'Daftar Pesanan — Tourosa Travel',
+  ViewOrderInfo: 'Informasi Pesanan — Tourosa Travel',
+  ViewOrderDetail: 'Detail Pesanan — Tourosa Travel',
+  ViewInvoice: 'Invoice — Tourosa Travel',
+  ViewEditOrder: 'Edit Pesanan — Tourosa Travel',
+  ViewReport: 'Laporan — Tourosa Travel',
+  ViewAdmin: 'Admin — Tourosa Travel',
+  ViewRoles: 'Roles & Permissions — Tourosa Travel',
+  ViewSettings: 'Pengaturan — Tourosa Travel',
+}
+
+router.afterEach((to) => {
+  document.title = routeTitles[to.name] || 'Tourosa Travel'
 })
 
 export default router

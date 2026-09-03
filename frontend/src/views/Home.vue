@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { dashboardService } from '../services/dashboardService'
+import { siteService } from '../services/siteService'
 
 import SiteHeader from '../components/site/SiteHeader.vue'
 import HeroSection from '../components/site/HeroSection.vue'
@@ -15,8 +15,8 @@ import SiteFooter from '../components/site/SiteFooter.vue'
 import ScrollToTop from '../components/site/ScrollToTop.vue'
 
 const { data, isPending } = useQuery({
-  queryKey: ['dashboard'],
-  queryFn: dashboardService.getDashboardData
+  queryKey: ['site'],
+  queryFn: siteService.getSiteSettings
 })
 
 const site = computed(() => {
@@ -30,6 +30,8 @@ const site = computed(() => {
     clients: s.clients || []
   }
 })
+
+const testimonials = computed(() => data.value?.testimonials || [])
 
 // Computed values based on state logic from the HTML script
 const waNum = computed(() => (site.value.waNumber || '6281200000000').replace(/[^0-9]/g, ''))
@@ -47,7 +49,7 @@ const waDisplay = computed(() => '+' + waNum.value.replace(/^(\d{2})(\d{3,4})(\d
     <ServicesSection />
     <AboutSection />
     <ProcessSection />
-    <TestimonialSection />
+    <TestimonialSection :testimonials="testimonials" />
     <CtaSection :wa-link="waLink" :wa-display="waDisplay" />
     <SiteFooter :wa-display="waDisplay" :site-email="site.email" :site-address="site.address" />
     <ScrollToTop />

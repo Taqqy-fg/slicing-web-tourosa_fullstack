@@ -7,10 +7,31 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build output
 dist
 dist-ssr
 *.local
+
+# Environment variables (JANGAN commit — berisi config/secret)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Firebase
+.firebase
+firebase-debug.log
+firebase-debug.*.log
+.firebaserc.local
+.agents
+
+# Vite cache
+.vite
+.vite-temp
 
 # Editor directories and files
 .vscode/*

@@ -11,11 +11,17 @@ use App\Models\OrderTerm;
 use App\Models\Catalog;
 use App\Models\CatalogItem;
 use App\Models\Setting;
+use App\Models\Testimonial;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // SEED ROLES & PERMISSIONS first
+        $this->call(RolePermissionSeeder::class);
+
         // SEED SETTINGS
         Setting::insert([
             ['key' => 'waNumber', 'value' => json_encode('6281200000000')],
@@ -114,12 +120,16 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($ordersData as $data) {
-            $order = Order::create([
-                'invoice_no' => $data['no'],
-                'invoice_date' => $data['date'],
+            $orderInfo = \App\Models\OrderInfo::create([
                 'group_name' => $data['group'],
                 'pic_name' => $data['pic'],
                 'contact_info' => $data['contact'],
+            ]);
+
+            $order = Order::create([
+                'order_info_id' => $orderInfo->id,
+                'invoice_no' => $data['no'],
+                'invoice_date' => $data['date'],
                 'destination' => $data['dest'],
                 'depart_date' => $data['depart'],
                 'return_date' => $data['ret'],
@@ -165,5 +175,22 @@ class DatabaseSeeder extends Seeder
                 }
             }
         }
+
+        // SEED TESTIMONIALS
+        Testimonial::firstOrCreate(
+            ['quote' => 'Outing kantor 120 orang ke Bali berjalan mulus tanpa drama. Penawaran jelas, invoice rapi untuk reimbursement, dan tim Tourosa standby penuh di lokasi.'],
+            [
+                'name' => 'Rendra Pratama',
+                'role' => 'HRD',
+                'company' => 'PT Sinar Abadi',
+                'avatar_path' => null,
+                'sort_order' => 0,
+                'is_active' => true,
+                'created_by' => 1,
+                'updated_by' => 1,
+                'created_at' => '2026-08-19 07:31:39',
+                'updated_at' => '2026-08-19 07:31:39',
+            ]
+        );
     }
 }

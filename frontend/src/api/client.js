@@ -3,8 +3,10 @@ import axios from 'axios';
 /**
  * Axios instance configured for the Tourosa API.
  */
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/+$/, '')
+
 export const apiClient = axios.create({
-    baseURL: 'http://127.0.0.1:8000/api',
+    baseURL: API_BASE,
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
@@ -12,9 +14,16 @@ export const apiClient = axios.create({
     }
 });
 
-// Request interceptor
+// Request interceptor — attach Bearer token
 apiClient.interceptors.request.use(
     (config) => {
+        const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
         return config;
     },
     (error) => {
@@ -26,6 +35,9 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response.data,
     (error) => {
+        if (error.response?.status === 422) {
+            return Promise.reject(error);
+        }
         console.error('API Error:', error.response?.data || error.message);
         return Promise.reject(error);
     }

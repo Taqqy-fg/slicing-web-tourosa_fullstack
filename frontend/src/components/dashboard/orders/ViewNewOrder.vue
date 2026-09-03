@@ -1,0 +1,697 @@
+<script setup>
+import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useDashboardStore } from '../../../stores/dashboardStore'
+import { useDashboardData } from '../../../composables/useDashboardData'
+import { dashboardService } from '../../../services/dashboardService'
+import { useToast } from '../../../composables/useToast'
+import DatePicker from '../../DatePicker.vue'
+import GroupSelect from './GroupSelect.vue'
+
+const props = defineProps({
+  orders: Array,
+  catalog: Array
+})
+
+const store = useDashboardStore()
+const router = useRouter()
+const queryClient = useQueryClient()
+const { fmt, calc } = useDashboardData()
+const toast = useToast()
+
+watch(() => store.site.bankAccounts, (banks) => {
+  if (!store.form.payment_info) {
+    store.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
+  }
+}, { immediate: true })
+
+const insertBank = (b) => {
+  const text = `Bank: ${b.bank}\nNo. Rekening: ${b.number}\nAtas Nama (a.n): ${b.name}`
+  if (!store.form.payment_info || store.form.payment_info === 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ') {
+    store.form.payment_info = text
+  } else {
+    store.form.payment_info += '\n\n' + text
+  }
+}
+
+const onSelectBank = (e) => {
+  const idx = e.target.value
+  if (idx === '') return
+  const b = store.site.bankAccounts[idx]
+  if (b) insertBank(b)
+  e.target.value = '' // Reset dropdown
+}
+
+const catalog = computed(() => store.catalog)
+const orders = computed(() => store.orders)
+
+const catOptions = computed(() => {
+  const cats = catalog.value.map(c => c.cat)
+  const lainnyaIdx = cats.findIndex(c => c.toLowerCase() === 'lainnya')
+  if (lainnyaIdx !== -1) {
+    const lainnya = cats.splice(lainnyaIdx, 1)[0]
+    cats.push(lainnya)
+  }
+  return cats
+})
+const vendorsFor = (cat) => {
+  const c = catalog.value.find(x => x.cat === cat)
+  return c ? c.items.filter(v => (v || '').trim()) : []
+}
+
+const saveCatalogMut = useMutation({
+  mutationFn: dashboardService.updateCatalog,
+  onSuccess: (_, variables) => {
+    queryClient.setQueryData(['dashboard'], (old) => {
+      if (!old) return old
+      return { ...old, catalog: variables }
+    })
+  }
+})
+
+// === Modal Shortcut Kategori & Vendor ===
+const showCatModal = ref(false)
+const showVendorModal = ref(false)
+const newCatName = ref('')
+const newVendorName = ref('')
+const vendorModalCat = ref('')
+const isSavingCatalog = ref(false)
+
+// === Modal Tambah Informasi Pemesanan ===
+const showCustInfoModal = ref(false)
+const newCustInfo = ref({ group: '', pic: '', contact: '', email: '' })
+const openCustInfoModal = () => {
+  newCustInfo.value = { group: '', pic: '', contact: '', email: '' }
+  showCustInfoModal.value = true
+}
+const saveCustInfo = () => {
+  const g = (newCustInfo.value.group || '').trim()
+  if (!g) { toast.error('Nama Grup / Instansi wajib diisi'); return }
+  store.form.group = g
+  store.form.pic = newCustInfo.value.pic || ''
+  store.form.contact = newCustInfo.value.contact || ''
+  store.form.email = newCustInfo.value.email || ''
+  showCustInfoModal.value = false
+}
+
+const activeCatItemIdx = ref(null)
+
+const addShortcutCategory = (idx) => {
+  newCatName.value = ''
+  activeCatItemIdx.value = idx
+  showCatModal.value = true
+}
+
+const activeVendorItemIdx = ref(null)
+
+const addShortcutVendor = (currentCat, idx) => {
+  if (!currentCat) {
+    toast.error('Pilih Kategori terlebih dahulu')
+    return
+  }
+  newVendorName.value = ''
+  vendorModalCat.value = currentCat
+  activeVendorItemIdx.value = idx
+  showVendorModal.value = true
+}
+
+const saveNewCategory = async () => {
+  const trimName = newCatName.value.trim()
+  if (!trimName) return
+  const updated = [...store.catalog]
+  if (updated.find(c => c.cat.toLowerCase() === trimName.toLowerCase())) {
+    toast.error('Kategori sudah ada')
+    return
+  }
+  isSavingCatalog.value = true
+  try {
+    updated.unshift({ cat: trimName, items: [] })
+    const payload = JSON.parse(JSON.stringify(updated))
+    store.catalogVersion++
+    store.catalog = payload
+    await saveCatalogMut.mutateAsync(payload)
+    toast.success('Kategori ditambahkan')
+    
+    if (activeCatItemIdx.value !== null) {
+      store.updateFormItem(activeCatItemIdx.value, 'cat', trimName)
+      store.updateFormItem(activeCatItemIdx.value, 'vendor', '')
+    }
+    
+    showCatModal.value = false
+    newCatName.value = ''
+    activeCatItemIdx.value = null
+  } catch (e) {
+    console.error(e)
+    toast.error('Gagal menyimpan: ' + (e.response?.data?.message || e.message || 'Error'))
+  } finally {
+    isSavingCatalog.value = false
+  }
+}
+
+const saveNewVendor = async () => {
+  const trimName = newVendorName.value.trim()
+  if (!trimName) return
+  const updated = [...store.catalog]
+  const cidx = updated.findIndex(c => c.cat === vendorModalCat.value)
+  if (cidx === -1) return
+  if (updated[cidx].items.some(i => i.toLowerCase() === trimName.toLowerCase())) {
+    toast.error('Vendor sudah ada')
+    return
+  }
+  isSavingCatalog.value = true
+  try {
+    updated[cidx].items.push(trimName)
+    const payload = JSON.parse(JSON.stringify(updated))
+    store.catalogVersion++
+    store.catalog = payload
+    await saveCatalogMut.mutateAsync(payload)
+    toast.success('Vendor ditambahkan')
+    
+    if (activeVendorItemIdx.value !== null) {
+      store.updateFormItem(activeVendorItemIdx.value, 'vendor', trimName)
+      if (!store.form.items[activeVendorItemIdx.value].desc) {
+        store.updateFormItem(activeVendorItemIdx.value, 'desc', trimName)
+      }
+    }
+    
+    showVendorModal.value = false
+    newVendorName.value = ''
+    activeVendorItemIdx.value = null
+  } catch (e) {
+    console.error(e)
+    toast.error('Gagal menyimpan: ' + (e.response?.data?.message || e.message || 'Error'))
+  } finally {
+    isSavingCatalog.value = false
+  }
+}
+
+function fmtNum(n) {
+  if (n === null || n === undefined || n === '') return ''
+  const num = Number(String(n).replace(/[^0-9.-]/g, ''))
+  if (isNaN(num)) return ''
+  return num.toLocaleString('id-ID')
+}
+function parseNum(v) {
+  const raw = String(v ?? '').replace(/[^0-9]/g, '')
+  return raw ? Number(raw) : ''
+}
+
+const tripTypeOpts = ['Round Trip', 'One Way']
+
+const itemRows = computed(() => {
+  return store.form.items.map((it, idx) => {
+    const cost = Number(it.cost) || 0
+    const markupCost = Number(it.markupCost) || 0
+    const price = Number(it.price) || 0
+    const markupCompany = cost + markupCost + price
+  const isHotel = it.cat === 'Hotel'
+  const noTripTypeCats = ['Group Tour / Land Tour', 'Konsumsi', 'Transport', 'Tour Leader', 'Dokumen / Visa', 'Lainnya']
+  const showTripType = Boolean(it.cat) && !isHotel && !noTripTypeCats.includes(it.cat)
+  const showDest = !isHotel && !noTripTypeCats.includes(it.cat)
+  const showRet = isHotel ? true : (noTripTypeCats.includes(it.cat) ? false : (it.tripType || 'Round Trip') !== 'One Way')
+  const departLabel = isHotel ? 'Tgl Check In' : 'Tanggal'
+  const retLabel = isHotel ? 'Tgl Check Out' : 'Tanggal Kembali'
+  const qtyLabel = isHotel ? 'Room' : 'Qty'
+  const dateCols = 'repeat(' + (showDest ? (showRet ? 3 : 2) : (showRet ? 2 : 1)) + ', minmax(0,1fr))'
+  const headCols = showTripType ? '1fr 1fr 140px' : '1fr 1fr'
+  return {
+       idx, cat: it.cat, vendor: it.vendor || '', tripType: it.tripType || 'Round Trip',
+       dest: it.dest || '', depart: it.depart || '', ret: it.ret || '',
+       desc: it.desc, qty: it.qty,
+       costFmt: fmtNum(it.cost), markupCostFmt: fmtNum(it.markupCost),
+       priceFmt: fmtNum(it.price), markupCompanyFmt: fmtNum(markupCompany),
+       vendorOptions: vendorsFor(it.cat),
+       isHotel, showTripType, showDest, showRet, departLabel, retLabel, qtyLabel, dateCols, headCols,
+      lineF: fmt((Number(it.qty) || 0) * markupCompany),
+      onCat: e => {
+        if (e.target.value === '__ADD_NEW__') {
+          addShortcutCategory(idx)
+          e.target.value = it.cat || ''
+          return
+        }
+        store.updateFormItem(idx, 'cat', e.target.value); store.updateFormItem(idx, 'vendor', '')
+      },
+      onVendor: e => {
+        if (e.target.value === '__ADD_NEW__') {
+          addShortcutVendor(it.cat, idx)
+          e.target.value = it.vendor || ''
+          return
+        }
+        store.updateFormItem(idx, 'vendor', e.target.value); if (!it.desc) store.updateFormItem(idx, 'desc', e.target.value)
+      },
+      onTripType: e => store.updateFormItem(idx, 'tripType', e.target.value),
+      onDest: e => store.updateFormItem(idx, 'dest', e.target.value),
+      onDepart: val => store.updateFormItem(idx, 'depart', val),
+      onRet: val => store.updateFormItem(idx, 'ret', val),
+      onDesc: e => store.updateFormItem(idx, 'desc', e.target.value),
+      onQty: e => store.updateFormItem(idx, 'qty', e.target.value),
+      onCost: e => {
+        const v = parseNum(e.target.value)
+        store.updateFormItem(idx, 'cost', v)
+        store.updateFormItem(idx, 'markupPrice', v + (Number(it.markupCost) || 0) + (Number(it.price) || 0))
+      },
+      onMarkupCost: e => {
+        const v = parseNum(e.target.value)
+        store.updateFormItem(idx, 'markupCost', v)
+        store.updateFormItem(idx, 'markupPrice', (Number(it.cost) || 0) + v + (Number(it.price) || 0))
+      },
+      onPrice: e => {
+        const v = parseNum(e.target.value)
+        store.updateFormItem(idx, 'price', v)
+        store.updateFormItem(idx, 'markupPrice', (Number(it.cost) || 0) + (Number(it.markupCost) || 0) + v)
+      },
+      onRemove: () => store.removeItemFromForm(idx),
+      onDuplicate: () => store.duplicateItemFromForm(idx)
+    }
+  })
+})
+
+const tCalc = computed(() => {
+  const c = calc(store.form)
+  return {
+    tSubtotal: fmt(c.subtotal), tDiscount: fmt(c.discountAmount), tServiceFee: fmt(c.serviceFeeAmount),
+    tTax: fmt(c.tax), tGrandTotal: fmt(c.grandTotal),
+    tPerPax: fmt(c.perPax), tDp: fmt(c.dp), tSisa: fmt(c.sisa),
+    tCost: fmt(c.totalCost), tProfit: fmt(c.profit), tMargin: Math.round(c.marginPct) + '%'
+  }
+})
+
+const nextInvNo = computed(() => {
+  if (!orders.value || orders.value.length === 0) return 'INV/TRS/2026/0001'
+  const maxNo = Math.max(...orders.value.map(o => {
+    const parts = (o.no || '').split('/')
+    return Number(parts[parts.length - 1]) || 0
+  }))
+  return 'INV/TRS/2026/' + String(maxNo + 1).padStart(4, '0')
+})
+
+const createOrderMut = useMutation({
+  mutationFn: dashboardService.createOrder,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  },
+  onError: (err) => {
+    const msg = err.response?.data?.message || err.message || 'Gagal membuat pesanan.'
+    toast.error('Error: ' + msg)
+  }
+})
+
+const saveOrder = async () => {
+  const f = store.form
+
+  const groupName = (f.group || '').trim()
+  if (groupName && groupName !== 'Tanpa Nama Grup') {
+    const exists = store.customers.find(c => c.name.toLowerCase() === groupName.toLowerCase())
+    if (!exists) {
+      try {
+        const res = await dashboardService.createCustomer({ name: groupName, pic_name: f.pic, contact_info: f.contact })
+        if (res && res.customer) store.customers.push(res.customer)
+      } catch (err) {}
+    }
+  }
+
+  const items = f.items.filter(it => (Number(it.qty) || 0) > 0 || (Number(it.price) || 0) > 0 || (it.desc || '').trim())
+  
+  const firstItemWithDest = items.find(it => it.dest) || items[0] || {}
+
+  const payload = {
+    no: nextInvNo.value, date: f.invoiceDate || new Date().toISOString().slice(0, 10),
+    group: groupName || 'Tanpa Nama Grup',
+    pic: f.pic, contact: f.contact, email: f.email || '',
+    dest: firstItemWithDest.dest || '-', 
+    depart: firstItemWithDest.depart || null, 
+    ret: firstItemWithDest.ret || null, 
+    pax: Number(items[0]?.qty) || 0,
+    items: items.length ? items : [{ cat: 'Lainnya', desc: '(belum ada item)', qty: 0, cost: 0, price: 0 }],
+    expenses: [], terms: [],
+    discount: f.discount, discountType: f.discountType, serviceFee: f.serviceFee, serviceFeeType: f.serviceFeeType,
+    taxPercent: f.taxPercent, dpPercent: f.dpPercent, dpDueDate: f.dpDueDate, tenggatDate: f.tenggatDate, notes: f.notes, payment_info: f.payment_info,
+    status: 'Belum Lunas',
+  }
+
+  createOrderMut.mutate(payload, {
+    onSuccess: () => {
+        store.setActiveInvoice(payload)
+        router.push('/orders/invoice/' + encodeURIComponent(payload.no))
+        store.resetForm()
+        toast.success('Pesanan baru berhasil dibuat.')
+    }
+  })
+}
+
+const f = computed(() => store.form)
+const t = tCalc
+const addItem = () => store.addItemToForm()
+const resetForm = () => store.resetForm()
+const goOrderList = () => router.push('/orders')
+const discountFmt = computed(() => fmtNum(f.value.discount))
+const onDiscount = e => { store.form.discount = parseNum(e.target.value) }
+const serviceFeeFmt = computed(() => fmtNum(f.value.serviceFee))
+const onServiceFee = e => { store.form.serviceFee = parseNum(e.target.value) }
+const toggleServiceFeeType = () => { store.form.serviceFeeType = store.form.serviceFeeType === 'Rp' ? '%' : 'Rp' }
+const toggleDiscountType = () => { store.form.discountType = store.form.discountType === 'Rp' ? '%' : 'Rp' }
+</script>
+
+<template>
+  <div class="p-mobile grid-cols-1-mobile" style="padding:30px 32px;">
+    <nav style="display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap;margin-bottom:24px;">
+      <a @click.prevent="goOrderList" href="#" style="color:#5d6a82;text-decoration:none;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;"><i class="ph ph-list-checks" style="font-size:15px;"></i>Daftar Pesanan</a>
+      <i class="ph ph-caret-right" style="color:#c2c8d4;font-size:13px;"></i>
+      <span style="color:#13233f;font-weight:700;">Buat Pesanan Baru</span>
+    </nav>
+
+    <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start;">
+      <!-- ===== LEFT COLUMN ===== -->
+      <div style="display:flex;flex-direction:column;gap:18px;">
+        <!-- group info -->
+        <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0;display:flex;align-items:center;gap:9px;"><i class="ph ph-users-three" style="color:#c39a4d;font-size:20px;"></i>Informasi Pemesanan</h3>
+          </div>
+          <p style="font-size:13px;color:#8a93a5;margin:0 0 20px;">Data utama pemesan.</p>
+          
+          <div style="margin-bottom:16px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nama Grup / Instansi <span style="color:#c2603a;">*</span></label>
+            <GroupSelect
+              :model-value="store.form.group"
+              @update:model-value="store.form.group = $event"
+              @select="opt => { store.form.group = opt.name; store.form.pic = opt.pic || ''; store.form.contact = opt.contact || ''; store.form.email = opt.email || '' }"
+              @add-new="openCustInfoModal"
+            />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">PIC / Penanggung Jawab</label>
+              <input v-model="store.form.pic" placeholder="Masukkan nama PIC..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;" />
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label>
+              <input v-model="store.form.contact" placeholder="Masukkan nomor kontak..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;" />
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Email</label>
+            <input v-model="store.form.email" placeholder="Masukkan email..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;" />
+          </div>
+        </div>
+
+        <!-- Modal Tambah Informasi Pemesanan -->
+        <div v-if="showCustInfoModal" style="position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;">
+          <div style="position:absolute;inset:0;background:rgba(13,27,48,.5);backdrop-filter:blur(3px);" @click="showCustInfoModal = false"></div>
+          <div style="position:relative;background:#fff;border-radius:18px;width:100%;max-width:560px;max-height:calc(100vh - 32px);box-shadow:0 24px 70px rgba(13,27,48,.3);display:flex;flex-direction:column;overflow:hidden;">
+            <!-- Header modal -->
+            <div style="background:linear-gradient(135deg,#15294f,#0d1b30);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="width:38px;height:38px;border-radius:11px;background:rgba(195,154,77,.18);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <i class="ph ph-users-three" style="font-size:20px;color:#c39a4d;"></i>
+                </span>
+                <div>
+                  <h4 style="font-size:15.5px;font-weight:800;color:#fff;margin:0;">Tambah Informasi Pesanan</h4>
+                  <p style="font-size:11.5px;color:#aeb8cc;margin:2px 0 0;">Isi data grup, PIC, dan kontak pemesan</p>
+                </div>
+              </div>
+              <button @click="showCustInfoModal = false" class="tr-btn" style="background:rgba(255,255,255,.1);border:none;cursor:pointer;color:#fff;padding:6px;border-radius:8px;">
+                <i class="ph ph-x" style="font-size:17px;"></i>
+              </button>
+            </div>
+            <!-- Body modal -->
+            <div style="padding:22px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;flex:1;">
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Nama Grup / Instansi <span style="color:#c2603a;">*</span></label>
+                <input v-model="newCustInfo.group" @keyup.enter="saveCustInfo" placeholder="cth. PT. Maju Bersama" style="width:100%;padding:11px 13px;border:1.5px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;" @focus="e => e.target.style.borderColor='#15294f'" @blur="e => e.target.style.borderColor='#d8dce4'">
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">PIC / Penanggung Jawab</label>
+                  <input v-model="newCustInfo.pic" placeholder="cth. Budi Santoso" style="width:100%;padding:11px 13px;border:1.5px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;" @focus="e => e.target.style.borderColor='#15294f'" @blur="e => e.target.style.borderColor='#d8dce4'">
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label>
+                  <input v-model="newCustInfo.contact" placeholder="cth. 0812xxxxxxxx" style="width:100%;padding:11px 13px;border:1.5px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;" @focus="e => e.target.style.borderColor='#15294f'" @blur="e => e.target.style.borderColor='#d8dce4'">
+                </div>
+              </div>
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Email</label>
+                <input v-model="newCustInfo.email" type="email" placeholder="cth. budi@email.com" style="width:100%;padding:11px 13px;border:1.5px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;" @focus="e => e.target.style.borderColor='#15294f'" @blur="e => e.target.style.borderColor='#d8dce4'">
+              </div>
+              <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;border-top:1px solid #eef0f3;margin-top:4px;">
+                <button @click="showCustInfoModal = false" class="tr-btn" style="background:#fff;color:#5f6b80;border:1px solid #e2e4ea;font-size:13px;font-weight:600;padding:9px 18px;border-radius:9px;cursor:pointer;">Batal</button>
+                <button @click="saveCustInfo" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:9px 18px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;">
+                  <i class="ph ph-check-circle" style="font-size:15px;color:#7ed3a6;"></i>Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Tambah Kategori Baru -->
+        <div v-if="showCatModal" style="position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;">
+          <div style="position:absolute;inset:0;background:rgba(13,27,48,.5);backdrop-filter:blur(3px);" @click="showCatModal = false"></div>
+          <div style="position:relative;background:#fff;border-radius:18px;width:100%;max-width:440px;box-shadow:0 24px 70px rgba(13,27,48,.3);overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#15294f,#0d1b30);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="width:38px;height:38px;border-radius:11px;background:rgba(195,154,77,.18);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <i class="ph ph-tag" style="font-size:20px;color:#c39a4d;"></i>
+                </span>
+                <div>
+                  <h4 style="font-size:15.5px;font-weight:800;color:#fff;margin:0;">Tambah Kategori Baru</h4>
+                  <p style="font-size:11.5px;color:#aeb8cc;margin:2px 0 0;">Kategori akan langsung tersimpan ke katalog</p>
+                </div>
+              </div>
+              <button @click="showCatModal = false" class="tr-btn" style="background:rgba(255,255,255,.1);border:none;cursor:pointer;color:#fff;padding:6px;border-radius:8px;">
+                <i class="ph ph-x" style="font-size:17px;"></i>
+              </button>
+            </div>
+            <div style="padding:22px;display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:8px;">Nama Kategori</label>
+                <input
+                  v-model="newCatName"
+                  @keyup.enter="saveNewCategory"
+                  type="text"
+                  placeholder="cth. Tiket Pesawat, Hotel, Transport..."
+                  style="width:100%;padding:12px 14px;border:1.5px solid #d8dce4;border-radius:10px;font-size:14px;color:#1a2235;background:#fff;outline:none;transition:border .15s;"
+                  @focus="e => e.target.style.borderColor='#15294f'"
+                  @blur="e => e.target.style.borderColor='#d8dce4'"
+                >
+              </div>
+              <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;border-top:1px solid #eef0f3;">
+                <button @click="showCatModal = false" class="tr-btn" style="background:#fff;color:#5f6b80;border:1px solid #e2e4ea;font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px;cursor:pointer;">Batal</button>
+                <button @click="saveNewCategory" :disabled="!newCatName.trim() || isSavingCatalog" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:10px 18px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;" :style="{ opacity: (!newCatName.trim() || isSavingCatalog) ? 0.6 : 1 }">
+                  <i v-if="isSavingCatalog" class="ph ph-circle-notch" style="font-size:15px;animation:spin 1s linear infinite;"></i>
+                  <i v-else class="ph ph-check-circle" style="font-size:15px;color:#7ed3a6;"></i>
+                  {{ isSavingCatalog ? 'Menyimpan...' : 'Simpan Kategori' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Tambah Vendor Baru -->
+        <div v-if="showVendorModal" style="position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;">
+          <div style="position:absolute;inset:0;background:rgba(13,27,48,.5);backdrop-filter:blur(3px);" @click="showVendorModal = false"></div>
+          <div style="position:relative;background:#fff;border-radius:18px;width:100%;max-width:440px;box-shadow:0 24px 70px rgba(13,27,48,.3);overflow:hidden;">
+            <div style="background:linear-gradient(135deg,#15294f,#0d1b30);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="width:38px;height:38px;border-radius:11px;background:rgba(195,154,77,.18);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <i class="ph ph-storefront" style="font-size:20px;color:#c39a4d;"></i>
+                </span>
+                <div>
+                  <h4 style="font-size:15.5px;font-weight:800;color:#fff;margin:0;">Tambah Vendor / Produk</h4>
+                  <p style="font-size:11.5px;color:#aeb8cc;margin:2px 0 0;">Di kategori: <strong style="color:#c39a4d;">{{ vendorModalCat }}</strong></p>
+                </div>
+              </div>
+              <button @click="showVendorModal = false" class="tr-btn" style="background:rgba(255,255,255,.1);border:none;cursor:pointer;color:#fff;padding:6px;border-radius:8px;">
+                <i class="ph ph-x" style="font-size:17px;"></i>
+              </button>
+            </div>
+            <div style="padding:22px;display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:8px;">Nama Vendor / Produk</label>
+                <input
+                  v-model="newVendorName"
+                  @keyup.enter="saveNewVendor"
+                  type="text"
+                  placeholder="cth. Garuda Indonesia, Lion Air..."
+                  style="width:100%;padding:12px 14px;border:1.5px solid #d8dce4;border-radius:10px;font-size:14px;color:#1a2235;background:#fff;outline:none;transition:border .15s;"
+                  @focus="e => e.target.style.borderColor='#15294f'"
+                  @blur="e => e.target.style.borderColor='#d8dce4'"
+                >
+              </div>
+              <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;border-top:1px solid #eef0f3;">
+                <button @click="showVendorModal = false" class="tr-btn" style="background:#fff;color:#5f6b80;border:1px solid #e2e4ea;font-size:13px;font-weight:600;padding:10px 18px;border-radius:9px;cursor:pointer;">Batal</button>
+                <button @click="saveNewVendor" :disabled="!newVendorName.trim() || isSavingCatalog" class="tr-btn" style="background:#15294f;color:#fff;border:none;font-size:13px;font-weight:700;padding:10px 18px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;" :style="{ opacity: (!newVendorName.trim() || isSavingCatalog) ? 0.6 : 1 }">
+                  <i v-if="isSavingCatalog" class="ph ph-circle-notch" style="font-size:15px;animation:spin 1s linear infinite;"></i>
+                  <i v-else class="ph ph-check-circle" style="font-size:15px;color:#7ed3a6;"></i>
+                  {{ isSavingCatalog ? 'Menyimpan...' : 'Simpan Vendor' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- rincian item -->
+        <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div><h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 2px;display:flex;align-items:center;gap:9px;"><i class="ph ph-list-plus" style="color:#c39a4d;font-size:20px;"></i>Rincian Item</h3><p style="font-size:13px;color:#8a93a5;margin:0;">Tiket, hotel, tour, konsumsi, dan lainnya.</p></div>
+            <button @click="addItem" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Item</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div v-for="(r, idx) in itemRows" :key="idx" style="background:#fafbfc;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;position:relative;">
+              <div style="display:flex;justify-content:flex-end;margin-bottom:14px;gap:6px;">
+                <button @click="r.onDuplicate" style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #d6e1f2;border-radius:8px;padding:6px 10px;cursor:pointer;color:#15294f;font-size:12px;font-weight:600;transition:all .15s;"><i class="ph ph-copy" style="font-size:14px;"></i>Duplikat Item</button>
+                <button @click="r.onRemove" style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #f5d6d0;border-radius:8px;padding:6px 10px;cursor:pointer;color:#c2603a;font-size:12px;font-weight:600;transition:all .15s;"><i class="ph ph-trash" style="font-size:14px;"></i>Hapus Item</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;margin-bottom:14px;">
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Kategori</label>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <select @change="r.onCat" :value="r.cat" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;appearance:auto;">
+                      <option value="" disabled>Pilih Kategori...</option>
+                      <option v-for="(co, ci) in catOptions" :key="ci" :value="co">{{ co }}</option>
+                      <option value="__ADD_NEW__" style="color: #c39a4d; font-weight: 600;">+ Tambah Kategori Baru...</option>
+                    </select>
+                  </div>
+                  <div v-if="r.showTripType" style="margin-top:12px;">
+                    <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Tipe</label>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <select @change="r.onTripType" :value="r.tripType" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
+                        <option v-for="tt in tripTypeOpts" :key="tt" :value="tt">{{ tt }}</option>
+                      </select>
+                      <div style="width:38px;flex-shrink:0;"></div>
+                    </div>
+                  </div>
+                </div>
+                <div style="align-self:start;">
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Vendor / Produk</label>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <select @change="r.onVendor" :value="r.vendor" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fafbfc;outline:none;appearance:auto;">
+                      <option value="">Pilih Vendor…</option>
+                      <option v-for="(vo, vi) in r.vendorOptions" :key="vi" :value="vo">{{ vo }}</option>
+                      <option value="__ADD_NEW__" style="color: #c39a4d; font-weight: 600;">+ Tambah Vendor Baru...</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-bottom:14px;">
+                <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Deskripsi</label>
+                <textarea :value="r.desc" @input="r.onDesc" rows="4" placeholder="cth. Tiket Garuda CGK - DPS, 3 malam, Ocean View" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;resize:vertical;"></textarea>
+              </div>
+              <div :style="{ display:'grid', gridTemplateColumns: r.dateCols, gap:'12px', marginBottom:'14px' }">
+                <div v-if="r.showDest">
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Destinasi</label>
+                  <input :value="r.dest" @input="r.onDest" placeholder="cth. Bali" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;">
+                </div>
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">{{ r.departLabel }}</label>
+                  <div class="item-datepicker"><DatePicker :modelValue="r.depart" @update:modelValue="r.onDepart" placeholder="Pilih tanggal..." /></div>
+                </div>
+                <div v-if="r.showRet">
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">{{ r.retLabel }}</label>
+                  <div class="item-datepicker"><DatePicker :modelValue="r.ret" @update:modelValue="r.onRet" placeholder="Pilih tanggal..." /></div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:70px 1fr 1fr 1fr 1fr;gap:12px;align-items:end;padding-top:14px;border-top:1px solid #dfe2e9;">
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">{{ r.qtyLabel }}</label>
+                  <input :value="r.qty" @input="r.onQty" type="number" placeholder="0" style="width:100%;padding:10px 8px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;text-align:center;font-weight:700;font-family:'IBM Plex Mono',monospace;">
+                </div>
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Beli (HPP)</label>
+                  <input :value="r.costFmt" @input="r.onCost" inputmode="numeric" placeholder="0" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#5d6a82;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
+                </div>
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Markup Reseller</label>
+                  <input :value="r.markupCostFmt" @input="r.onMarkupCost" inputmode="numeric" placeholder="0" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#5d6a82;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
+                </div>
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Markup Perusahaan</label>
+                  <input :value="r.priceFmt" @input="r.onPrice" inputmode="numeric" placeholder="0" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
+                </div>
+                <div>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Harga Jual</label>
+                  <input :value="r.markupCompanyFmt" readonly tabindex="-1" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#13233f;background:#f0f1f4;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:600;cursor:default;">
+                </div>
+              </div>
+              <div style="display:flex;justify-content:flex-end;padding-top:12px;margin-top:12px;border-top:1px solid #dfe2e9;">
+                <span style="font-size:13px;color:#5f6b80;margin-right:8px;line-height:28px;">Jumlah</span>
+                <span style="font-size:17px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:28px;">{{ r.lineF }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- diskon, pajak & pembayaran -->
+        <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
+          <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 18px;display:flex;align-items:center;gap:9px;"><i class="ph ph-sliders-horizontal" style="color:#c39a4d;font-size:20px;"></i>Diskon, Pajak &amp; Pembayaran</h3>
+          <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Diskon</label>
+              <div style="display:flex;gap:0;">
+                <button @click="toggleDiscountType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-right:none;border-radius:9px 0 0 9px;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.discountType }}</button>
+                <input :value="discountFmt" @input="onDiscount" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:0 9px 9px 0;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
+              </div>
+              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:left;">*Klik Rp/% untuk ubah tipe</div>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Service Fee</label>
+              <div style="display:flex;gap:0;">
+                <button @click="toggleServiceFeeType" style="min-width:46px;padding:11px 8px;border:1px solid #d8dce4;border-right:none;border-radius:9px 0 0 9px;background:#f4f5f8;font-size:13px;font-weight:700;color:#5f6b80;cursor:pointer;white-space:nowrap;">{{ f.serviceFeeType }}</button>
+                <input :value="serviceFeeFmt" @input="onServiceFee" inputmode="numeric" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:0 9px 9px 0;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;">
+              </div>
+              <div style="font-size:10.5px;color:#8a93a5;margin-top:6px;text-align:left;">*Klik Rp/% untuk ubah tipe</div>
+            </div>
+            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Pajak / Service (%)</label><input v-model="f.taxPercent" type="number" placeholder="0" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;font-family:'IBM Plex Mono',monospace;"></div>
+            <div style="grid-column:span 3;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;">Pembayaran</label>
+                <div v-if="store.site.bankAccounts && store.site.bankAccounts.length" style="position:relative;display:inline-block;">
+                </div>
+              </div>
+              <textarea v-model="f.payment_info" rows="3" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea>
+            </div>
+            <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
+          </div>
+        </div>
+
+        <!-- tanggal invoice & jatuh tempo -->
+        <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:24px;">
+          <h3 style="font-size:16px;font-weight:700;color:#13233f;margin:0 0 18px;display:flex;align-items:center;gap:9px;"><i class="ph ph-calendar-blank" style="color:#c39a4d;font-size:20px;"></i>Tanggal Tagihan</h3>
+          <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Tanggal Invoice</label><DatePicker v-model="f.invoiceDate" /></div>
+            <div><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Jatuh Tempo</label><DatePicker v-model="f.dpDueDate" placeholder="Pilih tanggal..." /></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== RIGHT COLUMN (STICKY SUMMARY) ===== -->
+      <div style="position:sticky;top:30px;">
+        <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;box-shadow:0 14px 36px -22px rgba(21,41,79,.3);">
+          <div style="background:#13233f;padding:20px 22px;">
+            <div style="font-size:12px;color:#9fabc4;font-weight:600;letter-spacing:.05em;text-transform:uppercase;">Ringkasan Invoice</div>
+            <div style="font-size:13px;color:#c39a4d;font-family:'IBM Plex Mono',monospace;margin-top:4px;">{{ nextInvNo }}</div>
+          </div>
+          <div style="padding:20px 22px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Subtotal</span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tSubtotal }}</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Diskon{{ f.discountType === '%' ? ' (' + f.discount + '%)' : '' }}</span><span style="font-size:13.5px;font-weight:600;color:#c2603a;font-family:'IBM Plex Mono',monospace;">- {{ t.tDiscount }}</span></div>
+            <div v-if="Number(f.serviceFee) > 0" style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Service Fee{{ f.serviceFeeType === '%' ? ' (' + f.serviceFee + '%)' : '' }}</span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tServiceFee }}</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Pajak / Service ({{ f.taxPercent }}%)</span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tTax }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;margin-top:6px;border-top:2px solid #eef0f3;"><span style="font-size:15px;font-weight:700;color:#13233f;">Grand Total</span><span style="font-size:20px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tGrandTotal }}</span></div>
+            <div style="background:#0d1b30;border-radius:11px;padding:13px 16px;margin:4px 0 10px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12.5px;color:#9fabc4;">Total modal (HPP)</span><span style="font-size:13px;font-weight:600;color:#cdd6e6;font-family:'IBM Plex Mono',monospace;">{{ t.tCost }}</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #24365a;"><span style="font-size:12.5px;color:#f0d79a;font-weight:600;">Estimasi profit</span><span style="font-size:15px;font-weight:800;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;">{{ t.tProfit }}</span></div>
+              <div style="display:flex;justify-content:space-between;margin-top:7px;"><span style="font-size:12px;color:#9fabc4;">Margin</span><span style="font-size:12.5px;font-weight:700;color:#fff;font-family:'IBM Plex Mono',monospace;">{{ t.tMargin }}</span></div>
+            </div>
+            <div style="background:#fafbfc;border-radius:11px;padding:14px 16px;margin-top:4px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:9px;"><span style="font-size:13px;color:#5d6a82;">DP ({{ f.dpPercent }}%)</span><span style="font-size:13px;font-weight:700;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;">{{ t.tDp }}</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="font-size:13px;color:#5d6a82;">Sisa pelunasan</span><span style="font-size:13px;font-weight:700;color:#c2603a;font-family:'IBM Plex Mono',monospace;">{{ t.tSisa }}</span></div>
+            </div>
+            <button @click="saveOrder" :disabled="createOrderMut.isPending.value" class="tr-btn" style="width:100%;margin-top:18px;background:#15294f;color:#fff;font-size:14.5px;font-weight:700;padding:14px;border-radius:11px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;"><i v-if="createOrderMut.isPending.value" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i><i v-else class="ph ph-receipt" style="font-size:18px;color:#c39a4d;"></i>{{ createOrderMut.isPending.value ? 'Menyimpan...' : 'Simpan & Buat Invoice' }}</button>
+            <button @click="resetForm" class="tr-btn" style="width:100%;margin-top:9px;background:#fff;color:#7a8499;font-size:13.5px;font-weight:600;padding:11px;border-radius:11px;border:1px solid #e2e4ea;cursor:pointer;">Reset Form</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
