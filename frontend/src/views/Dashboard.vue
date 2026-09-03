@@ -22,7 +22,10 @@ const { data } = useQuery({
 watch(data, (newVal) => {
   if (newVal) {
     store.orders = newVal.orders || []
-    store.catalog = newVal.catalog || []
+    // Only overwrite catalog when no local edits have been made yet (initial load)
+    if (store.catalogVersion === 0) {
+      store.catalog = newVal.catalog || []
+    }
     store.orderInfos = newVal.order_infos || []
     store.testimonials = newVal.testimonials || []
     const s = newVal.site || {}
@@ -35,6 +38,9 @@ watch(data, (newVal) => {
       clients: s.clients || [],
       bankAccounts: s.bankAccounts || []
     }
+    
+    store.updateDefaultPaymentInfo()
+
     // Resolve active invoice from route param or refresh existing
     const routeId = route.params.id ? decodeURIComponent(route.params.id) : null
     if (routeId) {

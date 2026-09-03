@@ -43,8 +43,8 @@ const onSelectBank = (e) => {
   e.target.value = '' // Reset dropdown
 }
 
-const catalog = computed(() => props.catalog ?? store.catalog)
-const orders = computed(() => props.orders ?? store.orders)
+const catalog = computed(() => store.catalog)
+const orders = computed(() => store.orders)
 
 const catOptions = computed(() => {
   const cats = catalog.value.map(c => c.cat)
@@ -62,8 +62,11 @@ const vendorsFor = (cat) => {
 
 const saveCatalogMut = useMutation({
   mutationFn: dashboardService.updateCatalog,
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  onSuccess: (_, variables) => {
+    queryClient.setQueryData(['dashboard'], (old) => {
+      if (!old) return old
+      return { ...old, catalog: variables }
+    })
   }
 })
 
@@ -92,18 +95,24 @@ const saveCustInfo = () => {
   showCustInfoModal.value = false
 }
 
-const addShortcutCategory = () => {
+const activeCatItemIdx = ref(null)
+
+const addShortcutCategory = (idx) => {
   newCatName.value = ''
+  activeCatItemIdx.value = idx
   showCatModal.value = true
 }
 
-const addShortcutVendor = (currentCat) => {
+const activeVendorItemIdx = ref(null)
+
+const addShortcutVendor = (currentCat, idx) => {
   if (!currentCat) {
     toast.error('Pilih Kategori terlebih dahulu')
     return
   }
   newVendorName.value = ''
   vendorModalCat.value = currentCat
+  activeVendorItemIdx.value = idx
   showVendorModal.value = true
 }
 
@@ -119,11 +128,19 @@ const saveNewCategory = async () => {
   try {
     updated.unshift({ cat: trimName, items: [] })
     const payload = JSON.parse(JSON.stringify(updated))
+    store.catalogVersion++
     store.catalog = payload
     await saveCatalogMut.mutateAsync(payload)
     toast.success('Kategori ditambahkan')
+    
+    if (activeCatItemIdx.value !== null) {
+      store.updateFormItem(activeCatItemIdx.value, 'cat', trimName)
+      store.updateFormItem(activeCatItemIdx.value, 'vendor', '')
+    }
+    
     showCatModal.value = false
     newCatName.value = ''
+    activeCatItemIdx.value = null
   } catch (e) {
     console.error(e)
     toast.error('Gagal menyimpan: ' + (e.response?.data?.message || e.message || 'Error'))
@@ -146,11 +163,21 @@ const saveNewVendor = async () => {
   try {
     updated[cidx].items.push(trimName)
     const payload = JSON.parse(JSON.stringify(updated))
+    store.catalogVersion++
     store.catalog = payload
     await saveCatalogMut.mutateAsync(payload)
     toast.success('Vendor ditambahkan')
+    
+    if (activeVendorItemIdx.value !== null) {
+      store.updateFormItem(activeVendorItemIdx.value, 'vendor', trimName)
+      if (!store.form.items[activeVendorItemIdx.value].desc) {
+        store.updateFormItem(activeVendorItemIdx.value, 'desc', trimName)
+      }
+    }
+    
     showVendorModal.value = false
     newVendorName.value = ''
+    activeVendorItemIdx.value = null
   } catch (e) {
     console.error(e)
     toast.error('Gagal menyimpan: ' + (e.response?.data?.message || e.message || 'Error'))
@@ -199,7 +226,7 @@ const itemRows = computed(() => {
       lineF: fmt((Number(it.qty) || 0) * markupCompany),
       onCat: e => {
         if (e.target.value === '__ADD_NEW__') {
-          addShortcutCategory()
+          addShortcutCategory(idx)
           e.target.value = it.cat || ''
           return
         }
@@ -207,7 +234,7 @@ const itemRows = computed(() => {
       },
       onVendor: e => {
         if (e.target.value === '__ADD_NEW__') {
-          addShortcutVendor(it.cat)
+          addShortcutVendor(it.cat, idx)
           e.target.value = it.vendor || ''
           return
         }
@@ -300,7 +327,7 @@ const saveOrder = async () => {
     expenses: [], terms: [],
     discount: f.discount, discountType: f.discountType, serviceFee: f.serviceFee, serviceFeeType: f.serviceFeeType,
     taxPercent: f.taxPercent, dpPercent: f.dpPercent, dpDueDate: f.dpDueDate, tenggatDate: f.tenggatDate, notes: f.notes, payment_info: f.payment_info,
-    status: (Number(f.dpPercent) >= 100 ? 'Lunas' : (Number(f.dpPercent) > 0 ? 'Down Payment' : 'Belum Lunas')),
+    status: 'Belum Lunas',
   }
 
   createOrderMut.mutate(payload, {
@@ -356,16 +383,16 @@ const toggleDiscountType = () => { store.form.discountType = store.form.discount
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">PIC / Penanggung Jawab</label>
-              <input v-model="store.form.pic" readonly placeholder="Otomatis terisi..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#5f6b80;background:#f4f6fa;outline:none;cursor:not-allowed;" />
+              <input v-model="store.form.pic" placeholder="Masukkan nama PIC..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;" />
             </div>
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">No. HP / WhatsApp</label>
-              <input v-model="store.form.contact" readonly placeholder="Otomatis terisi..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#5f6b80;background:#f4f6fa;outline:none;cursor:not-allowed;" />
+              <input v-model="store.form.contact" placeholder="Masukkan nomor kontak..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;" />
             </div>
           </div>
           <div>
             <label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Email</label>
-            <input v-model="store.form.email" readonly placeholder="Otomatis terisi..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#5f6b80;background:#f4f6fa;outline:none;cursor:not-allowed;" />
+            <input v-model="store.form.email" placeholder="Masukkan email..." style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;" />
           </div>
         </div>
 

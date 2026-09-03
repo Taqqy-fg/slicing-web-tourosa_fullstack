@@ -440,11 +440,10 @@ class DashboardController extends Controller
                     $term->delete();
                 }
             }
-
-            // Sinkronkan status order dengan kondisi semua termin setelah diedit.
-            $this->syncOrderStatusFromTerms($order, $userId);
         }
 
+        // Sinkronkan status order dengan kondisi aktual setelah diedit.
+        $this->syncOrderStatusFromTerms($order, $userId);
 
         return response()->json(['message' => 'Order updated successfully']);
     }
@@ -552,18 +551,13 @@ class DashboardController extends Controller
      */
     private function syncOrderStatusFromTerms($order, $userId)
     {
-        $allTerms = $order->terms()->get();
-        if ($allTerms->count() === 0) {
-            return;
-        }
-
-        $allPaid = $allTerms->every(fn($t) => (bool) $t->is_paid);
-        $anyPaid = $allTerms->contains(fn($t) => (float) $t->paid_amount > 0);
+        $grandTotal = $this->computeGrandTotal($order);
+        $totalPaid = $order->payments()->sum('amount');
 
         $status = 'Belum Lunas';
-        if ($allPaid) {
+        if ($totalPaid >= $grandTotal && $grandTotal > 0) {
             $status = 'Lunas';
-        } elseif ($anyPaid) {
+        } elseif ($totalPaid > 0) {
             $status = 'Down Payment';
         }
 

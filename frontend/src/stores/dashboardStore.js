@@ -1,6 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+const generatePaymentInfo = (bankAccounts) => {
+    const template = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
+    if (!bankAccounts || bankAccounts.length === 0) {
+        return template;
+    }
+    return template + '\n\n' + bankAccounts.map(b => `Bank: ${b.bank}\nNo. Rekening: ${b.number}\nAtas Nama (a.n): ${b.name}`).join('\n\n');
+}
+
 const createBlankForm = (tax = 0) => ({
     group: '', pic: '', contact: '', email: '',
     invoiceDate: new Date().toISOString().slice(0, 10),
@@ -23,6 +31,7 @@ export const useDashboardStore = defineStore('dashboard', {
         // Shared query data from Dashboard layout
         orders: [],
         catalog: [],
+        catalogVersion: 0,   // bumped every time catalog is edited locally
         customers: [],
         orderInfos: [],
         site: {
@@ -39,7 +48,12 @@ export const useDashboardStore = defineStore('dashboard', {
     actions: {
         setQueryData({ orders, catalog, site, testimonials, customers, orderInfos }) {
             if (orders && orders.value) this.orders = orders.value;
-            if (catalog && catalog.value) this.catalog = catalog.value;
+            // Only overwrite catalog from server on initial load (when it's still empty).
+            // After any local edit, catalogVersion > 0, so we skip the server data to
+            // avoid a race condition where a background refetch reverts our local changes.
+            if (catalog && catalog.value && this.catalogVersion === 0) {
+                this.catalog = catalog.value;
+            }
             if (customers && customers.value) this.customers = customers.value;
             if (orderInfos && orderInfos.value) this.orderInfos = orderInfos.value;
             
@@ -51,9 +65,11 @@ export const useDashboardStore = defineStore('dashboard', {
 
             this.testimonials = JSON.parse(JSON.stringify(testimonials.value || []));
             
-            // Set blank template for new order payment_info if empty
-            if (!this.form.payment_info) {
-                this.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
+            this.updateDefaultPaymentInfo();
+        },
+        updateDefaultPaymentInfo() {
+            if (!this.form.payment_info || this.form.payment_info === 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ') {
+                this.form.payment_info = generatePaymentInfo(this.site.bankAccounts);
             }
         },
         setActiveInvoice(invoice) {
@@ -67,7 +83,7 @@ export const useDashboardStore = defineStore('dashboard', {
         },
         resetForm() {
             this.form = createBlankForm(this.form.taxPercent);
-            this.form.payment_info = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
+            this.form.payment_info = generatePaymentInfo(this.site.bankAccounts);
         },
         addItemToForm() {
             this.form.items.push({ cat: '', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
@@ -160,7 +176,7 @@ export const useDashboardStore = defineStore('dashboard', {
                 dpDueDate: o.dpDueDate ?? '',
                 tenggatDate: o.tenggatDate ?? '',
                 notes: o.notes || '',
-                payment_info: o.payment_info || 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ',
+                payment_info: (!o.payment_info || o.payment_info === 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ') ? generatePaymentInfo(this.site.bankAccounts) : o.payment_info,
                 status: o.status || 'DP',
             }
         },

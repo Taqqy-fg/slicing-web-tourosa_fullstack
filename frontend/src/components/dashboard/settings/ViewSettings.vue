@@ -438,7 +438,7 @@ const saveCatalog = () => {
             <input :value="b.name" @input="b.onName" placeholder="cth. PT Tourosa Travel" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;">
           </div>
           <div style="padding-top:20px;">
-            <button @click="b.onRemove" title="Kembalikan ke Riwayat" class="tr-btn" style="background:none;border:none;cursor:pointer;color:#5d6a82;padding:6px;display:flex;align-items:center;justify-content:center;width:100%;"><i class="ph ph-arrow-u-up-left" style="font-size:18px;"></i></button>
+            <button @click="b.onRemove" title="Hapus Rekening" class="tr-btn" style="background:none;border:none;cursor:pointer;color:#c2603a;padding:6px;display:flex;align-items:center;justify-content:center;width:100%;"><i class="ph ph-trash" style="font-size:18px;"></i></button>
           </div>
         </div>
         <div v-if="!bankAccountsEdit.length" style="text-align:center;padding:24px 0;color:#9aa0ad;font-size:13px;">Belum ada data rekening.</div>
