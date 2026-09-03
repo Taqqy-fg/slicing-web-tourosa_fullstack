@@ -16,9 +16,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->foreignId('order_info_id')->nullable()->after('id')->constrained('order_infos')->onDelete('cascade');
-        });
+        if (!Schema::hasColumn('orders', 'order_info_id')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->foreignId('order_info_id')->nullable()->after('id')->constrained('order_infos')->onDelete('cascade');
+            });
+        }
 
         // Backfill: buat baris order_infos dari data flat di tabel orders
         // (group_name, pic_name, contact_info) bila belum ada.

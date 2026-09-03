@@ -479,17 +479,15 @@ class DashboardController extends Controller
             'updated_by' => $userId,
         ]);
 
+        $order->load('terms');
+        $this->syncOrderStatusFromTerms($order, $userId);
+
         $grandTotal = $this->computeGrandTotal($order);
         $totalPaid = $order->payments()->sum('amount');
-        $status = $totalPaid >= $grandTotal
-            ? 'Lunas'
-            : ($totalPaid > 0 ? 'Down Payment' : 'Belum Lunas');
-
-        $order->update(['status' => $status, 'updated_by' => $userId]);
 
         return response()->json([
             'message' => 'Payment recorded successfully',
-            'status' => $status,
+            'status' => $order->fresh()->status,
             'totalPaid' => $totalPaid,
             'grandTotal' => $grandTotal,
         ]);
@@ -552,10 +550,19 @@ class DashboardController extends Controller
     private function syncOrderStatusFromTerms($order, $userId)
     {
         $grandTotal = $this->computeGrandTotal($order);
-        $totalPaid = $order->payments()->sum('amount');
+
+        // Pembayaran termin disimpan di paid_amount pada setiap termin,
+        // bukan di order_payments. Jumlahkan dari situ.
+        $allTerms = $order->terms()->get();
+        $totalPaidViaTerms = $allTerms->sum(fn($t) => (float) $t->paid_amount);
+
+        // Juga tambahkan pembayaran langsung (non-termin) jika ada
+        $totalPaidDirect = $order->payments()->sum('amount');
+
+        $totalPaid = $totalPaidViaTerms + $totalPaidDirect;
 
         $status = 'Belum Lunas';
-        if ($totalPaid >= $grandTotal && $grandTotal > 0) {
+        if ($grandTotal > 0 && $totalPaid >= $grandTotal) {
             $status = 'Lunas';
         } elseif ($totalPaid > 0) {
             $status = 'Down Payment';
