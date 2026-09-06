@@ -42,7 +42,7 @@ function fmtDatePdf($d) {
                 <div class="value">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</div>
             </td>
             <td>
-                <div class="title">Total Modal (HPP)</div>
+                <div class="title">Total Modal</div>
                 <div class="value">Rp {{ number_format($totalCost, 0, ',', '.') }}</div>
             </td>
             <td>

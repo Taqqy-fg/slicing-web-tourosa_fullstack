@@ -2,11 +2,10 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 const generatePaymentInfo = (bankAccounts) => {
-    const template = 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ';
     if (!bankAccounts || bankAccounts.length === 0) {
-        return template;
+        return '';
     }
-    return template + '\n\n' + bankAccounts.map(b => `Bank: ${b.bank}\nNo. Rekening: ${b.number}\nAtas Nama (a.n): ${b.name}`).join('\n\n');
+    return bankAccounts.map(b => `Bank: ${b.bank}\nNo. Rekening: ${b.number}\nAtas Nama (a.n): ${b.name}`).join('\n\n');
 }
 
 const createBlankForm = (tax = 0) => ({
@@ -18,14 +17,20 @@ const createBlankForm = (tax = 0) => ({
     discount: '', discountType: 'Rp', serviceFee: '', serviceFeeType: 'Rp',
     taxPercent: tax, dpPercent: '', dpDueDate: '', tenggatDate: '',
     notes: '', 
-    payment_info: 'Bank: \nNo. Rekening: \nAtas Nama (a.n): ',
+    payment_info: '',
 })
 
 export const useDashboardStore = defineStore('dashboard', {
     state: () => ({
         activeInvoice: null,
         settingsTab: 'website',
-        form: createBlankForm(0),
+        form: (() => {
+            try {
+                const saved = localStorage.getItem('tourosa_order_form')
+                if (saved) return JSON.parse(saved)
+            } catch {}
+            return createBlankForm(0)
+        })(),
         editForm: null,
         editInvoiceNo: null,
         // Shared query data from Dashboard layout
@@ -84,6 +89,7 @@ export const useDashboardStore = defineStore('dashboard', {
         resetForm() {
             this.form = createBlankForm(this.form.taxPercent);
             this.form.payment_info = generatePaymentInfo(this.site.bankAccounts);
+            this.clearFormStorage();
         },
         addItemToForm() {
             this.form.items.push({ cat: '', vendor: '', tripType: 'Round Trip', dest: '', depart: '', ret: '', desc: '', qty: '', cost: '', markupCost: '', price: '', markupPrice: '' });
@@ -228,6 +234,20 @@ export const useDashboardStore = defineStore('dashboard', {
             const match = this.orders.find(o => o.no === id)
             if (match) this.loadEditForm(match)
             return match || null
-        }
+        },
+        persistForm() {
+            try {
+                localStorage.setItem('tourosa_order_form', JSON.stringify(this.form))
+            } catch {}
+        },
+        loadFormFromStorage() {
+            try {
+                const saved = localStorage.getItem('tourosa_order_form')
+                if (saved) this.form = JSON.parse(saved)
+            } catch {}
+        },
+        clearFormStorage() {
+            localStorage.removeItem('tourosa_order_form')
+        },
     }
 })

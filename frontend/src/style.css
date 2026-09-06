@@ -103,11 +103,68 @@ a {
 .fade-enter-active, .fade-leave-active { transition: opacity .25s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
 
+/* Tooltip Ringkasan Invoice */
+.tip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: help;
+}
+.tip-wrap .tip-ic {
+  font-size: 12.5px;
+  color: #a5adbc;
+  transition: color .15s;
+}
+.tip-wrap:hover .tip-ic {
+  color: #c39a4d;
+}
+.tip-box {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #13233f;
+  color: #e8ebf2;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.6;
+  padding: 9px 13px;
+  border-radius: 9px;
+  width: 240px;
+  max-width: 280px;
+  box-shadow: 0 12px 30px rgba(13,27,48,.3);
+  z-index: 90;
+  text-align: left;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  white-space: normal;
+}
+.tip-box b {
+  color: #f0d79a;
+  font-weight: 700;
+}
+.tip-box::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #13233f;
+}
+.tip-wrap:hover .tip-box {
+  display: block;
+}
+
 @media print {
-  [data-print="hide"] {
+  .tip-wrap .tip-ic,
+  .tip-wrap .tip-box {
     display: none !important;
   }
+}
 
+  @media print {
   [data-print="area"] {
     box-shadow: none !important;
     border: none !important;

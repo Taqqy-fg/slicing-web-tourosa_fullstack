@@ -56,6 +56,10 @@ watch(data, (newVal) => {
   }
 }, { immediate: true })
 
+watch(() => store.form, () => {
+    store.persistForm()
+}, { deep: true })
+
 const orders = computed(() => data.value?.orders || [])
 const catalog = computed(() => data.value?.catalog || [])
 const customers = computed(() => data.value?.customers || [])

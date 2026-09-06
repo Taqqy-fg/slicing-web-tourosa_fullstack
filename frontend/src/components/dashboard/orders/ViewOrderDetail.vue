@@ -277,7 +277,7 @@ const saveTerms = async () => {
     
     <div class="grid-cols-1-mobile" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Pendapatan</div><div style="font-size:19px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ detail.revenueF }}</div></div>
-      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Total Modal (HPP)</div><div style="font-size:19px;font-weight:800;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.costF }}</div></div>
+      <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Total Modal</div><div style="font-size:19px;font-weight:800;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.costF }}</div></div>
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Markup Reseller</div><div style="font-size:19px;font-weight:800;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.totalMarkupResellerF }}</div></div>
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:14px;padding:18px 20px;"><div style="font-size:12px;color:#7a8499;font-weight:600;margin-bottom:9px;">Service Fee</div><div style="font-size:19px;font-weight:800;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.serviceFeeF }}</div></div>
     </div>
@@ -292,7 +292,7 @@ const saveTerms = async () => {
       <div class="table-scroll">
         <div class="min-w-table" style="min-width:1130px;">
           <div class="table-header-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 110px 80px 116px 116px 120px 116px;gap:8px;padding:11px 24px;background:#fafbfc;font-size:10.5px;font-weight:700;color:#9aa0ad;text-transform:uppercase;letter-spacing:.03em;">
-            <span>#</span><span>Deskripsi</span><span>Tipe</span><span>Qty</span><span>Beli (HPP)</span><span>Markup Reseller</span><span>Markup Perusahaan</span><span>Harga Jual</span><span style="text-align:right;">Subtotal</span><span style="text-align:right;">Profit</span>
+            <span>#</span><span>Deskripsi</span><span>Tipe</span><span>Qty</span><span>Beli</span><span>Markup Reseller</span><span>Markup Perusahaan</span><span>Harga Jual</span><span style="text-align:right;">Subtotal</span><span style="text-align:right;">Profit</span>
           </div>
           <div v-for="(it, idx) in detailItems" :key="idx" class="table-row-mobile" style="display:grid;grid-template-columns:30px 1fr 50px 70px 110px 80px 116px 116px 120px 116px;gap:8px;padding:13px 24px;border-top:1px solid #f1f2f5;align-items:flex-start;">
             <span class="hide-mobile" style="font-size:13px;color:#9aa0ad;font-family:'IBM Plex Mono',monospace;">{{ it.no }}</span>
@@ -311,7 +311,7 @@ const saveTerms = async () => {
       <div style="display:flex;justify-content:flex-end;padding:24px;border-top:2px solid #eef0f3;background:#fafbfc;">
         <div style="width:320px;">
           <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:13px;color:#5d6a82;">Subtotal penjualan</span><span style="font-size:13px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ detail.subtotalF }}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:13px;color:#5d6a82;">Total modal (HPP)</span><span style="font-size:13px;font-weight:600;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.costF }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:13px;color:#5d6a82;">Total Modal</span><span style="font-size:13px;font-weight:600;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">{{ detail.costF }}</span></div>
         </div>
       </div>
     </div>
@@ -342,7 +342,7 @@ const saveTerms = async () => {
           <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:13px;color:#5d6a82;">Subtotal penjualan</span><span style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ detail.subtotalF }}</span></div>
           <div style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:13px;color:#5d6a82;">{{ detail.discountLabel }}</span><span style="font-size:13px;font-weight:600;color:#c2603a;font-family:'IBM Plex Mono',monospace;">- {{ detail.discountF }}</span></div>
           <div v-if="detail.hasServiceFee" style="display:flex;justify-content:space-between;padding:5px 0;"><span style="font-size:13px;color:#5d6a82;">Service Fee</span><span style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ detail.serviceFeeF }}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e2e4ea;"><span style="font-size:13px;color:#5d6a82;">Total modal (HPP)</span><span style="font-size:13px;font-weight:600;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">- {{ detail.costF }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e2e4ea;"><span style="font-size:13px;color:#5d6a82;">Total Modal</span><span style="font-size:13px;font-weight:600;color:#5d6a82;font-family:'IBM Plex Mono',monospace;">- {{ detail.costF }}</span></div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0 2px;"><span style="font-size:14px;font-weight:800;color:#13233f;">Estimasi profit bersih</span><span :style="{ color: detail.profitColor }" style="font-size:18px;font-weight:800;font-family:'IBM Plex Mono',monospace;">{{ detail.profitF }}</span></div>
           <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:#9aa0ad;">Margin</span><span style="font-size:12.5px;font-weight:700;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;">{{ detail.marginF }}</span></div>
         </div>
@@ -506,7 +506,7 @@ const saveTerms = async () => {
       <div style="padding:14px 22px;border-top:1px solid #eef0f3;display:flex;justify-content:flex-end;gap:10px;background:#fafbfc;flex-shrink:0;">
         <button @click="cancelPay" :disabled="isPaying" style="padding:10px 18px;border-radius:10px;font-size:13.5px;font-weight:700;color:#5d6a82;background:#fff;border:1px solid #d6e1f2;cursor:pointer;">Batal</button>
         <button @click="submitPayment" :disabled="isPaying" style="padding:10px 20px;border-radius:10px;font-size:13.5px;font-weight:700;color:#fff;background:#15294f;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;">
-          <i v-if="isPaying" class="ph ph-spinner ph-spin"></i>
+          <i v-if="isPaying" class="ph ph-circle-notch" style="font-size:15px;animation:spin 1s linear infinite;"></i>
           <i v-else class="ph ph-check" style="font-size:15px;"></i>
           <span>Simpan Pembayaran</span>
         </button>

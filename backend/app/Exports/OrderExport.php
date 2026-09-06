@@ -40,7 +40,7 @@ class OrderExport implements FromCollection, WithHeadings, WithMapping, WithColu
             'Tanggal Invoice',
             'Nama Grup',
             'Total Harga Jual (Omset)',
-            'Total Modal (HPP)',
+            'Total Modal',
             'Diskon',
             'Service Fee',
             'Pajak',

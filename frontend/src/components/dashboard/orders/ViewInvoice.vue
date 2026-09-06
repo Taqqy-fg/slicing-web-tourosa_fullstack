@@ -33,9 +33,10 @@ const invData = computed(() => {
     serviceFeeF: fmt(c.serviceFeeAmount), hasServiceFee: Number(o.serviceFee) > 0,
     taxPercentF: String(c.taxPercent), taxF: fmt(c.tax),
     grandTotalF: fmt(c.grandTotal), perPaxF: fmt(c.perPax),
+    totalMarkupResellerF: fmt(c.totalMarkupReseller),
     dpPercentF: String(c.dpPercent), dpF: fmt(c.dp), dpDueDateF: fmtDate(o.dpDueDate), hasDpDueDate: !!o.dpDueDate,
     tenggatF: fmtDate(o.tenggatDate), hasTenggat: !!o.tenggatDate,
-    sisaF: fmt(c.sisa),
+    sisaF: fmt(Math.max(0, c.grandTotal - (o.terms || []).reduce((s, t) => s + (Number(t.paid_amount) || 0), 0) - (o.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0))),
     notes: o.notes || '-',
     paymentInfo: o.payment_info
       ? o.payment_info
@@ -188,38 +189,52 @@ const doPrint = () => window.print()
           <p style="font-size:12.5px;color:#5d6a82;line-height:1.6;margin:0 0 18px;">{{ inv.notes }}</p>
         </div>
         <div style="width:300px;flex-shrink:0;">
-          <div style="display:flex;justify-content:space-between;padding:8px 0;"><span
-              style="font-size:13px;color:#5d6a82;">Subtotal</span><span
+<div style="display:flex;justify-content:space-between;padding:8px 0;"><span
+              class="tip-wrap" style="font-size:13px;color:#5d6a82;">Subtotal<i class="ph ph-question tip-ic"></i><span
+                class="tip-box">Total harga jual semua item.<br>Contoh: <b>Harga Jual Rp 1.000.000 × Qty 5 = Rp 5.000.000</b></span></span><span
               style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
                 inv.subtotalF }}</span></div>
           <div style="display:flex;justify-content:space-between;padding:8px 0;"><span
-              style="font-size:13px;color:#5d6a82;">{{ inv.discountLabel }}</span><span
+              class="tip-wrap" style="font-size:13px;color:#5d6a82;">{{ inv.discountLabel }}<i
+                class="ph ph-question tip-ic"></i><span class="tip-box">Potongan harga dari subtotal. Persentase dihitung
+                dari subtotal, contoh: 10% × Subtotal.</span></span><span
               style="font-size:13px;font-weight:600;color:#c2603a;font-family:'IBM Plex Mono',monospace;">- {{
                 inv.discountF }}</span></div>
           <div v-if="inv.hasServiceFee" style="display:flex;justify-content:space-between;padding:8px 0;"><span
-              style="font-size:13px;color:#5d6a82;">Service Fee</span><span
+              class="tip-wrap" style="font-size:13px;color:#5d6a82;">Service Fee<i
+                class="ph ph-question tip-ic"></i><span class="tip-box">Biaya layanan tambahan, dihitung setelah diskon
+                dari subtotal.</span></span><span
               style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
                 inv.serviceFeeF }}</span></div>
           <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eef0f3;"><span
-              style="font-size:13px;color:#5d6a82;">Pajak / Service ({{ inv.taxPercentF }}%)</span><span
+              class="tip-wrap" style="font-size:13px;color:#5d6a82;">Pajak / Service ({{ inv.taxPercentF }}%)<i
+                class="ph ph-question tip-ic"></i><span class="tip-box">Pajak dihitung dari nilai setelah diskon.<br>Contoh:
+                {{ inv.taxPercentF }}% × (Subtotal − Diskon).</span></span><span
               style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ inv.taxF
               }}</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;"><span
+              class="tip-wrap" style="font-size:13px;color:#5d6a82;">Markup Reseller<i
+                class="ph ph-question tip-ic"></i><span class="tip-box">Total keuntungan reseller dari semua item.<br>Contoh:
+                <b>Markup Rp 100.000 × Qty 5 = Rp 500.000</b></span></span><span
+              style="font-size:13px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{
+                inv.totalMarkupResellerF }}</span></div>
           <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;"><span
-              style="font-size:13px;font-weight:800;color:#13233f;">GRAND TOTAL</span><span
+              class="tip-wrap" style="font-size:13px;font-weight:800;color:#13233f;">GRAND TOTAL<i
+                class="ph ph-question tip-ic"></i><span class="tip-box">Total akhir yang harus dibayar.<br><b>Subtotal −
+                Diskon + Service Fee + Pajak</b></span></span><span
               style="font-size:13px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ inv.grandTotalF
               }}</span></div>
           <div style="background:#13233f;border-radius:11px;padding:14px 16px;">
             <div style="display:flex;justify-content:space-between;margin-bottom:9px;"><span
-                style="font-size:12px;color:#9fabc4;">Per pax</span><span
-                style="font-size:12.5px;font-weight:700;color:#fff;font-family:'IBM Plex Mono',monospace;">{{
-                  inv.perPaxF }}</span></div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:9px;"><span
-                style="font-size:12px;color:#9fabc4;">DP ({{ inv.dpPercentF }}%)</span><span
+                class="tip-wrap" style="font-size:12px;color:#9fabc4;">DP ({{ inv.dpPercentF }}%)<i
+                  class="ph ph-question tip-ic"></i><span class="tip-box">Uang muka yang dibayar di awal.<br>Rumus: <b>{{
+                  inv.dpPercentF }}% × Grand Total</b></span></span><span
                 style="font-size:12.5px;font-weight:700;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;">{{ inv.dpF
                 }}</span></div>
-
             <div style="display:flex;justify-content:space-between;padding-top:9px;border-top:1px solid #24365a;"><span
-                style="font-size:12px;color:#9fabc4;">Sisa pelunasan</span><span
+                class="tip-wrap" style="font-size:12px;color:#9fabc4;">Sisa pelunasan<i
+                  class="ph ph-question tip-ic"></i><span class="tip-box">Sisa yang harus dibayar setelah DP,
+                  pembayaran yang masuk &amp; pelunasan termin.<br>Rumus: <b>Grand Total − Total yang sudah dibayar</b></span></span><span
                 style="font-size:12.5px;font-weight:700;color:#f0c98a;font-family:'IBM Plex Mono',monospace;">{{
                   inv.sisaF }}</span></div>
           </div>

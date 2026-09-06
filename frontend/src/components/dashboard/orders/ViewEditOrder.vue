@@ -8,6 +8,7 @@ import { dashboardService } from '../../../services/dashboardService'
 import { useToast } from '../../../composables/useToast'
 import DatePicker from '../../DatePicker.vue'
 import GroupSelect from './GroupSelect.vue'
+import SearchSelect from './SearchSelect.vue'
 
 
 const props = defineProps({
@@ -21,6 +22,15 @@ const router = useRouter()
 const queryClient = useQueryClient()
 const { fmt, calc } = useDashboardData()
 const toast = useToast()
+
+const autoresize = (el) => {
+  el.style.height = 'auto'
+  el.style.height = el.scrollHeight + 'px'
+}
+const vAutosize = {
+  mounted: autoresize,
+  updated: autoresize
+}
 
 const catalog = computed(() => store.catalog)
 const ef = computed(() => store.editForm)
@@ -183,9 +193,6 @@ const saveNewVendor = async () => {
     
     if (activeVendorItemIdx.value !== null) {
       store.updateEditFormItem(activeVendorItemIdx.value, 'vendor', trimName)
-      if (!store.editForm.items[activeVendorItemIdx.value].desc) {
-        store.updateEditFormItem(activeVendorItemIdx.value, 'desc', trimName)
-      }
     }
     
     showVendorModal.value = false
@@ -238,28 +245,27 @@ const itemRows = computed(() => {
     vendorOptions: vendorsFor(it.cat),
     isHotel, showTripType, showDest, showRet, departLabel, retLabel, qtyLabel, dateCols, headCols,
       lineF: fmt((Number(it.qty) || 0) * markupCompany),
-      onCat: e => {
-        if (e.target.value === '__ADD_NEW__') {
-          addShortcutCategory(idx)
-          e.target.value = it.cat || ''
-          return
-        }
-        store.updateEditFormItem(idx, 'cat', e.target.value); store.updateEditFormItem(idx, 'vendor', '')
+      onCatSync: val => {
+        const v = String(val ?? '').trim()
+        if (!v || v === it.cat) return
+        store.updateEditFormItem(idx, 'cat', v)
+        store.updateEditFormItem(idx, 'vendor', '')
       },
-      onVendor: e => {
-        if (e.target.value === '__ADD_NEW__') {
-          addShortcutVendor(it.cat, idx)
-          e.target.value = it.vendor || ''
-          return
-        }
-        store.updateEditFormItem(idx, 'vendor', e.target.value); if (!it.desc) store.updateEditFormItem(idx, 'desc', e.target.value)
+      onVendorSync: val => {
+        const v = String(val ?? '').trim()
+        if (v === it.vendor) return
+        store.updateEditFormItem(idx, 'vendor', v)
       },
       onTripType: e => store.updateEditFormItem(idx, 'tripType', e.target.value),
       onDest: e => store.updateEditFormItem(idx, 'dest', e.target.value),
       onDepart: val => store.updateEditFormItem(idx, 'depart', val),
       onRet: val => store.updateEditFormItem(idx, 'ret', val),
       onDesc: e => store.updateEditFormItem(idx, 'desc', e.target.value),
-      onQty: e => store.updateEditFormItem(idx, 'qty', e.target.value),
+      onQty: e => {
+        const v = e.target.value
+        if (v !== '' && Number(v) < 0) return
+        store.updateEditFormItem(idx, 'qty', v)
+      },
       onCost: e => {
         const v = parseNum(e.target.value)
         store.updateEditFormItem(idx, 'cost', v)
@@ -288,6 +294,7 @@ const tCalc = computed(() => {
     tSubtotal: fmt(c.subtotal), tDiscount: fmt(c.discountAmount), tServiceFee: fmt(c.serviceFeeAmount),
     tTax: fmt(c.tax), tGrandTotal: fmt(c.grandTotal),
     tPerPax: fmt(c.perPax), tDp: fmt(c.dp), tSisa: fmt(c.sisa),
+    tMarkup: fmt(c.totalMarkupReseller),
     tCost: fmt(c.totalCost), tProfit: fmt(c.profit), tMargin: Math.round(c.marginPct) + '%'
   }
 })
@@ -302,7 +309,7 @@ const updateOrderMut = useMutation({
   }
 })
 
-const saveOrder = async () => {
+const saveOrder = async (status) => {
   if (!ef.value || !invoiceNo.value) return
   const f = ef.value
 
@@ -330,16 +337,23 @@ const saveOrder = async () => {
     items: items.length ? items : [{ cat: 'Lainnya', desc: '(belum ada item)', qty: 0, cost: 0, price: 0 }],
     discount: f.discount, discountType: f.discountType, serviceFee: f.serviceFee, serviceFeeType: f.serviceFeeType,
     taxPercent: f.taxPercent, dpPercent: f.dpPercent, dpDueDate: f.dpDueDate, tenggatDate: f.tenggatDate, notes: f.notes, payment_info: f.payment_info,
-    status: f.status,
+    status: status || f.status,
   }
 
+  const isDraft = status === 'Draft'
   updateOrderMut.mutate({ invoiceNo: invoiceNo.value, orderData: payload }, {
     onSuccess: () => {
       const invoiceObj = { no: invoiceNo.value, date: f.invoiceDate, ...payload }
-      store.setActiveInvoice(invoiceObj)
-      store.resetEditForm()
-      router.push('/orders/invoice/' + encodeURIComponent(invoiceNo.value))
-      toast.success('Pesanan berhasil diperbarui.')
+      if (isDraft) {
+        store.resetEditForm()
+        router.push('/orders')
+        toast.success('Draft pesanan berhasil disimpan.')
+      } else {
+        store.setActiveInvoice(invoiceObj)
+        store.resetEditForm()
+        router.push('/orders/invoice/' + encodeURIComponent(invoiceNo.value))
+        toast.success('Pesanan berhasil diperbarui.')
+      }
     }
   })
 }
@@ -554,11 +568,14 @@ const addItem = () => store.addItemToEditForm()
                 <div>
                   <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Kategori</label>
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <select @change="r.onCat" :value="r.cat" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fff;outline:none;appearance:auto;">
-                      <option value="" disabled>Pilih Kategori...</option>
-                      <option v-for="(co, ci) in catOptions" :key="ci" :value="co">{{ co }}</option>
-                      <option value="__ADD_NEW__" style="color: #c39a4d; font-weight: 600;">+ Tambah Kategori Baru...</option>
-                    </select>
+                    <SearchSelect
+                      :model-value="r.cat"
+                      :options="catOptions"
+                      placeholder="Pilih Kategori..."
+                      add-new-label="Tambah Kategori Baru..."
+                      @update:model-value="r.onCatSync"
+                      @add-new="() => addShortcutCategory(r.idx)"
+                    />
                   </div>
                   <div v-if="r.showTripType" style="margin-top:12px;">
                     <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Tipe</label>
@@ -573,11 +590,15 @@ const addItem = () => store.addItemToEditForm()
                 <div style="align-self:start;">
                   <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Vendor / Produk</label>
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <select @change="r.onVendor" :value="r.vendor" style="flex:1;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#1a2235;background:#fafbfc;outline:none;appearance:auto;">
-                      <option value="">Pilih Vendor...</option>
-                      <option v-for="(vo, vi) in r.vendorOptions" :key="vi" :value="vo">{{ vo }}</option>
-                      <option value="__ADD_NEW__" style="color: #c39a4d; font-weight: 600;">+ Tambah Vendor Baru...</option>
-                    </select>
+                    <SearchSelect
+                      :model-value="r.vendor"
+                      :options="r.vendorOptions"
+                      placeholder="Pilih Vendor / Produk..."
+                      add-new-label="Tambah Vendor Baru..."
+                      :empty-text="'Vendor belum tersedia'"
+                      @update:model-value="r.onVendorSync"
+                      @add-new="() => addShortcutVendor(r.cat, r.idx)"
+                    />
                   </div>
                 </div>
               </div>
@@ -602,10 +623,10 @@ const addItem = () => store.addItemToEditForm()
               <div style="display:grid;grid-template-columns:70px 1fr 1fr 1fr 1fr;gap:12px;align-items:end;padding-top:14px;border-top:1px solid #dfe2e9;">
                 <div>
                   <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">{{ r.qtyLabel }}</label>
-                  <input :value="r.qty" @input="r.onQty" type="number" placeholder="0" style="width:100%;padding:10px 8px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;text-align:center;font-weight:700;font-family:'IBM Plex Mono',monospace;">
+                   <input :value="r.qty" @input="r.onQty" type="number" min="0" placeholder="0" style="width:100%;padding:10px 8px;border:1px solid #d8dce4;border-radius:9px;font-size:14px;color:#1a2235;background:#fff;outline:none;text-align:center;font-weight:700;font-family:'IBM Plex Mono',monospace;">
                 </div>
                 <div>
-                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Beli (HPP)</label>
+                  <label style="display:block;font-size:11px;font-weight:600;color:#9aa0ad;margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;">Beli</label>
                   <input :value="r.costFmt" @input="r.onCost" inputmode="numeric" placeholder="0" style="width:100%;padding:10px 12px;border:1px solid #d8dce4;border-radius:9px;font-size:13px;color:#5d6a82;background:#fff;outline:none;text-align:right;font-family:'IBM Plex Mono',monospace;">
                 </div>
                 <div>
@@ -661,7 +682,7 @@ const addItem = () => store.addItemToEditForm()
                   <button type="button" tabindex="-1" style="display:flex;align-items:center;gap:5px;background:none;border:1px solid #d6e1f2;border-radius:8px;padding:6px 10px;color:#15294f;font-size:12px;font-weight:600;pointer-events:none;"><i class="ph ph-copy" style="font-size:14px;"></i>Salin Rekening</button>
                 </div>
               </div>
-              <textarea v-model="f.payment_info" rows="3" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea>
+              <textarea v-model="f.payment_info" v-autosize rows="3" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:none;overflow:hidden;line-height:1.5;"></textarea>
             </div>
             <div style="grid-column:span 3;"><label style="display:block;font-size:12px;font-weight:600;color:#5f6b80;margin-bottom:6px;">Catatan / Syarat</label><textarea v-model="f.notes" rows="2" style="width:100%;padding:11px 13px;border:1px solid #d8dce4;border-radius:9px;font-size:13.5px;color:#1a2235;background:#fff;outline:none;resize:vertical;line-height:1.5;"></textarea></div>
           </div>
@@ -679,32 +700,34 @@ const addItem = () => store.addItemToEditForm()
 
       <!-- ===== RIGHT COLUMN (STICKY SUMMARY) ===== -->
       <div style="position:sticky;top:30px;">
-        <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;box-shadow:0 14px 36px -22px rgba(21,41,79,.3);">
-          <div style="background:#13233f;padding:20px 22px;">
+        <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;box-shadow:0 14px 36px -22px rgba(21,41,79,.3);">
+          <div style="background:#13233f;padding:20px 22px;border-radius:15px 15px 0 0;">
             <div style="font-size:12px;color:#9fabc4;font-weight:600;letter-spacing:.05em;text-transform:uppercase;">Edit Pesanan</div>
             <div style="font-size:13px;color:#c39a4d;font-family:'IBM Plex Mono',monospace;margin-top:4px;">{{ invoiceNo }}</div>
           </div>
           <div style="padding:20px 22px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Subtotal</span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tSubtotal }}</span></div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Diskon{{ f.discountType === '%' ? ' (' + f.discount + '%)' : '' }}</span><span style="font-size:13.5px;font-weight:600;color:#c2603a;font-family:'IBM Plex Mono',monospace;">- {{ t.tDiscount }}</span></div>
-            <div v-if="Number(f.serviceFee) > 0" style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Service Fee{{ f.serviceFeeType === '%' ? ' (' + f.serviceFee + '%)' : '' }}</span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tServiceFee }}</span></div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span style="font-size:13.5px;color:#5d6a82;">Pajak / Service ({{ f.taxPercent }}%)</span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tTax }}</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;margin-top:6px;border-top:2px solid #eef0f3;"><span style="font-size:15px;font-weight:700;color:#13233f;">Grand Total</span><span style="font-size:20px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tGrandTotal }}</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span class="tip-wrap" style="font-size:13.5px;color:#5d6a82;">Subtotal<i class="ph ph-question tip-ic"></i><span class="tip-box">Total harga jual semua item.<br>Contoh: <b>Harga Jual Rp 1.000.000 × Qty 5 = Rp 5.000.000</b></span></span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tSubtotal }}</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span class="tip-wrap" style="font-size:13.5px;color:#5d6a82;">Markup Reseller<i class="ph ph-question tip-ic"></i><span class="tip-box">Total keuntungan reseller dari semua item.<br>Contoh: <b>Markup Rp 100.000 × Qty 5 = Rp 500.000</b></span></span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tMarkup }}</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span class="tip-wrap" style="font-size:13.5px;color:#5d6a82;">Diskon{{ f.discountType === '%' ? ' (' + f.discount + '%)' : '' }}<i class="ph ph-question tip-ic"></i><span class="tip-box">Potongan harga dari subtotal.<br>{{ f.discountType === '%' ? 'Contoh: ' + f.discount + '% × Subtotal = ' + t.tDiscount : 'Pengurangan langsung sebesar ' + t.tDiscount + ' dari subtotal.' }}</span></span><span style="font-size:13.5px;font-weight:600;color:#c2603a;font-family:'IBM Plex Mono',monospace;">- {{ t.tDiscount }}</span></div>
+            <div v-if="Number(f.serviceFee) > 0" style="display:flex;justify-content:space-between;margin-bottom:11px;"><span class="tip-wrap" style="font-size:13.5px;color:#5d6a82;">Service Fee{{ f.serviceFeeType === '%' ? ' (' + f.serviceFee + '%)' : '' }}<i class="ph ph-question tip-ic"></i><span class="tip-box">Biaya layanan tambahan, dihitung setelah diskon.<br>Contoh: {{ f.serviceFeeType === '%' ? f.serviceFee + '% × (Subtotal − Diskon)' : 'Biaya tetap sebesar ' + t.tServiceFee }}</span></span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tServiceFee }}</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:11px;"><span class="tip-wrap" style="font-size:13.5px;color:#5d6a82;">Pajak / Service ({{ f.taxPercent }}%)<i class="ph ph-question tip-ic"></i><span class="tip-box">Pajak dihitung dari nilai <b>setelah diskon</b>.<br>Contoh: {{ f.taxPercent }}% × (Subtotal − Diskon) = {{ t.tTax }}</span></span><span style="font-size:13.5px;font-weight:600;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tTax }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0;margin-top:6px;border-top:2px solid #eef0f3;"><span class="tip-wrap" style="font-size:15px;font-weight:700;color:#13233f;">Grand Total<i class="ph ph-question tip-ic"></i><span class="tip-box">Total akhir yang harus dibayar.<br><b>Subtotal − Diskon + Service Fee + Pajak</b></span></span><span style="font-size:20px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ t.tGrandTotal }}</span></div>
             <div style="background:#0d1b30;border-radius:11px;padding:13px 16px;margin:4px 0 10px;">
-              <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12.5px;color:#9fabc4;">Total modal (HPP)</span><span style="font-size:13px;font-weight:600;color:#cdd6e6;font-family:'IBM Plex Mono',monospace;">{{ t.tCost }}</span></div>
-              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #24365a;"><span style="font-size:12.5px;color:#f0d79a;font-weight:600;">Estimasi profit</span><span style="font-size:15px;font-weight:800;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;">{{ t.tProfit }}</span></div>
-              <div style="display:flex;justify-content:space-between;margin-top:7px;"><span style="font-size:12px;color:#9fabc4;">Margin</span><span style="font-size:12.5px;font-weight:700;color:#fff;font-family:'IBM Plex Mono',monospace;">{{ t.tMargin }}</span></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span class="tip-wrap" style="font-size:12.5px;color:#9fabc4;">Total Modal<i class="ph ph-question tip-ic"></i><span class="tip-box">Total biaya modal semua item.<br>Rumus: <b>Σ (Beli + Markup Reseller) × Qty</b><br>Contoh: (Rp 800.000 + Rp 100.000) × 5 = Rp 4.500.000</span></span><span style="font-size:13px;font-weight:600;color:#cdd6e6;font-family:'IBM Plex Mono',monospace;">{{ t.tCost }}</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #24365a;"><span class="tip-wrap" style="font-size:12.5px;color:#f0d79a;font-weight:600;">Estimasi profit<i class="ph ph-question tip-ic"></i><span class="tip-box">Laba perkiraan pesanan ini.<br>Rumus: <b>Pendapatan (setelah diskon) − Total Modal − Pengeluaran lainnya</b></span></span><span style="font-size:15px;font-weight:800;color:#7ed3a6;font-family:'IBM Plex Mono',monospace;">{{ t.tProfit }}</span></div>
+              <div style="display:flex;justify-content:space-between;margin-top:7px;"><span class="tip-wrap" style="font-size:12px;color:#9fabc4;">Margin<i class="ph ph-question tip-ic"></i><span class="tip-box">Persentase keuntungan dari pendapatan.<br>Rumus: <b>Profit ÷ Pendapatan × 100%</b></span></span><span style="font-size:12.5px;font-weight:700;color:#fff;font-family:'IBM Plex Mono',monospace;">{{ t.tMargin }}</span></div>
             </div>
             <div style="background:#fafbfc;border-radius:11px;padding:14px 16px;margin-top:4px;">
-              <div style="display:flex;justify-content:space-between;margin-bottom:9px;"><span style="font-size:13px;color:#5d6a82;">DP ({{ f.dpPercent }}%)</span><span style="font-size:13px;font-weight:700;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;">{{ t.tDp }}</span></div>
-              <div style="display:flex;justify-content:space-between;"><span style="font-size:13px;color:#5d6a82;">Sisa pelunasan</span><span style="font-size:13px;font-weight:700;color:#c2603a;font-family:'IBM Plex Mono',monospace;">{{ t.tSisa }}</span></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:9px;"><span class="tip-wrap" style="font-size:13px;color:#5d6a82;">DP ({{ f.dpPercent }}%)<i class="ph ph-question tip-ic"></i><span class="tip-box">Uang muka yang dibayar di awal.<br>Rumus: <b>{{ f.dpPercent }}% × Grand Total</b><br>Contoh: {{ f.dpPercent }}% × {{ t.tGrandTotal }} = {{ t.tDp }}</span></span><span style="font-size:13px;font-weight:700;color:#1f7a5c;font-family:'IBM Plex Mono',monospace;">{{ t.tDp }}</span></div>
+              <div style="display:flex;justify-content:space-between;"><span class="tip-wrap" style="font-size:13px;color:#5d6a82;">Sisa pelunasan<i class="ph ph-question tip-ic"></i><span class="tip-box">Sisa yang harus dibayar setelah DP &amp; pembayaran yang sudah masuk.<br>Rumus: <b>Grand Total − Total yang sudah dibayar</b></span></span><span style="font-size:13px;font-weight:700;color:#c2603a;font-family:'IBM Plex Mono',monospace;">{{ t.tSisa }}</span></div>
             </div>
-            <button @click="saveOrder" :disabled="updateOrderMut.isPending.value" class="tr-btn" style="width:100%;margin-top:18px;background:#15294f;color:#fff;font-size:14.5px;font-weight:700;padding:14px;border-radius:11px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;">
+            <button @click="saveOrder(f.status)" :disabled="updateOrderMut.isPending.value" class="tr-btn" style="width:100%;margin-top:18px;background:#15294f;color:#fff;font-size:14.5px;font-weight:700;padding:14px;border-radius:11px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;">
               <i v-if="updateOrderMut.isPending.value" class="ph ph-circle-notch" style="font-size:16px;animation:spin 1s linear infinite;"></i>
               <i v-else class="ph ph-floppy-disk" style="font-size:18px;color:#c39a4d;"></i>
               {{ updateOrderMut.isPending.value ? 'Mengupdate...' : 'Update Invoice' }}
             </button>
-            <button @click="cancelEdit" class="tr-btn" style="width:100%;margin-top:9px;background:#fff;color:#7a8499;font-size:13.5px;font-weight:600;padding:11px;border-radius:11px;border:1px solid #e2e4ea;cursor:pointer;">Batal</button>
+            <button @click="saveOrder('Draft')" :disabled="updateOrderMut.isPending.value" class="tr-btn" style="width:100%;margin-top:9px;background:#fff;color:#7a8499;font-size:13.5px;font-weight:700;padding:11px;border-radius:11px;border:1px solid #e2e4ea;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ph ph-download-simple" style="font-size:15px;color:#c39a4d;"></i>{{ updateOrderMut.isPending.value ? 'Menyimpan...' : 'Simpan Draft' }}</button>
+            <button @click="cancelEdit" class="tr-btn" style="width:100%;margin-top:9px;background:#fff;color:#9aa0ad;font-size:13px;font-weight:500;padding:10px;border-radius:11px;border:1px dashed #dfe2e9;cursor:pointer;">Batal</button>
           </div>
         </div>
       </div>

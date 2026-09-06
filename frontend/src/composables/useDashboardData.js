@@ -65,8 +65,10 @@ export function useDashboardData() {
     const profit = afterDisc - totalCost - totalExpenses
     const marginPct = afterDisc ? (profit / afterDisc * 100) : 0
 
+    const totalMarkupReseller = items.reduce((s, it) => s + it.qty * (Number(it.markupCost) || 0), 0)
+
     return {
-      items, subtotal, totalCost, totalExpenses,
+      items, subtotal, totalCost, totalExpenses, totalMarkupReseller,
       discount, discountType, discountAmount,
       afterDisc, serviceFee, serviceFeeType, serviceFeeAmount,
       taxPercent, tax, grandTotal,
@@ -79,6 +81,7 @@ export function useDashboardData() {
     if (st === 'Lunas') return { bg: '#e6f4ec', color: '#1f7a5c' };
     if (st === 'Down Payment') return { bg: '#fbf1dc', color: '#9a7320' };
     if (st === 'Belum Lunas') return { bg: '#fdf0ed', color: '#c2603a' };
+    if (st === 'Draft') return { bg: '#eef0f3', color: '#5f6b80' };
     return { bg: '#eef0f3', color: '#5f6b80' };
   }
 

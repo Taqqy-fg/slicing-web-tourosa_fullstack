@@ -90,7 +90,7 @@ const areaChartSeries = computed(() => {
       data: sortedDates.map(d => ({ x: d, y: Math.round(grouped[d].revenue) }))
     },
     {
-      name: 'Total Modal (HPP)',
+      name: 'Total Modal',
       data: sortedDates.map(d => ({ x: d, y: Math.round(grouped[d].cost) }))
     }
   ]

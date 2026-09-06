@@ -216,7 +216,7 @@ onMounted(async () => {
       <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;padding:22px;">
         <div style="width:42px;height:42px;border-radius:11px;background:#eef0f3;display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><i class="ph-fill ph-bag" style="font-size:21px;color:#5d6a82;"></i></div>
         <div style="font-size:22px;font-weight:800;color:#13233f;font-family:'IBM Plex Mono',monospace;line-height:1.1;"><CountUp :value="repCostF" /></div>
-        <div style="font-size:13px;color:#7a8499;font-weight:500;margin-top:7px;">Total modal (HPP)</div>
+        <div style="font-size:13px;color:#7a8499;font-weight:500;margin-top:7px;">Total Modal</div>
       </div>
       <div style="background:linear-gradient(135deg,#15294f,#0d1b30);border-radius:16px;padding:22px;">
         <div style="width:42px;height:42px;border-radius:11px;background:rgba(195,154,77,.2);display:flex;align-items:center;justify-content:center;margin-bottom:16px;"><i class="ph-fill ph-trend-up" style="font-size:21px;color:#c39a4d;"></i></div>
