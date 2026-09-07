@@ -250,6 +250,34 @@ const saveTerms = async () => {
     isSavingTerms.value = false
   }
 }
+
+const isSavingExpenses = ref(false)
+const saveExpenseMut = useMutation({
+  mutationFn: dashboardService.updateOrder,
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    store.syncActiveInvoiceFromOrders()
+    toast.success('Pengeluaran lainnya berhasil disimpan')
+  },
+  onError: () => {
+    toast.error('Gagal menyimpan pengeluaran')
+  }
+})
+const saveExpenses = async () => {
+  if (!store.activeInvoice || !invoiceId.value) return
+  isSavingExpenses.value = true
+  const payload = {
+    expenses: (store.activeInvoice.expenses || []).map(e => ({
+      label: e.label || '',
+      amount: Number(e.amount) || 0
+    }))
+  }
+  try {
+    await saveExpenseMut.mutateAsync({ invoiceNo: invoiceId.value, orderData: payload })
+  } finally {
+    isSavingExpenses.value = false
+  }
+}
 </script>
 
 <template>
@@ -320,7 +348,10 @@ const saveTerms = async () => {
     <div style="background:#fff;border:1px solid #e8e9ee;border-radius:16px;overflow:hidden;">
       <div style="padding:24px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;"><i class="ph ph-coins" style="color:#c39a4d;font-size:19px;"></i><h3 style="font-size:15px;font-weight:700;color:#13233f;margin:0;">Pengeluaran Lainnya</h3><span style="font-size:11px;color:#9aa0ad;background:#f4f5f8;padding:4px 10px;border-radius:6px;">Biaya operasional di luar HPP</span></div>
-        <button @click="addExpense" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Pengeluaran</button>
+        <div style="display:flex;gap:8px;">
+          <button @click="saveExpenses" :disabled="isSavingExpenses" class="tr-btn" style="background:#fff;color:#1f7a5c;border:1px solid #7ed3a6;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-floppy-disk" style="font-size:15px;"></i>Simpan</button>
+          <button @click="addExpense" :disabled="isSavingExpenses" class="tr-btn" style="background:#eef3fb;color:#15294f;border:1px solid #d6e1f2;font-size:13px;font-weight:700;padding:9px 14px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px;"><i class="ph ph-plus" style="font-size:15px;"></i>Tambah Pengeluaran</button>
+        </div>
       </div>
       <div style="padding:14px 24px 8px;">
         <div class="table-scroll">

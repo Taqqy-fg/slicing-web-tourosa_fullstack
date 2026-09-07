@@ -76,7 +76,27 @@ const goNew = () => router.push('/orders/new')
 
 // ===== Kebab Menu =====
 const openMenuId = ref(null)
-const toggleMenu = (rowId) => { openMenuId.value = openMenuId.value === rowId ? null : rowId }
+const menuPos = ref({ top: 0, right: 0 })
+
+const toggleMenu = (rowId, event) => {
+  if (openMenuId.value === rowId) {
+    openMenuId.value = null
+    return
+  }
+  const btn = event.currentTarget
+  const rect = btn.getBoundingClientRect()
+  const dropdownHeight = 130 // approximate height of 3 items + divider
+  const spaceBelow = window.innerHeight - rect.bottom
+  const flipUp = spaceBelow < dropdownHeight + 12
+
+  menuPos.value = {
+    top: flipUp ? null : rect.bottom + 6,
+    bottom: flipUp ? (window.innerHeight - rect.top + 6) : null,
+    right: window.innerWidth - rect.right,
+    flipUp
+  }
+  openMenuId.value = rowId
+}
 const closeMenu = () => { openMenuId.value = null }
 
 // Close menu when clicking outside
@@ -85,6 +105,7 @@ function onDocClick(e) {
 }
 onMounted(() => document.addEventListener('mousedown', onDocClick))
 onUnmounted(() => document.removeEventListener('mousedown', onDocClick))
+
 
 const deleteModal = ref(false)
 const deleteTarget = ref(null)
@@ -153,26 +174,40 @@ const cancelDelete = () => {
             <span class="col-half-mobile" style="font-size:13.5px;font-weight:700;color:#13233f;font-family:'IBM Plex Mono',monospace;">{{ row.original.total }}</span>
             <span class="col-half-mobile"><span :style="{ color: row.original.statusColor, background: row.original.statusBg }" style="font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:7px;">{{ row.original.status }}</span></span>
             <span class="col-full-mobile kebab-wrapper" style="text-align:right;position:relative;display:flex;justify-content:flex-end;">
-              <button @click="toggleMenu(row.id)" class="tr-btn" style="background:#15294f;border:none;cursor:pointer;width:34px;height:34px;color:#fff;display:flex;align-items:center;justify-content:center;border-radius:9px;transition:all 0.2s;box-shadow:0 4px 10px rgba(21,41,79,.15);" :style="{ transform: openMenuId === row.id ? 'scale(0.95)' : 'scale(1)' }">
+              <button @click="toggleMenu(row.id, $event)" class="tr-btn" style="background:#15294f;border:none;cursor:pointer;width:34px;height:34px;color:#fff;display:flex;align-items:center;justify-content:center;border-radius:9px;transition:all 0.2s;box-shadow:0 4px 10px rgba(21,41,79,.15);" :style="{ transform: openMenuId === row.id ? 'scale(0.95)' : 'scale(1)' }">
                 <i class="ph ph-dots-three-vertical" style="font-size:20px;"></i>
               </button>
-              
-              <div v-if="openMenuId === row.id" 
-                   :style="{ position: 'absolute', right: 0, 
-                             top: (idx >= table.getRowModel().rows.length - 2 && table.getRowModel().rows.length >= 3) ? 'auto' : 'calc(100% - 4px)', 
-                             bottom: (idx >= table.getRowModel().rows.length - 2 && table.getRowModel().rows.length >= 3) ? 'calc(100% - 4px)' : 'auto', 
-                             background: '#fff', border: '1px solid #eef0f3', borderRadius: '12px', boxShadow: '0 12px 36px rgba(13,27,48,.12)', zIndex: 50, width: '160px', padding: '6px', display: 'flex', flexDirection: 'column', gap: '2px' }">
-                <button @click="openDetail(row.original.raw); closeMenu()" style="background:none;border:none;width:100%;text-align:left;padding:10px 14px;font-size:13px;font-weight:600;color:#13233f;cursor:pointer;border-radius:8px;display:flex;align-items:center;gap:8px;transition:background 0.15s;" onmouseover="this.style.background='#f4f6fa'" onmouseout="this.style.background='none'">
-                  <i class="ph ph-file-text" style="font-size:16px;color:#5d6a82;"></i> Detail
-                </button>
-                <button @click="editOrder(row.original.raw); closeMenu()" style="background:none;border:none;width:100%;text-align:left;padding:10px 14px;font-size:13px;font-weight:600;color:#13233f;cursor:pointer;border-radius:8px;display:flex;align-items:center;gap:8px;transition:background 0.15s;" onmouseover="this.style.background='#f4f6fa'" onmouseout="this.style.background='none'">
-                  <i class="ph ph-pencil-simple" style="font-size:16px;color:#15294f;"></i> Edit
-                </button>
-                <div style="height:1px;background:#eef0f3;margin:4px 0;"></div>
-                <button @click="confirmDelete(row.original.raw); closeMenu()" style="background:none;border:none;width:100%;text-align:left;padding:10px 14px;font-size:13px;font-weight:600;color:#c2603a;cursor:pointer;border-radius:8px;display:flex;align-items:center;gap:8px;transition:background 0.15s;" onmouseover="this.style.background='#fdf0ed'" onmouseout="this.style.background='none'">
-                  <i class="ph ph-trash" style="font-size:16px;"></i> Hapus
-                </button>
-              </div>
+
+              <Teleport to="body">
+                <div v-if="openMenuId === row.id"
+                     :style="{
+                       position: 'fixed',
+                       top: menuPos.flipUp ? undefined : menuPos.top + 'px',
+                       bottom: menuPos.flipUp ? menuPos.bottom + 'px' : undefined,
+                       right: menuPos.right + 'px',
+                       background: '#fff',
+                       border: '1px solid #eef0f3',
+                       borderRadius: '12px',
+                       boxShadow: '0 12px 36px rgba(13,27,48,.12)',
+                       zIndex: 9999,
+                       width: '160px',
+                       padding: '6px',
+                       display: 'flex',
+                       flexDirection: 'column',
+                       gap: '2px'
+                     }">
+                  <button @click="openDetail(row.original.raw); closeMenu()" style="background:none;border:none;width:100%;text-align:left;padding:10px 14px;font-size:13px;font-weight:600;color:#13233f;cursor:pointer;border-radius:8px;display:flex;align-items:center;gap:8px;transition:background 0.15s;" onmouseover="this.style.background='#f4f6fa'" onmouseout="this.style.background='none'">
+                    <i class="ph ph-file-text" style="font-size:16px;color:#5d6a82;"></i> Detail
+                  </button>
+                  <button @click="editOrder(row.original.raw); closeMenu()" style="background:none;border:none;width:100%;text-align:left;padding:10px 14px;font-size:13px;font-weight:600;color:#13233f;cursor:pointer;border-radius:8px;display:flex;align-items:center;gap:8px;transition:background 0.15s;" onmouseover="this.style.background='#f4f6fa'" onmouseout="this.style.background='none'">
+                    <i class="ph ph-pencil-simple" style="font-size:16px;color:#15294f;"></i> Edit
+                  </button>
+                  <div style="height:1px;background:#eef0f3;margin:4px 0;"></div>
+                  <button @click="confirmDelete(row.original.raw); closeMenu()" style="background:none;border:none;width:100%;text-align:left;padding:10px 14px;font-size:13px;font-weight:600;color:#c2603a;cursor:pointer;border-radius:8px;display:flex;align-items:center;gap:8px;transition:background 0.15s;" onmouseover="this.style.background='#fdf0ed'" onmouseout="this.style.background='none'">
+                    <i class="ph ph-trash" style="font-size:16px;"></i> Hapus
+                  </button>
+                </div>
+              </Teleport>
             </span>
           </div>
 
